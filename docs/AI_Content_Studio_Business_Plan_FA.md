@@ -2063,3 +2063,769 @@ AI Marketing Operating System
 > کاربر نباید متخصص هوش مصنوعی باشد؛ فقط باید بداند چه چیزی می‌خواهد بفروشد.
 
 </div>
+
+---
+
+# 50. اقتصاد واقعی تولید محتوا و هزینه AI
+
+این بخش بر اساس بررسی قیمت‌گذاری فعلی سرویس‌های AI در زمان تهیه این نسخه اضافه شده است. قیمت APIها ممکن است تغییر کند؛ بنابراین در محصول واقعی باید قیمت Providerها به صورت Configurable و قابل به‌روزرسانی نگهداری شود.
+
+## 50.1 اصل مهم در محاسبه Cost Per Request
+
+هزینه‌ای که کسب‌وکار بابت هر درخواست متحمل می‌شود فقط هزینه Generate نیست. یک Request کامل می‌تواند شامل موارد زیر باشد:
+
+```text
+Upload Product Image
+        ↓
+Image Analysis
+        ↓
+Creative Brief
+        ↓
+Prompt Generation
+        ↓
+Model Selection / Routing
+        ↓
+Image / Video Generation
+        ↓
+Post Processing
+        ↓
+Storage
+        ↓
+Delivery / Download
+```
+
+بنابراین برای Unit Economics باید حداقل این موارد در Cost Model لحاظ شوند:
+
+- هزینه تحلیل تصویر
+- هزینه تولید Creative Brief
+- هزینه تولید Prompt
+- هزینه Generation اصلی
+- هزینه Retry / Failed Generation
+- هزینه پردازش داخلی
+- Storage
+- CDN / Bandwidth
+- Webhook و Queue infrastructure
+- هزینه احتمالی Moderation / Safety
+
+---
+
+## 50.2 Google — گزینه اقتصادی و مناسب برای MVP
+
+Google در حال حاضر یکی از گزینه‌های جذاب برای معماری اولیه محصول است، چون هم مدل‌های تحلیل/Reasoning و هم مدل‌های Image و Video در اکوسیستم آن وجود دارند.
+
+### تحلیل تصویر و تولید متن
+
+برای نمونه، Gemini 2.5 Flash-Lite در حدود:
+
+```text
+Input:  $0.10 / 1M tokens
+Output: $0.40 / 1M tokens
+```
+
+قرار دارد.
+
+اگر برای یک Request فرض کنیم:
+
+```text
+1,500 input tokens
+500 output tokens
+```
+
+هزینه تقریبی:
+
+```text
+Input  = $0.00015
+Output = $0.00020
+-----------------
+Total  = $0.00035
+```
+
+این عدد فقط یک Example است؛ تعداد Token واقعی تصویر به مدل، ابعاد تصویر و نحوه ارسال آن بستگی دارد.
+
+### تولید تصویر
+
+قیمت‌های فعلی نمونه برای مدل‌های Imagen:
+
+```text
+Imagen 4 Fast  → $0.02 / image
+Imagen 4       → $0.04 / image
+Imagen 4 Ultra → $0.06 / image
+```
+
+برای Gemini 2.5 Flash Image نیز خروجی تصویر استاندارد حدود:
+
+```text
+$0.039 / image
+```
+
+برای خروجی 1024×1024 گزارش شده است.
+
+### تولید ویدئو
+
+برای Veo 3.1 قیمت به ازای ثانیه است. نمونه‌های مهم:
+
+```text
+Veo 3.1 Lite 720p   → $0.05 / sec
+Veo 3.1 Fast 720p   → $0.10 / sec
+Veo 3.1 Fast 1080p  → $0.12 / sec
+Veo 3.1 Standard    → $0.40 / sec
+```
+
+بنابراین برای یک ویدئوی 8 ثانیه‌ای:
+
+```text
+Lite 720p      → $0.40
+Fast 720p      → $0.80
+Fast 1080p     → $0.96
+Standard       → $3.20
+```
+
+این تفاوت قیمت نشان می‌دهد Video باید در محصول با Credit و Tier کنترل شود.
+
+---
+
+## 50.3 OpenAI
+
+OpenAI برای تحلیل و Creative Reasoning گزینه قدرتمندی است و می‌تواند در لایه Creative Engine استفاده شود.
+
+در معماری محصول نباید Business Logic مستقیماً به یک مدل OpenAI وابسته شود؛ Provider باید قابل تعویض باشد.
+
+برای GPT-5.6 Luna، قیمت فعلی نمونه:
+
+```text
+Input  → $0.20 / 1M tokens
+Output → $1.20 / 1M tokens
+```
+
+با همان فرض 1,500 ورودی و 500 خروجی:
+
+```text
+Input  = $0.00030
+Output = $0.00060
+-----------------
+Total  = $0.00090
+```
+
+### Image
+
+OpenAI در حال حاضر GPT-Image-2 را به عنوان مدل جدید تولید/ویرایش تصویر معرفی کرده است. قیمت دقیق per-image آن باید مستقیماً از Pricing API رسمی و در زمان پیاده‌سازی بررسی شود و نباید با قیمت مدل‌های قدیمی اشتباه گرفته شود.
+
+برای مقایسه تاریخی، مدل chatgpt-image-latest قیمت‌هایی در حدود $0.009 تا $0.20 برای خروجی‌های مختلف داشته، اما این قیمت‌ها نباید به عنوان قیمت GPT-Image-2 در Business Plan استفاده شوند.
+
+### Video
+
+Sora 2 در قیمت فعلی حدود:
+
+```text
+$0.10 / sec
+```
+
+است؛ یعنی:
+
+```text
+8 sec → $0.80
+```
+
+اما Sora 2 و Sora 2 Pro در حال حاضر در مسیر Deprecation قرار دارند و API آن‌ها طبق مستندات فعلی برای 24 سپتامبر 2026 برنامه خاموشی دارد. بنابراین نباید Sora 2 را به عنوان Provider اصلی و بلندمدت معماری انتخاب کرد.
+
+---
+
+## 50.4 Anthropic / Claude
+
+Claude برای این محصول به عنوان Image/Video Generator اصلی مناسب نیست.
+
+نقش مناسب Claude:
+
+```text
+Image Analysis
+Creative Reasoning
+Creative Brief
+Prompt Engineering
+Marketing Copy
+Campaign Strategy
+```
+
+مثلاً Anthropic در مستندات Vision خود نمونه‌ای ارائه می‌کند که تحلیل یک تصویر 1000×1000 با Claude Haiku 4.5 حدود $0.0013 هزینه دارد.
+
+بنابراین Claude می‌تواند یکی از Providerهای Creative Engine باشد، اما برای Generate تصویر یا ویدئو باید به Providerهای تخصصی Image/Video متصل شویم.
+
+---
+
+# 51. برآورد Cost واقعی یک درخواست کامل
+
+برای تصمیم تجاری، بهتر است به جای نگاه کردن به قیمت یک API، یک Cost Envelope برای کل Request تعریف کنیم.
+
+## 51.1 یک درخواست تولید تصویر
+
+سناریو:
+
+```text
+کاربر عکس محصول را Upload می‌کند
+        ↓
+AI تصویر را تحلیل می‌کند
+        ↓
+Creative Brief ساخته می‌شود
+        ↓
+Prompt نهایی ساخته می‌شود
+        ↓
+مدل Image Generation اجرا می‌شود
+        ↓
+خروجی ذخیره می‌شود
+```
+
+یک برآورد عملی برای MVP:
+
+| بخش | Cost تقریبی |
+|---|---:|
+| Image Analysis | $0.001 |
+| Creative / Prompt Generation | $0.001 |
+| Image Generation | $0.02 – $0.06 |
+| Infrastructure / Storage | $0.002 – $0.005 |
+| Retry / Failure Reserve | $0.004 – $0.012 |
+| **Total Planning Cost** | **$0.028 – $0.079** |
+
+بنابراین برای Business Model می‌توان فعلاً سه سطح در نظر گرفت:
+
+```text
+Economic Image   ≈ $0.03
+Standard Image   ≈ $0.05
+Premium Image    ≈ $0.10+
+```
+
+این‌ها قیمت فروش به مشتری نیستند؛ Cost تقریبی داخلی برای Planning هستند.
+
+---
+
+## 51.2 یک درخواست تولید ویدئوی 8 ثانیه‌ای
+
+سناریو:
+
+```text
+Upload Product
+      ↓
+Image Analysis
+      ↓
+Creative Brief
+      ↓
+Video Prompt
+      ↓
+Image-to-Video
+      ↓
+8 Second Video
+      ↓
+Storage / Delivery
+```
+
+### سناریوی اقتصادی
+
+با Video Model اقتصادی مانند Veo Fast/Lite:
+
+```text
+Generation       ≈ $0.40 – $0.80
+Analysis         ≈ $0.001
+Prompt           ≈ $0.001
+Infrastructure   ≈ $0.005 – $0.015
+Retry Reserve    ≈ $0.05 – $0.15
+--------------------------------
+Total            ≈ $0.46 – $0.97
+```
+
+### سناریوی Standard
+
+برای 8 ثانیه ویدئوی با کیفیت بالاتر:
+
+```text
+Generation       ≈ $0.96
+Analysis         ≈ $0.001
+Prompt           ≈ $0.001
+Infrastructure   ≈ $0.01
+Retry Reserve    ≈ $0.15 – $0.25
+--------------------------------
+Total            ≈ $1.12 – $1.22
+```
+
+### سناریوی Premium
+
+برای مدل‌های گران‌تر:
+
+```text
+≈ $2.40 – $5.60+
+```
+
+برای این Tier باید حتماً Credit بیشتری از مشتری دریافت شود.
+
+---
+
+# 52. Cost Envelope پیشنهادی برای محصول
+
+برای نسخه MVP بهتر است فعلاً با این اعداد Business Model را طراحی کنیم:
+
+| نوع درخواست | حداقل برنامه‌ریزی | Cost معمول | Premium |
+|---|---:|---:|---:|
+| Image | $0.03 | $0.05 | $0.10+ |
+| Video 8s | $0.40 | $0.80–$1.20 | $2.40–$5.60+ |
+
+نکته مهم:
+
+> **هزینه Video چندین برابر Image است.**
+
+پس Video نباید در Subscription به صورت Unlimited ارائه شود.
+
+---
+
+# 53. Credit System بر اساس Cost
+
+بهتر است Credit را با Cost داخلی مرتبط کنیم، نه اینکه صرفاً بر اساس تعداد فایل تعریف کنیم.
+
+یک مدل اولیه قابل تست:
+
+```text
+Standard Image   → 10 Credits
+Premium Image    → 25–30 Credits
+8s Video         → 75–100 Credits
+Premium Video    → 150–300 Credits
+```
+
+اما مقدار نهایی Credit باید بعد از اندازه‌گیری واقعی این موارد تعیین شود:
+
+```text
+Average AI Cost
+Retry Rate
+Provider Mix
+Storage Cost
+Gross Margin Target
+```
+
+---
+
+# 54. Unit Economics واقعی
+
+برای هر Generation باید یک رکورد مالی/مصرفی ثبت شود.
+
+```text
+Generation ID
+User ID
+Organization ID
+Provider
+Model
+Generation Type
+Input Tokens
+Output Tokens
+Input Image Size
+Output Image Size
+Video Duration
+Provider Cost
+Analysis Cost
+Prompt Cost
+Infrastructure Cost
+Retry Cost
+Total Internal Cost
+Credits Charged
+Revenue Allocated
+Gross Margin
+Processing Time
+Status
+```
+
+فرمول مدیریتی:
+
+```text
+Total Cost
+= AI Cost
++ Analysis Cost
++ Prompt Cost
++ Retry Cost
++ Infrastructure
++ Storage/CDN
+```
+
+و:
+
+```text
+Gross Margin
+= Revenue - Variable Cost
+```
+
+این داده‌ها باید از روز اول جمع‌آوری شوند.
+
+---
+
+# 55. Model Router بر اساس قیمت و کیفیت
+
+Model Router فقط نباید بگوید «بهترین مدل چیست؟».
+
+باید مسئله را به شکل Optimization حل کند:
+
+```text
+User Requirement
+        ↓
+Quality Requirement
+        ↓
+Format Requirement
+        ↓
+Speed Requirement
+        ↓
+Budget / Credit Limit
+        ↓
+Model Router
+        ↓
+Best Cost/Quality Model
+```
+
+مثلاً:
+
+```text
+Simple Product Image
+→ Economic Image Model
+
+Premium Product Hero
+→ High Quality Image Model
+
+Fast Reel
+→ Fast Video Model
+
+Premium Campaign Reel
+→ Premium Video Model
+```
+
+در نتیجه کاربر لازم نیست بداند خروجی توسط کدام Provider ساخته شده است.
+
+---
+
+# 56. Strategy پیشنهادی Provider برای MVP
+
+برای شروع بهتر است تعداد Providerها محدود باشد.
+
+### Analysis / Creative
+
+```text
+Primary   → Google Gemini
+Fallback  → OpenAI / Claude
+```
+
+### Image
+
+```text
+Primary Economic → Imagen 4 Fast
+Primary Standard → Imagen 4
+Premium          → مدل Premium قابل انتخاب توسط Router
+```
+
+### Video
+
+```text
+Primary Economic → Veo Fast / Lite
+Standard         → Veo Fast 1080p
+Premium          → Premium Video Provider
+```
+
+این ساختار باید از طریق Adapterها پیاده‌سازی شود تا Provider بعداً بدون تغییر Business Logic قابل تعویض باشد.
+
+---
+
+# 57. قانون Pricing محصول
+
+قیمت اشتراک نباید صرفاً بر اساس تعداد Generation تعیین شود.
+
+سه عامل باید همزمان لحاظ شوند:
+
+```text
+Customer Value
+      +
+Internal Cost
+      +
+Desired Gross Margin
+```
+
+مثلاً اگر یک Image برای ما حدود $0.05 تمام شود، فروش آن با Revenue مؤثر $0.20 می‌تواند حاشیه ناخالص حدود 75% قبل از هزینه‌های ثابت ایجاد کند.
+
+برای Video اگر Cost حدود $1.20 باشد و Revenue مؤثر $2.00 باشد، حاشیه ناخالص بسیار پایین‌تر است.
+
+بنابراین:
+
+> **Image می‌تواند محصول جذب‌کننده و پرمصرف باشد؛ Video باید محصول Premium و Credit-intensive باشد.**
+
+---
+
+# 58. Pricing اولیه پیشنهادی برای تست بازار
+
+این قیمت‌ها قیمت نهایی بازار نیستند؛ نقطه شروع برای تست Willingness to Pay هستند.
+
+### Free
+
+```text
+مقدار محدود Credit
+چند Generation رایگان
+Watermark
+کیفیت محدود
+```
+
+### Starter — حدود $9.99 / month
+
+تمرکز:
+
+```text
+Image-heavy
+Credit محدود
+Video محدود
+```
+
+### Creator — حدود $24.99 / month
+
+```text
+Credit بیشتر
+Image بیشتر
+Video بیشتر
+Brand Kit
+Priority Generation
+```
+
+### Pro — حدود $49.99 / month
+
+```text
+Premium Models
+Video بیشتر
+Campaign
+Brand Kit
+Bulk Generation
+```
+
+### Business — $99+ / month
+
+```text
+Team
+Workspace
+Clients
+Brand Governance
+Higher Limits
+Analytics
+```
+
+این قیمت‌ها باید بعد از اجرای MVP و مشاهده رفتار واقعی مشتری اصلاح شوند.
+
+---
+
+# 59. نکته بسیار مهم درباره Unlimited
+
+پیشنهاد اکید:
+
+```text
+Unlimited Image
+```
+
+نیز با احتیاط عرضه شود و:
+
+```text
+Unlimited Video
+```
+
+در MVP ارائه نشود.
+
+حتی اگر از عبارت Unlimited استفاده شود، باید Fair Usage Policy، Queue Policy و Abuse Protection وجود داشته باشد.
+
+مدل امن‌تر:
+
+```text
+Subscription
++
+Included Credits
++
+Top-up Credits
+```
+
+است.
+
+---
+
+# 60. معماری مالی پیشنهادی
+
+سیستم باید از همان ابتدا بتواند Cost را به صورت Real-Time یا Near Real-Time محاسبه کند.
+
+```text
+Generation Request
+       ↓
+Cost Estimator
+       ↓
+Credit Reservation
+       ↓
+AI Generation
+       ↓
+Actual Provider Cost
+       ↓
+Credit Settlement
+       ↓
+Usage Ledger
+```
+
+بهتر است Credit قبل از شروع Generation Reserve شود و بعد از مشخص شدن نتیجه واقعی Settlement شود.
+
+مثلاً:
+
+```text
+User has 100 credits
+
+Video request
+↓
+Reserve 80 credits
+↓
+Generation succeeds
+↓
+Actual cost recorded
+↓
+Charge 80
+```
+
+و در صورت شکست:
+
+```text
+Generation Failed
+↓
+Credit Refund / Partial Refund
+```
+
+این ساختار جلوی بسیاری از مشکلات Billing را می‌گیرد.
+
+---
+
+# 61. نتیجه اقتصادی نهایی
+
+بر اساس قیمت‌های فعلی Providerهای بررسی‌شده، برای Business Planning می‌توان فعلاً این محدوده‌ها را مبنا قرار داد:
+
+```text
+IMAGE REQUEST
+≈ $0.03 – $0.10+
+
+8-SECOND VIDEO
+≈ $0.40 – $1.20 معمولی
+≈ $2.40 – $5.60+ پریمیوم
+```
+
+اما این اعداد باید در یک Cost Engine واقعی به صورت Dynamic محاسبه شوند.
+
+هدف معماری این نیست که یک بار قیمت را محاسبه کنیم؛ هدف این است که هر Generation دقیقاً بداند:
+
+```text
+How much did it cost us?
+How many credits did the user spend?
+How much revenue did we receive?
+How much margin did we make?
+```
+
+این موضوع برای ادامه جذب سرمایه و تصمیم‌گیری درباره Pricing حیاتی است.
+
+---
+
+# 62. تصمیم مدیریتی جدید: Cost باید جزء Core Product باشد
+
+تا اینجا AI Gateway و Model Router به عنوان اجزای فنی محصول تعریف شده بودند. با اضافه شدن مدل اقتصادی، مشخص می‌شود که این دو فقط اجزای فنی نیستند؛ بلکه بخشی از موتور درآمد محصول هستند.
+
+معماری نهایی:
+
+```text
+                    User
+                      ↓
+                Creative Engine
+                      ↓
+               Cost Estimator
+                      ↓
+                Model Router
+                 ↙    ↓    ↘
+             Cheap  Standard Premium
+                 \    |    /
+                  AI Providers
+                      ↓
+                 Generation
+                      ↓
+                Usage Ledger
+                      ↓
+               Credit Settlement
+                      ↓
+                Business Metrics
+```
+
+این معماری باعث می‌شود محصول بتواند همزمان:
+
+- کیفیت را کنترل کند؛
+- هزینه را کنترل کند؛
+- Provider را تعویض کند؛
+- Margin را کنترل کند؛
+- Pricing را بهینه کند؛
+- و در آینده با ورود مدل‌های جدید، سریع Adapt شود.
+
+---
+
+# 63. تغییر مهم در Roadmap
+
+بر اساس اقتصاد واقعی AI، این قابلیت‌ها باید زودتر از آنچه در Roadmap اولیه آمده‌اند ساخته شوند:
+
+```text
+MVP
+├── Credit Ledger
+├── Provider Cost Tracking
+├── Generation Cost Tracking
+├── Retry Tracking
+├── Model Router
+└── Usage Analytics
+```
+
+این موارد نباید به Phaseهای خیلی دیر منتقل شوند، چون بدون آن‌ها نمی‌دانیم هر مشتری واقعاً چقدر برای ما هزینه ایجاد می‌کند.
+
+---
+
+# 64. تصمیم نهایی برای MVP اقتصادی
+
+نسخه MVP پیشنهادی از نظر تجاری:
+
+```text
+Product Upload
+      ↓
+AI Image Analysis
+      ↓
+Creative Brief
+      ↓
+Automatic Prompt
+      ↓
+Model Router
+      ↓
+Image / 8s Video
+      ↓
+Post Processing
+      ↓
+Credit Settlement
+      ↓
+Download
+```
+
+و در Backend:
+
+```text
+Laravel
+├── Creative Engine
+├── AI Gateway
+├── Model Router
+├── Provider Adapters
+├── Generation Service
+├── Cost Engine
+├── Credit Ledger
+├── Billing
+├── Queue
+└── Analytics
+```
+
+این ساختار برای شروع به اندازه کافی ساده است که داخل یک Laravel Modular Monolith ساخته شود و در عین حال برای Scale کردن آینده مناسب باقی بماند.
+
+---
+
+# 65. منابع قیمت‌گذاری و اعتبارسنجی
+
+قیمت‌ها در این بخش بر اساس مستندات و صفحات رسمی Providerها در زمان تهیه این نسخه بررسی شده‌اند. چون قیمت AI به سرعت تغییر می‌کند، قبل از Launch باید یک Pricing Verification انجام شود.
+
+Providerهای اصلی مورد بررسی:
+
+- Google Gemini / Imagen / Veo
+- OpenAI GPT / GPT-Image / Sora
+- Anthropic Claude
+
+**قاعده اجرایی:** قبل از هر تغییر Pricing مشتری، قیمت Providerها و Cost Engine داخلی باید دوباره بررسی شوند.
+
+</div>
