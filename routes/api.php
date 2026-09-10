@@ -1,6 +1,8 @@
 <?php
 
 use App\Domains\Auth\Controllers\AuthController;
+use App\Domains\Media\Controllers\ProductAssetController;
+use App\Domains\Products\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -10,3 +12,8 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::get('/user/profile', fn () => response()->json(['success' => true, 'data' => request()->user()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'error' => null]))->middleware('auth:sanctum');
+
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::apiResource('products', ProductController::class);
+    Route::post('/products/{product}/assets', [ProductAssetController::class, 'store']);
+});
