@@ -1,0 +1,12 @@
+<?php
+
+use App\Domains\Auth\Controllers\AuthController;
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('auth')->group(function (): void {
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+});
+
+Route::get('/user/profile', fn () => response()->json(['success' => true, 'data' => request()->user()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'error' => null]))->middleware('auth:sanctum');
