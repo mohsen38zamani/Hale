@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return response()->json(['success' => false, 'data' => null, 'error' => ['code' => 'VALIDATION_ERROR', 'message' => 'داده‌های ورودی معتبر نیستند.', 'details' => $exception->errors()]], 422);
+            return response()->json(['success' => false, 'data' => null, 'message' => 'داده‌های ورودی معتبر نیستند.', 'errors' => $exception->errors(), 'error' => ['code' => 'VALIDATION_ERROR', 'message' => 'داده‌های ورودی معتبر نیستند.', 'details' => $exception->errors()]], 422);
         });
         $exceptions->render(function (AuthenticationException $exception, Request $request) {
             if (! $request->is('api/*')) {

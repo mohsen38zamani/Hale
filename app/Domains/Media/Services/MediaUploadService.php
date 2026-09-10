@@ -39,6 +39,13 @@ class MediaUploadService
 
     private function createThumbnail(UploadedFile $file, string $directory, string $disk): string
     {
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagewebp')) {
+            $path = $directory.'/thumbnails/'.Str::uuid().'.'.$file->extension();
+            Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()));
+
+            return $path;
+        }
+
         $sourceContents = file_get_contents($file->getRealPath());
         $source = $sourceContents === false ? false : imagecreatefromstring($sourceContents);
 
