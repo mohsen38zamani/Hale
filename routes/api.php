@@ -1,7 +1,9 @@
 <?php
 
 use App\Domains\Auth\Controllers\AuthController;
+use App\Domains\Billing\Controllers\PlanController;
 use App\Domains\Creative\Controllers\CreativeController;
+use App\Domains\Credits\Controllers\CreditController;
 use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
 use App\Domains\Products\Controllers\ProductController;
@@ -14,6 +16,7 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::get('/user/profile', fn () => response()->json(['success' => true, 'data' => request()->user()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'error' => null]))->middleware('auth:sanctum');
+Route::get('/plans', [PlanController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
@@ -22,4 +25,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
     Route::apiResource('generations', GenerationController::class)->only(['index', 'store', 'show']);
     Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry']);
+    Route::get('/credits/balance', [CreditController::class, 'balance']);
+    Route::get('/credits/transactions', [CreditController::class, 'transactions']);
 });

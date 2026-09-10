@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Domains\Credits\Services;
+
+use App\Domains\Credits\Exceptions\InsufficientCredits;
+use App\Domains\Credits\Models\CreditAccount;
+use App\Domains\Generations\Models\Generation;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
+class CreditService
+{
+    public function account(User $user): CreditAccount
+    {
+        return $user->creditAccount()->firstOrCreate([], ['balance' => config('credits.initial_balance')]);
+    }
+
+    public function reserve(User $user, Generation $generation, int $amount): void
+    {
+        DB::transaction(function () use ($user, $generation, $amount): void {
+            $account = $this->lockedAccount($user);
+            if ($account->balance < $amount) {
+                throw new InsufficientCredits('اعتبار کافی نیست.');
+            }
+
+            $account->decrement('balance', $amount);
+            $account->increment('reserved', $amount);
+            $this->record($account->fresh(), $generation, 'reserve', -$amount, "generation:{$generation->id}:reserve");
+            $generation->update(['credits_reserved' => $amount]);
+        });
+    }
+
+    public function settle(Generation $generation): void
+    {
+        DB::transaction(function () use ($generation): void {
+            $generation->refresh();
+            if ($generation->credits_charged > 0 || $generation->credits_reserved < 1) {
+                return;
+            }
+            $account = $this->lockedAccount($generation->user);
+            $amount = $generation->credits_reserved;
+            $account->decrement('reserved', $amount);
+            $account->increment('lifetime_used', $amount);
+            $this->record($account->fresh(), $generation, 'charge', $amount, "generation:{$generation->id}:charge");
+            $generation->update(['credits_charged' => $amount, 'credits_reserved' => 0]);
+        });
+    }
+
+    public function refund(Generation $generation): void
+    {
+        DB::transaction(function () use ($generation): void {
+            $generation->refresh();
+            if ($generation->credits_reserved < 1) {
+                return;
+            }
+            $account = $this->lockedAccount($generation->user);
+            $amount = $generation->credits_reserved;
+            $account->decrement('reserved', $amount);
+            $account->increment('balance', $amount);
+            $this->record($account->fresh(), $generation, 'refund', $amount, "generation:{$generation->id}:refund:{$generation->jobs()->count()}");
+            $generation->update(['credits_reserved' => 0]);
+        });
+    }
+
+    private function lockedAccount(User $user): CreditAccount
+    {
+        $this->account($user);
+
+        return CreditAccount::query()->where('user_id', $user->id)->lockForUpdate()->firstOrFail();
+    }
+
+    private function record(CreditAccount $account, Generation $generation, string $type, int $amount, string $key): void
+    {
+        $account->transactions()->create(['user_id' => $generation->user_id, 'generation_id' => $generation->id, 'type' => $type, 'amount' => $amount, 'balance_after' => $account->balance, 'idempotency_key' => $key]);
+    }
+}

@@ -4,12 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domains\Creative\Models\CreativeProject;
+use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Products\Models\Product;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -72,5 +74,10 @@ class User extends Authenticatable
     public function generations(): HasMany
     {
         return $this->hasMany(Generation::class);
+    }
+
+    public function creditAccount(): HasOne
+    {
+        return $this->hasOne(CreditAccount::class);
     }
 }

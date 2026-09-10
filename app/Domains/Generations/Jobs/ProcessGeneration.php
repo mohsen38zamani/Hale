@@ -4,6 +4,7 @@ namespace App\Domains\Generations\Jobs;
 
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Gateway\AiGateway;
+use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,7 +25,7 @@ class ProcessGeneration implements ShouldQueue
 
     public function __construct(public readonly int $generationId) {}
 
-    public function handle(AiGateway $gateway): void
+    public function handle(AiGateway $gateway, CreditService $credits): void
     {
         $generation = Generation::query()->with('creativeProject')->findOrFail($this->generationId);
         $attempt = $generation->jobs()->create(['queue_job_id' => $this->job?->getJobId(), 'attempt' => $this->attempts(), 'status' => 'processing', 'started_at' => now()]);
@@ -42,10 +43,12 @@ class ProcessGeneration implements ShouldQueue
 
             $generation->usageLogs()->create(['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
             $generation->update(['status' => 'completed', 'provider' => $response['provider'], 'model' => $result->model, 'cost_usd' => $result->costUsd, 'processing_time_ms' => $elapsed, 'output_media_id' => $media->id]);
+            $credits->settle($generation);
             $attempt->update(['status' => 'completed', 'finished_at' => now()]);
         } catch (Throwable $exception) {
             $attempt->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'finished_at' => now()]);
             $generation->update(['status' => 'failed', 'error_message' => $exception->getMessage()]);
+            $credits->refund($generation);
             throw $exception;
         }
     }

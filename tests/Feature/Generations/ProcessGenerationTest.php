@@ -3,6 +3,7 @@
 namespace Tests\Feature\Generations;
 
 use App\Domains\AI\Gateway\AiGateway;
+use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,12 +27,13 @@ class ProcessGenerationTest extends TestCase
         $id = $this->postJson('/api/generations', ['product_id' => $product->id, 'goal' => 'sales', 'style' => 'luxury', 'format' => 'instagram_post'])->assertAccepted()->json('data.id');
         Queue::assertPushed(ProcessGeneration::class, fn (ProcessGeneration $job) => $job->generationId === $id);
 
-        (new ProcessGeneration($id))->handle(app(AiGateway::class));
+        (new ProcessGeneration($id))->handle(app(AiGateway::class), app(CreditService::class));
         $generation = $user->generations()->findOrFail($id);
 
         $this->assertSame('completed', $generation->status);
         $this->assertSame('local', $generation->provider);
         $this->assertCount(1, $generation->usageLogs);
+        $this->assertSame(10, $generation->credits_charged);
         Storage::disk('local')->assertExists($generation->outputMedia->path);
     }
 }
