@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domains\Creative\Models\CreativeProject;
+use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Products\Models\Product;
 use Database\Factories\UserFactory;
@@ -60,5 +62,15 @@ class User extends Authenticatable
     public function mediaAssets(): HasMany
     {
         return $this->hasMany(MediaAsset::class);
+    }
+
+    public function creativeProjects(): HasMany
+    {
+        return $this->hasMany(CreativeProject::class);
+    }
+
+    public function generations(): HasMany
+    {
+        return $this->hasMany(Generation::class);
     }
 }

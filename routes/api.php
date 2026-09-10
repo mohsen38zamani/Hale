@@ -1,6 +1,8 @@
 <?php
 
 use App\Domains\Auth\Controllers\AuthController;
+use App\Domains\Creative\Controllers\CreativeController;
+use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
 use App\Domains\Products\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
@@ -16,4 +18,7 @@ Route::get('/user/profile', fn () => response()->json(['success' => true, 'data'
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
     Route::post('/products/{product}/assets', [ProductAssetController::class, 'store']);
+    Route::get('/creative/options', [CreativeController::class, 'options']);
+    Route::post('/creative/preview', [CreativeController::class, 'preview']);
+    Route::apiResource('generations', GenerationController::class)->only(['index', 'store', 'show']);
 });
