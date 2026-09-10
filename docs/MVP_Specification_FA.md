@@ -96,7 +96,7 @@
 |---------|------------------|
 | آپلود و ذخیره محصول | Brand Kit |
 | ساخت عکس تبلیغاتی | Campaign (چند Asset یکجا) |
-| ساخت ویدئوی کوتاه (۸ ثانیه) | Content Calendar |
+| ساخت ویدئوی کوتاه با مدت انتخابی کاربر | Content Calendar |
 | انتخاب Goal / Style / Format | Conversational Editing |
 | حالت «خودت بهترینش رو بساز» | Team / Workspace |
 | Credit + اشتراک + پرداخت | API عمومی |
@@ -123,6 +123,8 @@ Dashboard — «امروز چی می‌خوای بسازی؟»
 انتخاب سبک: Luxury / Minimal / Cinematic / ...
       ↓
 انتخاب فرمت: Post / Story / Reel
+      ↓
+انتخاب مدت ویدئو از گزینه‌های پشتیبانی‌شده (فقط برای Video)
       ↓
 [✨ خودت بهترینش رو بساز]  یا  [ساخت محتوا]
       ↓
@@ -163,7 +165,7 @@ Dashboard — «امروز چی می‌خوای بسازی؟»
 | Dashboard | «امروز چی می‌خوای بسازی؟» + کارت‌های نوع محتوا | P0 |
 | Upload Product | Drag & drop، دوربین موبایل | P0 |
 | Product Library | Grid محصولات، جستجو، حذف | P0 |
-| Creative Builder | Wizard: Product → Goal → Style → Format | P0 |
+| Creative Builder | Wizard: Product → Goal → Style → Format → Video Duration | P0 |
 | Generation Progress | Progress bar، وضعیت async | P0 |
 | Generation Result | Preview، Download، Regenerate، Feedback | P0 |
 | History | لیست Generationها، فیلتر نوع/تاریخ | P0 |
@@ -210,7 +212,7 @@ Dashboard — «امروز چی می‌خوای بسازی؟»
 | Style Selection | ۸+ سبک تصویری (کارت) | انتخاب با یک tap |
 | Format Selection | Post, Story, Reel, TikTok | Aspect ratio درست |
 | Environment | Studio, Nature, Luxury, ... | اختیاری در wizard |
-| Video Options | Camera movement (برای Reel) | فقط وقتی format=video |
+| Video Options | Camera movement + مدت ویدئو | فقط وقتی format=video؛ مدت از گزینه‌های پشتیبانی‌شده انتخاب شود |
 | Auto Best Mode | سیستم Goal+Product → settings | پیشنهاد قبل از Generate |
 | Creative Brief | LLM → brief ساختاریافته | Logged برای debug |
 
@@ -242,7 +244,7 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 | Feature | جزئیات | Acceptance Criteria |
 |---------|--------|---------------------|
 | Image Generation | Text/Image-to-Image | Success rate > 90% |
-| Video Generation | Image-to-Video، ~۸ sec | Success rate > 85% |
+| Video Generation | Image-to-Video با مدت انتخابی کاربر | Success rate > 85%؛ Provider/Model باید مدت را پشتیبانی کند |
 | Async Queue | queued → processing → done/failed | HTTP timeout نشود |
 | Progress UI | Polling هر ۲–۳ ثانیه | کاربر وضعیت ببیند |
 | Retry | تا ۲ بار با backoff | Failed → Credit refund |
@@ -277,7 +279,7 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 
 ### پلن‌های MVP
 
-| پلن | Credit ماهانه | Image | Video 8s | Watermark | قیمت (تست) |
+| پلن | Credit ماهانه | Image | Video | Watermark | قیمت (تست) |
 |-----|---------------|-------|----------|-----------|------------|
 | **Free** | ۳۰ (~۳ Gen) | ✅ محدود | ❌ | ✅ | رایگان |
 | **Starter** | ۲۰۰ | ✅ | ۲ عدد | ❌ | ~۴۹۹,۰۰۰ تومان |
@@ -289,10 +291,10 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 |-----|--------|
 | Standard Image | ۱۰ |
 | Premium Image | ۲۵ |
-| Video 8s (Standard) | ۸۰ |
-| Video 8s (Premium) | ۱۵۰ |
+| Video (Standard) | پویا؛ بر اساس مدت انتخابی و مدل |
+| Video (Premium) | پویا؛ بر اساس مدت انتخابی و مدل |
 
-> **توجه:** اعداد نهایی بعد از اندازه‌گیری Cost واقعی Provider تنظیم می‌شوند.
+> **توجه:** پیش از Generate، Credit موردنیاز بر اساس مدت انتخابی، کیفیت و Provider/Model محاسبه و به کاربر نمایش داده می‌شود. اعداد نهایی بعد از اندازه‌گیری Cost واقعی Provider تنظیم می‌شوند.
 
 ## ۶.۷ Notifications
 
@@ -446,7 +448,7 @@ media_assets
 
 creative_projects
 ├── id, user_id, product_id
-├── goal, style, format, environment, video_settings (JSON)
+├── goal, style, format, environment, video_duration_seconds, video_settings (JSON)
 └── timestamps
 
 generations

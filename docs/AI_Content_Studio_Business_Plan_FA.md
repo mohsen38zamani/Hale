@@ -364,6 +364,7 @@ Fantasy
 ## مرحله 5 — ویدئو
 
 ```text
+مدت ویدئو (از گزینه‌های پشتیبانی‌شده مدل)
 Slow Zoom
 Camera Orbit
 Close-up
@@ -2062,8 +2063,6 @@ AI Marketing Operating System
 
 > کاربر نباید متخصص هوش مصنوعی باشد؛ فقط باید بداند چه چیزی می‌خواهد بفروشد.
 
-</div>
-
 ---
 
 # 50. اقتصاد واقعی تولید محتوا و هزینه AI
@@ -2171,13 +2170,13 @@ Veo 3.1 Fast 1080p  → $0.12 / sec
 Veo 3.1 Standard    → $0.40 / sec
 ```
 
-بنابراین برای یک ویدئوی 8 ثانیه‌ای:
+هزینه ویدئو بر اساس مدت انتخابی کاربر محاسبه می‌شود:
 
 ```text
-Lite 720p      → $0.40
-Fast 720p      → $0.80
-Fast 1080p     → $0.96
-Standard       → $3.20
+Lite 720p      → duration × $0.05
+Fast 720p      → duration × $0.10
+Fast 1080p     → duration × $0.12
+Standard       → duration × $0.40
 ```
 
 این تفاوت قیمت نشان می‌دهد Video باید در محصول با Credit و Tier کنترل شود.
@@ -2218,12 +2217,6 @@ Sora 2 در قیمت فعلی حدود:
 
 ```text
 $0.10 / sec
-```
-
-است؛ یعنی:
-
-```text
-8 sec → $0.80
 ```
 
 اما Sora 2 و Sora 2 Pro در حال حاضر در مسیر Deprecation قرار دارند و API آن‌ها طبق مستندات فعلی برای 24 سپتامبر 2026 برنامه خاموشی دارد. بنابراین نباید Sora 2 را به عنوان Provider اصلی و بلندمدت معماری انتخاب کرد.
@@ -2296,7 +2289,7 @@ Premium Image    ≈ $0.10+
 
 ---
 
-## 51.2 یک درخواست تولید ویدئوی 8 ثانیه‌ای
+## 51.2 یک درخواست تولید ویدئو با مدت انتخابی کاربر
 
 سناریو:
 
@@ -2311,7 +2304,7 @@ Video Prompt
       ↓
 Image-to-Video
       ↓
-8 Second Video
+Video with User-selected Duration
       ↓
 Storage / Delivery
 ```
@@ -2321,27 +2314,27 @@ Storage / Delivery
 با Video Model اقتصادی مانند Veo Fast/Lite:
 
 ```text
-Generation       ≈ $0.40 – $0.80
+Generation       = duration × provider price per second
 Analysis         ≈ $0.001
 Prompt           ≈ $0.001
-Infrastructure   ≈ $0.005 – $0.015
-Retry Reserve    ≈ $0.05 – $0.15
+Infrastructure   = تابع مدت و حجم خروجی
+Retry Reserve    = تابع هزینه Generation و نرخ شکست
 --------------------------------
-Total            ≈ $0.46 – $0.97
+Total            = Generation + Analysis + Prompt + Infrastructure + Retry Reserve
 ```
 
 ### سناریوی Standard
 
-برای 8 ثانیه ویدئوی با کیفیت بالاتر:
+برای ویدئوی با کیفیت بالاتر:
 
 ```text
-Generation       ≈ $0.96
+Generation       = duration × premium provider price per second
 Analysis         ≈ $0.001
 Prompt           ≈ $0.001
-Infrastructure   ≈ $0.01
-Retry Reserve    ≈ $0.15 – $0.25
+Infrastructure   = تابع مدت و حجم خروجی
+Retry Reserve    = تابع هزینه Generation و نرخ شکست
 --------------------------------
-Total            ≈ $1.12 – $1.22
+Total            = Generation + Analysis + Prompt + Infrastructure + Retry Reserve
 ```
 
 ### سناریوی Premium
@@ -2349,7 +2342,7 @@ Total            ≈ $1.12 – $1.22
 برای مدل‌های گران‌تر:
 
 ```text
-≈ $2.40 – $5.60+
+Total = duration × premium rate + overhead + retry reserve
 ```
 
 برای این Tier باید حتماً Credit بیشتری از مشتری دریافت شود.
@@ -2363,7 +2356,9 @@ Total            ≈ $1.12 – $1.22
 | نوع درخواست | حداقل برنامه‌ریزی | Cost معمول | Premium |
 |---|---:|---:|---:|
 | Image | $0.03 | $0.05 | $0.10+ |
-| Video 8s | $0.40 | $0.80–$1.20 | $2.40–$5.60+ |
+| Video | پویا بر اساس مدت و مدل | پویا بر اساس مدت و مدل | پویا بر اساس مدت و مدل |
+
+> در محصول، کاربر مدت را از گزینه‌های پشتیبانی‌شده Provider/Model انتخاب می‌کند و Cost متناسب با تعداد ثانیه‌ها محاسبه می‌شود.
 
 نکته مهم:
 
@@ -2382,8 +2377,8 @@ Total            ≈ $1.12 – $1.22
 ```text
 Standard Image   → 10 Credits
 Premium Image    → 25–30 Credits
-8s Video         → 75–100 Credits
-Premium Video    → 150–300 Credits
+Standard Video   → Dynamic by duration and model
+Premium Video    → Dynamic by duration and model
 ```
 
 اما مقدار نهایی Credit باید بعد از اندازه‌گیری واقعی این موارد تعیین شود:
@@ -2695,9 +2690,9 @@ Credit Refund / Partial Refund
 IMAGE REQUEST
 ≈ $0.03 – $0.10+
 
-8-SECOND VIDEO
-≈ $0.40 – $1.20 معمولی
-≈ $2.40 – $5.60+ پریمیوم
+VIDEO (USER-SELECTED DURATION)
+Cost = supported duration × provider price per second
+Final cost = generation cost + analysis + prompt + infrastructure + retry reserve
 ```
 
 اما این اعداد باید در یک Cost Engine واقعی به صورت Dynamic محاسبه شوند.
@@ -2787,7 +2782,7 @@ Automatic Prompt
       ↓
 Model Router
       ↓
-Image / 8s Video
+Image / Video with User-selected Duration
       ↓
 Post Processing
       ↓

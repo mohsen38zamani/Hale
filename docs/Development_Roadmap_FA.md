@@ -174,7 +174,7 @@ app/Domains/
 
 | # | Feature | Tasks |
 |---|---------|-------|
-| 3.1 | CreativeProject Model | product_id, goal, style, format, settings (JSON) |
+| 3.1 | CreativeProject Model | product_id, goal, style, format, video_duration_seconds, settings (JSON) |
 | 3.2 | Goal/Style/Format Enums | Predefined options (not free text) |
 | 3.3 | Creative Brief Generator | Input → structured brief (via LLM) |
 | 3.4 | Prompt Generator | Brief → optimized prompt |
@@ -185,7 +185,7 @@ app/Domains/
 ### Frontend
 | # | Feature | Tasks |
 |---|---------|-------|
-| 3.8 | Creative Builder Wizard | Step-by-step: Product → Goal → Style → Format |
+| 3.8 | Creative Builder Wizard | Step-by-step: Product → Goal → Style → Format → Video Duration |
 | 3.9 | Visual Style Picker | Card-based selection (not text input) |
 | 3.10 | Preview Settings | Show what system will generate |
 | 3.11 | "Auto Best" Button | One-click generation |
@@ -216,9 +216,9 @@ app/Domains/
 | # | Feature | Tasks |
 |---|---------|-------|
 | 4.1 | AI Gateway Service | Single entry point for all AI calls |
-| 4.2 | Provider Interface | `ImageGenerator`, `VideoGenerator`, `ImageAnalyzer` |
+| 4.2 | Provider Interface | `ImageGenerator`, `VideoGenerator`, `ImageAnalyzer`؛ اعلام مدت‌های پشتیبانی‌شده هر Video Provider |
 | 4.3 | Google Provider Adapter | Gemini (analysis), Imagen (image), Veo (video) |
-| 4.4 | Model Router | Select model based on type, quality, cost |
+| 4.4 | Model Router | Select model based on type, quality, duration support, cost |
 | 4.5 | Generation Job (Queue) | Async processing with Horizon |
 | 4.6 | Webhook Handler | Provider callback, idempotent |
 | 4.7 | Generation Status Updates | queued → processing → completed/failed |
@@ -263,7 +263,7 @@ app/Domains/
 |---|---------|-------|
 | 5.1 | Credit Model | balance, reserved, lifetime_used |
 | 5.2 | Credit Transaction Ledger | All credit movements logged |
-| 5.3 | Credit Reservation | Reserve before generation, settle after |
+| 5.3 | Credit Reservation | Estimate by video duration/model, reserve before generation, settle after |
 | 5.4 | Credit Refund | On failed generation |
 | 5.5 | Subscription Plans | Free, Starter, Creator (config-based) |
 | 5.6 | Subscription Model | plan, status, renews_at |
