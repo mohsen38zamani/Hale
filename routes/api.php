@@ -21,4 +21,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/creative/options', [CreativeController::class, 'options']);
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
     Route::apiResource('generations', GenerationController::class)->only(['index', 'store', 'show']);
+    Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry']);
 });

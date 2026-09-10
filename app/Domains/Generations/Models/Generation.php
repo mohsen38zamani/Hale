@@ -7,6 +7,7 @@ use App\Domains\Media\Models\MediaAsset;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Generation extends Model
 {
@@ -30,5 +31,15 @@ class Generation extends Model
     public function outputMedia(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'output_media_id');
+    }
+
+    public function jobs(): HasMany
+    {
+        return $this->hasMany(GenerationJob::class);
+    }
+
+    public function usageLogs(): HasMany
+    {
+        return $this->hasMany(UsageLog::class);
     }
 }
