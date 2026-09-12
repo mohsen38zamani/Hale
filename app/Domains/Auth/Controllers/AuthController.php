@@ -2,14 +2,17 @@
 
 namespace App\Domains\Auth\Controllers;
 
+use App\Domains\Auth\Requests\ForgotPasswordRequest;
 use App\Domains\Auth\Requests\LoginRequest;
 use App\Domains\Auth\Requests\RegisterRequest;
+use App\Domains\Auth\Requests\ResetPasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 
 class AuthController extends Controller
 {
@@ -37,6 +40,30 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()?->delete();
 
         return $this->success(['message' => 'با موفقیت خارج شدید.']);
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        Password::sendResetLink($request->only('email'));
+
+        return $this->success(['message' => 'اگر این ایمیل ثبت شده باشد، لینک بازیابی ارسال می‌شود.']);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            static function (User $user, string $password): void {
+                $user->forceFill(['password' => $password])->save();
+                $user->tokens()->delete();
+            },
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return $this->error('INVALID_RESET_TOKEN', 'لینک بازیابی معتبر یا قابل استفاده نیست.', 422);
+        }
+
+        return $this->success(['message' => 'رمز عبور با موفقیت تغییر کرد.']);
     }
 
     private function tokenPayload(User $user, string $deviceName): array
