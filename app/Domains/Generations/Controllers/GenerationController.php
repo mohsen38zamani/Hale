@@ -45,17 +45,18 @@ class GenerationController extends Controller
         $prompt = $engine->prompt($brief, $format);
         abort_unless($moderator->passes($prompt), 422, 'درخواست با سیاست محتوایی سازگار نیست.');
 
-        $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format): Generation {
-            $project = $request->user()->creativeProjects()->create([...$data, 'product_id' => $product->id, 'brief' => $brief, 'prompt' => $prompt]);
-
-            return $project->generations()->create(['user_id' => $request->user()->id, 'type' => $format->type(), 'status' => 'queued', 'prompt_hash' => hash('sha256', $prompt), 'metadata' => ['aspect_ratio' => $format->aspectRatio()]]);
-        });
-
         try {
-            $credits->reserve($request->user(), $generation, $estimator->estimate($format->type(), $data['video_duration_seconds'] ?? null));
-        } catch (InsufficientCredits $exception) {
-            $generation->creativeProject()->delete();
+            $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format, $limits, $credits, $estimator): Generation {
+                $limits->ensureCanGenerateLocked($request->user(), $format->type());
+                $project = $request->user()->creativeProjects()->create([...$data, 'product_id' => $product->id, 'brief' => $brief, 'prompt' => $prompt]);
+                $generation = $project->generations()->create(['user_id' => $request->user()->id, 'type' => $format->type(), 'status' => 'queued', 'prompt_hash' => hash('sha256', $prompt), 'metadata' => ['aspect_ratio' => $format->aspectRatio()]]);
+                $credits->reserve($request->user(), $generation, $estimator->estimate($format->type(), $data['video_duration_seconds'] ?? null));
 
+                return $generation;
+            });
+        } catch (PlanLimitReached $exception) {
+            return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
+        } catch (InsufficientCredits $exception) {
             return $this->failure('INSUFFICIENT_CREDITS', $exception->getMessage(), 402);
         }
 
@@ -81,11 +82,16 @@ class GenerationController extends Controller
             return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
         }
         try {
-            $credits->reserve($request->user(), $generation, $estimator->estimate($generation->type, $generation->creativeProject->video_duration_seconds));
+            DB::transaction(function () use ($request, $generation, $limits, $credits, $estimator): void {
+                $limits->ensureCanGenerateLocked($request->user(), $generation->type);
+                $credits->reserve($request->user(), $generation, $estimator->estimate($generation->type, $generation->creativeProject->video_duration_seconds));
+                $generation->update(['status' => 'queued', 'error_message' => null]);
+            });
+        } catch (PlanLimitReached $exception) {
+            return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
         } catch (InsufficientCredits $exception) {
             return $this->failure('INSUFFICIENT_CREDITS', $exception->getMessage(), 402);
         }
-        $generation->update(['status' => 'queued', 'error_message' => null]);
         ProcessGeneration::dispatch($generation->id)->onQueue('generations');
 
         return $this->success($generation->fresh(), 202);
@@ -103,23 +109,23 @@ class GenerationController extends Controller
             return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
         }
 
-        $newGeneration = $project->generations()->create([
-            'user_id' => $request->user()->id,
-            'type' => $generation->type,
-            'status' => 'queued',
-            'prompt_hash' => $generation->prompt_hash,
-            'metadata' => $generation->metadata,
-        ]);
-
         try {
-            $credits->reserve(
-                $request->user(),
-                $newGeneration,
-                $estimator->estimate($generation->type, $project->video_duration_seconds),
-            );
-        } catch (InsufficientCredits $exception) {
-            $newGeneration->delete();
+            $newGeneration = DB::transaction(function () use ($request, $generation, $project, $limits, $credits, $estimator): Generation {
+                $limits->ensureCanGenerateLocked($request->user(), $generation->type);
+                $newGeneration = $project->generations()->create([
+                    'user_id' => $request->user()->id,
+                    'type' => $generation->type,
+                    'status' => 'queued',
+                    'prompt_hash' => $generation->prompt_hash,
+                    'metadata' => $generation->metadata,
+                ]);
+                $credits->reserve($request->user(), $newGeneration, $estimator->estimate($generation->type, $project->video_duration_seconds));
 
+                return $newGeneration;
+            });
+        } catch (PlanLimitReached $exception) {
+            return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
+        } catch (InsufficientCredits $exception) {
             return $this->failure('INSUFFICIENT_CREDITS', $exception->getMessage(), 402);
         }
 

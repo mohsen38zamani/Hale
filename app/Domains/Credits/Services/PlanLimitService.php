@@ -15,6 +15,19 @@ class PlanLimitService
     {
         $this->subscriptions->syncExpired($user);
 
+        $this->assertCanGenerate($user, $type);
+    }
+
+    public function ensureCanGenerateLocked(User $user, string $type): void
+    {
+        $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+        $this->subscriptions->syncExpired($lockedUser);
+        $this->assertCanGenerate($lockedUser, $type);
+    }
+
+    private function assertCanGenerate(User $user, string $type): void
+    {
+
         $plan = config('plans.' . ($user->plan_key ?: 'free'));
         $limit = (int) ($plan[$type . '_limit'] ?? 0);
         $used = $user->generations()
