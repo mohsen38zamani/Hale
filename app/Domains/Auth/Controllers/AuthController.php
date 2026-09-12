@@ -2,6 +2,7 @@
 
 namespace App\Domains\Auth\Controllers;
 
+use App\Domains\Auth\Exceptions\SmsProviderException;
 use App\Domains\Auth\Requests\ForgotPasswordRequest;
 use App\Domains\Auth\Requests\LoginRequest;
 use App\Domains\Auth\Requests\RegisterRequest;
@@ -77,7 +78,11 @@ class AuthController extends Controller
 
     public function sendPhoneVerification(SendPhoneVerificationRequest $request, PhoneVerificationService $verification): JsonResponse
     {
-        return $this->success($verification->send($request->user(), $request->string('phone')->value()));
+        try {
+            return $this->success($verification->send($request->user(), $request->string('phone')->value()));
+        } catch (SmsProviderException $exception) {
+            return $this->error('SMS_PROVIDER_ERROR', 'ارسال پیامک انجام نشد. لطفاً دوباره تلاش کنید.', 502);
+        }
     }
 
     public function verifyPhone(VerifyPhoneRequest $request, PhoneVerificationService $verification): JsonResponse

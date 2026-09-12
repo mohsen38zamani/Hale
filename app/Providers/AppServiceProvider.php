@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Domains\AI\Providers\Local\FakeGenerationProvider;
 use App\Domains\AI\Router\ModelRouter;
+use App\Domains\Auth\Contracts\SmsProvider;
+use App\Domains\Auth\Providers\FakeSmsProvider;
+use App\Domains\Auth\Providers\SmsIrProvider;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -16,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModelRouter::class, fn () => new ModelRouter([
             $this->app->make(FakeGenerationProvider::class),
         ]));
+        $this->app->singleton(SmsProvider::class, function ($app): SmsProvider {
+            return match (config('services.sms.driver')) {
+                'sms_ir' => $app->make(SmsIrProvider::class),
+                default => $app->make(FakeSmsProvider::class),
+            };
+        });
     }
 
     /**

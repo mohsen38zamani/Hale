@@ -2,18 +2,21 @@
 
 namespace App\Domains\Auth\Services;
 
+use App\Domains\Auth\Contracts\SmsProvider;
 use App\Domains\Auth\Models\PhoneVerificationCode;
 use App\Domains\Credits\Services\CreditService;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 class PhoneVerificationService
 {
-    public function __construct(private readonly CreditService $credits) {}
+    public function __construct(
+        private readonly CreditService $credits,
+        private readonly SmsProvider $sms,
+    ) {}
 
     public function send(User $user, string $phone): array
     {
@@ -32,6 +35,8 @@ class PhoneVerificationService
             'code_hash' => Hash::make($code),
             'expires_at' => $expiresAt,
         ]);
+
+        $this->sms->sendVerification($phone, $code);
 
         Log::info('Phone verification code generated', ['user_id' => $user->id, 'phone' => $phone, 'code' => $code]);
 

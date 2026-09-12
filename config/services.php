@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'fake'),
+    ],
+
+    'sms_ir' => [
+        'api_key' => env('SMS_IR_API_KEY'),
+        'base_url' => env('SMS_IR_BASE_URL', 'https://api.sms.ir'),
+        'template_id' => env('SMS_IR_TEMPLATE_ID'),
+        'code_parameter' => env('SMS_IR_CODE_PARAMETER', 'Code'),
+        'timeout' => (int) env('SMS_IR_TIMEOUT', 10),
+    ],
+
 ];

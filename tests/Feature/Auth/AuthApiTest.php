@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Notification;
+use App\Domains\Auth\Contracts\SmsProvider;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Facades\Password;
@@ -172,5 +173,44 @@ class AuthApiTest extends TestCase
         $this->postJson('/api/auth/verify-phone', ['code' => '123456'])->assertOk()->assertJsonPath('data.credits_added', 30);
         $this->postJson('/api/auth/verify-phone', ['code' => '123456'])->assertUnprocessable();
         $this->assertDatabaseCount('credit_transactions', 1);
+    }
+
+    public function test_phone_verification_uses_the_bound_sms_provider(): void
+    {
+        config(['verification.phone.testing_code' => '123456']);
+        $provider = new class implements SmsProvider {
+            public bool $sent = false;
+
+            public function sendVerification(string $mobile, string $code): array
+            {
+                $this->sent = $mobile === '+989121234567' && $code === '123456';
+
+                return ['message_id' => 'test-message', 'cost' => 0];
+            }
+        };
+        app()->bind(SmsProvider::class, fn (): SmsProvider => $provider);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/auth/phone/send-code', ['phone' => '+989121234567'])->assertOk();
+        $this->assertTrue($provider->sent);
+    }
+
+    public function test_sms_provider_failure_uses_a_standard_api_error(): void
+    {
+        app()->bind(SmsProvider::class, function (): SmsProvider {
+            return new class implements SmsProvider {
+                public function sendVerification(string $mobile, string $code): array
+                {
+                    throw new \App\Domains\Auth\Exceptions\SmsProviderException('provider unavailable');
+                }
+            };
+        });
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/auth/phone/send-code', ['phone' => '+989121234567'])
+            ->assertStatus(502)
+            ->assertJsonPath('error.code', 'SMS_PROVIDER_ERROR');
     }
 }
