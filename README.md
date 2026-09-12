@@ -8,7 +8,7 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 
 ## وضعیت پروژه
 
-پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative، Generation صف‌محور، AI Gateway، اعتبار و بخشی از Billing در مخزن پیاده‌سازی شده‌اند. مسیرهای feedback و download نیز برای Generation تکمیل شده‌اند، اما frontend/PWA، پرداخت، بازیابی رمز، تأیید تلفن، اعلان‌ها و اتصال Provider واقعی هنوز باقی مانده‌اند.
+پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative، Generation صف‌محور، AI Gateway، اعتبار و Billing پایه در مخزن پیاده‌سازی شده‌اند. احراز هویت با ایمیل یا موبایل، بازیابی رمز، OTP و Credit رایگان، Provider قابل‌تعویض SMS، محدودیت پلن، Regenerate و پرداخت با Provider پیش‌فرض زرین‌پال آماده است. frontend/PWA، اتصال Provider واقعی AI، اعلان‌ها، پنل مدیریت و بعضی قابلیت‌های عملیاتی هنوز باقی مانده‌اند.
 
 
 ```text
@@ -26,10 +26,12 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 ### قابلیت‌های اصلی
 
 - ثبت‌نام، ورود، بازیابی رمز و تأیید شماره موبایل برای Credit رایگان
+- ورود با ایمیل یا شماره موبایل؛ ثبت‌نام با حداقل یکی از این دو شناسه
 - آپلود JPG، PNG و WebP تا سقف ۱۰ مگابایت
 - ثبت بازخورد 👍/👎 و Watermark برای پلن رایگان
 - سیستم Credit با چرخه Reserve → Settle/Refund
 - پلن اشتراکی، پرداخت داخلی و تاریخچه تراکنش‌ها
+- Checkout و Callback زرین‌پال پشت abstraction قابل‌تعویض درگاه پرداخت
 - پنل مدیریت حداقلی برای کاربران، Generationها و بازگشت Credit
 - ثبت هزینه Provider و مدل برای هر Generation
 - اعلان تکمیل یا شکست Generation و کاهش موجودی Credit
@@ -182,6 +184,7 @@ POST   /api/auth/login
 POST   /api/auth/logout
 POST   /api/auth/forgot-password
 POST   /api/auth/reset-password
+POST   /api/auth/phone/send-code
 POST   /api/auth/verify-phone
 
 # Products
@@ -191,6 +194,7 @@ GET    /api/products/{id}
 PUT    /api/products/{id}
 DELETE /api/products/{id}
 POST   /api/products/{id}/assets
+DELETE /api/products/{id}/assets/{asset}
 
 # Creative & Generations
 GET    /api/creative/options
@@ -199,6 +203,7 @@ POST   /api/generations
 GET    /api/generations
 GET    /api/generations/{id}
 POST   /api/generations/{id}/retry
+POST   /api/generations/{id}/regenerate
 POST   /api/generations/{id}/feedback
 GET    /api/generations/{id}/download
 
@@ -207,10 +212,22 @@ GET    /api/credits/balance
 GET    /api/credits/transactions
 GET    /api/plans
 POST   /api/subscriptions/checkout
-POST   /api/webhooks/payment
+POST   /api/webhooks/payment       # Fake/adapter webhook با signature
+GET    /api/payments/zarinpal/callback
 ```
 
 این فهرست قرارداد هدف MVP است؛ بخشی از endpointها در حال حاضر پیاده‌سازی شده‌اند و وضعیت واقعی را باید از `routes/api.php` بررسی کرد.
+
+### وضعیت فعلی Backend
+
+| حوزه | وضعیت فعلی |
+|---|---|
+| Auth | Register/Login/Logout با ایمیل یا موبایل، Password Reset و Profile Update پیاده شده |
+| Phone Verification | OTP با محدودیت تلاش، اتصال Provider پیامک و فعال‌سازی idempotent Credit رایگان |
+| SMS Provider | `FakeSmsProvider` برای تست و `SmsIrProvider` برای `sms.ir` |
+| Generation | Queue، Credit reserve/settle/refund، Plan limit، Retry و Regenerate |
+| Billing | Payment/Subscription، Checkout، Webhook امضاشده و Callback زرین‌پال |
+| باقی‌مانده | Frontend/PWA، Provider واقعی AI، Invoice، Notifications، Admin و E2E |
 
 ## مدل درآمد و Credit
 

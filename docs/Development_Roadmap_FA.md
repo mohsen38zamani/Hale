@@ -27,6 +27,10 @@
 5. **Mobile-first PWA** — مخاطب اصلی روی موبایل است
 6. **Measure everything** — KPIهای فنی از Phase 1 فعال باشند
 
+### وضعیت اجرای فعلی
+
+علامت `✅` یعنی Backend آن بخش پیاده‌سازی و تست شده است؛ نبودن علامت به معنی باقی‌ماندن کار یا تکمیل‌نبودن بخش Frontend/عملیاتی است.
+
 ---
 
 ## نمای کلی فازها
@@ -108,10 +112,10 @@ app/
 |---|---------|-------|
 | 1.1 | Laravel Project Setup | Install, config, .env template |
 | 1.2 | Database Migrations | users, organizations (schema only), sessions |
-| 1.3 | Authentication | Register, Login, Logout, Password Reset |
+| 1.3 | Authentication | ✅ Register، Login با email/phone، Logout، Password Reset |
 | 1.4 | Email Verification | Optional, recommended |
-| 1.5 | API Auth (Sanctum) | Token-based for PWA |
-| 1.6 | Base API Response Format | Standard JSON envelope |
+| 1.5 | API Auth (Sanctum) | ✅ Token-based for PWA با email یا phone |
+| 1.6 | Base API Response Format | ✅ Standard JSON envelope |
 | 1.7 | Exception Handling | Global handler, error codes |
 
 ### Frontend
@@ -125,7 +129,7 @@ app/
 | # | Feature | Tasks |
 |---|---------|-------|
 | 1.11 | PHPUnit Setup | Base test structure |
-| 1.12 | Feature Tests | Auth flow tests |
+| 1.12 | Feature Tests | ✅ Auth، Phone OTP و Profile flow tests |
 
 ---
 
@@ -261,17 +265,17 @@ app/Domains/
 
 | # | Feature | Tasks |
 |---|---------|-------|
-| 5.1 | Credit Model | balance, reserved, lifetime_used |
-| 5.2 | Credit Transaction Ledger | All credit movements logged |
-| 5.3 | Credit Reservation | Estimate by video duration/model, reserve before generation, settle after |
-| 5.4 | Credit Refund | On failed generation |
-| 5.5 | Subscription Plans | Free, Starter, Creator (config-based) |
-| 5.6 | Subscription Model | plan, status, renews_at |
-| 5.7 | Payment Gateway Integration | Zarinpal/IDPay adapter |
-| 5.8 | Payment Webhook | Verify, activate subscription, add credits |
+| 5.1 | Credit Model | ✅ balance, reserved, lifetime_used |
+| 5.2 | Credit Transaction Ledger | ✅ All credit movements logged، شامل bonus و purchase |
+| 5.3 | Credit Reservation | ✅ Estimate by video duration/model، reserve before generation، settle after |
+| 5.4 | Credit Refund | ✅ On failed generation |
+| 5.5 | Subscription Plans | ✅ Free، Starter، Creator (config-based) |
+| 5.6 | Subscription Model | ✅ plan، status، starts_at و ends_at |
+| 5.7 | Payment Gateway Integration | ✅ Zarinpal adapter پیش‌فرض + Fake provider برای تست |
+| 5.8 | Payment Webhook | ✅ Verify، activate subscription، add credits؛ callback رسمی زرین‌پال نیز فعال است |
 | 5.9 | Invoice/Receipt | Basic payment history |
-| 5.10 | Usage Limits | Enforce per-plan limits |
-| 5.11 | Anti-Fraud (basic) | Phone verification for free credits |
+| 5.10 | Usage Limits | ⚠️ محدودیت ویدئو بر اساس پلن پیاده شده؛ image limit و renewal باقی‌مانده |
+| 5.11 | Anti-Fraud (basic) | ✅ Phone OTP برای فعال‌سازی Credit رایگان |
 
 ### Frontend
 | # | Feature | Tasks |

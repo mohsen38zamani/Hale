@@ -26,6 +26,18 @@
 | **سؤال** | «چه چیزی بسازیم؟» | «به چه ترتیبی بسازیم؟» |
 | **محتوا** | User Story، صفحات، معیار موفقیت | Sprint، Task، Stack |
 
+## وضعیت پیاده‌سازی Backend در ۱۴۰۵/۰۶/۲۱
+
+تا این نسخه، بخش‌های زیر از MVP در Backend پیاده‌سازی و تست شده‌اند:
+
+- ثبت‌نام و ورود با ایمیل یا شماره موبایل؛ ثبت‌نام بدون ایمیل با حداقل یک شناسه
+- Password Reset، Profile Update و تغییر رمز با الزام رمز فعلی
+- Phone OTP با محدودیت تلاش، Provider قابل‌تعویض و فعال‌سازی یک‌باره Credit رایگان
+- Product Asset deletion، Plan limit برای ویدئو و Regenerate
+- Payment/Subscription، Checkout، Webhook امضاشده و Provider پیش‌فرض زرین‌پال
+
+Frontend/PWA، Provider واقعی AI، Notifications، Admin، Invoice و E2E هنوز تکمیل نشده‌اند.
+
 ---
 
 # ۱. هدف MVP
@@ -191,10 +203,10 @@ Dashboard — «امروز چی می‌خوای بسازی؟»
 
 | Feature | جزئیات | Acceptance Criteria |
 |---------|--------|---------------------|
-| Register | ایمیل + password | کاربر جدید در < ۳۰ ثانیه ثبت‌نام کند |
-| Login / Logout | Session + Sanctum token | Login موفق → redirect به Dashboard |
+| Register | email یا phone + password؛ حداقل یکی از دو شناسه | کاربر جدید در < ۳۰ ثانیه ثبت‌نام کند |
+| Login / Logout | email یا phone به‌عنوان identifier + Sanctum token | Login موفق → redirect به Dashboard |
 | Password Reset | Email link | Reset در < ۵ دقیقه |
-| Phone Verify (Free) | OTP برای فعال‌سازی Credit رایگان | جلوگیری از abuse چند اکانت |
+| Phone Verify (Free) | OTP از طریق Provider پیامک برای فعال‌سازی یک‌باره Credit رایگان | جلوگیری از abuse چند اکانت |
 
 ## ۶.۲ Products & Media
 
@@ -383,6 +395,7 @@ POST   /api/auth/login
 POST   /api/auth/logout
 POST   /api/auth/forgot-password
 POST   /api/auth/reset-password
+POST   /api/auth/phone/send-code   # Request OTP
 POST   /api/auth/verify-phone      # Free credit activation
 ```
 
@@ -394,6 +407,7 @@ GET    /api/products/{id}
 PUT    /api/products/{id}
 DELETE /api/products/{id}
 POST   /api/products/{id}/assets   # Upload image
+DELETE /api/products/{id}/assets/{asset}
 ```
 
 ## Creative & Generations
@@ -404,6 +418,7 @@ POST   /api/generations            # Start generation
 GET    /api/generations            # History list
 GET    /api/generations/{id}       # Status + result
 POST   /api/generations/{id}/retry
+POST   /api/generations/{id}/regenerate
 POST   /api/generations/{id}/feedback   # 👍/👎
 GET    /api/generations/{id}/download
 ```
@@ -414,7 +429,8 @@ GET    /api/credits/balance
 GET    /api/credits/transactions
 GET    /api/plans
 POST   /api/subscriptions/checkout
-POST   /api/webhooks/payment       # Zarinpal/IDPay callback
+POST   /api/webhooks/payment       # Signed adapter webhook
+GET    /api/payments/zarinpal/callback
 ```
 
 ## User
