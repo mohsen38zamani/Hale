@@ -83,35 +83,65 @@ const productModal = document.querySelector('[data-product-modal]');
 const productForm = document.querySelector('[data-product-form]');
 const productGrid = document.querySelector('[data-product-grid]');
 const productMessage = document.querySelector('[data-product-message]');
+const productSearch = document.querySelector('[data-product-search]');
+const productFormTitle = document.querySelector('[data-product-form-title]');
+const productSubmit = document.querySelector('[data-product-submit]');
+const productImage = productForm?.querySelector('input[name="image"]');
+let editingProductId = null;
 
 const loadProducts = async () => {
 	if (!productGrid || !token) return;
-	const response = await fetch('/api/products?per_page=12', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+	const query = new URLSearchParams({ per_page: '12' });
+	if (productSearch?.value.trim()) query.set('search', productSearch.value.trim());
+	const response = await fetch(`/api/products?${query}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
 	if (!response.ok) return;
 	const result = await response.json();
 	const products = result.data?.data || [];
-	productGrid.innerHTML = products.length ? products.map((product) => { const primary = product.assets?.[0]; return `<article class="product-tile"><div class="product-tile-art">${primary ? `<img data-product-asset="${primary.id}" alt="${product.name}">` : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small></article>`; }).join('') : '<p class="empty-state">هنوز محصولی نداری. اولین محصولت را اضافه کن.</p>';
+	productGrid.innerHTML = products.length ? products.map((product) => { const primary = product.assets?.[0]; return `<article class="product-tile"><div class="product-tile-art">${primary ? `<img data-product-asset="${primary.id}" alt="${product.name}">` : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`; }).join('') : '<p class="empty-state">محصولی با این مشخصات پیدا نشد.</p>';
 	await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => { const asset = product.assets[0]; const response = await fetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'image/*', Authorization: `Bearer ${token}` } }); if (!response.ok) return; const image = document.querySelector(`[data-product-asset="${asset.id}"]`); if (image) image.src = URL.createObjectURL(await response.blob()); }));
 };
 
-document.querySelectorAll('[data-open-product]').forEach((button) => button.addEventListener('click', () => productModal?.removeAttribute('hidden')));
+document.querySelectorAll('[data-open-product]').forEach((button) => button.addEventListener('click', () => { editingProductId = null; productForm?.reset(); productFormTitle.textContent = 'محصول جدید'; productSubmit.innerHTML = 'افزودن محصول <span>←</span>'; productImage.required = true; productModal?.removeAttribute('hidden'); }));
 document.querySelectorAll('[data-close-product]').forEach((button) => button.addEventListener('click', () => productModal?.setAttribute('hidden', '')));
+productSearch?.addEventListener('input', () => loadProducts());
+productGrid?.addEventListener('click', async (event) => {
+	const editButton = event.target.closest('[data-edit-product]');
+	const deleteButton = event.target.closest('[data-delete-product]');
+	if (editButton) {
+		const product = (await fetch(`/api/products/${editButton.dataset.editProduct}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } })).json();
+		const data = product.data;
+		editingProductId = data.id;
+		productForm.elements.name.value = data.name;
+		productForm.elements.description.value = data.description || '';
+		productFormTitle.textContent = 'ویرایش محصول';
+		productSubmit.innerHTML = 'ذخیره تغییرات <span>←</span>';
+		productImage.required = false;
+		productModal?.removeAttribute('hidden');
+	}
+	if (deleteButton && window.confirm('این محصول و assetهای بدون استفاده حذف شوند؟')) {
+		const response = await fetch(`/api/products/${deleteButton.dataset.deleteProduct}`, { method: 'DELETE', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		if (response.ok) await loadProducts(); else productMessage.textContent = 'حذف محصول انجام نشد.';
+	}
+});
 productForm?.addEventListener('submit', async (event) => {
 	event.preventDefault();
 	const values = new FormData(productForm);
 	const button = productForm.querySelector('button[type="submit"]');
 	button.disabled = true;
-	productMessage.textContent = 'در حال آپلود...';
+	productMessage.textContent = editingProductId ? 'در حال ذخیره...' : 'در حال آپلود...';
 	try {
-		const productResponse = await fetch('/api/products', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name: values.get('name'), description: values.get('description') }) });
+		const productResponse = await fetch(editingProductId ? `/api/products/${editingProductId}` : '/api/products', { method: editingProductId ? 'PUT' : 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name: values.get('name'), description: values.get('description') }) });
 		const productResult = await productResponse.json();
-		if (!productResponse.ok) throw new Error(productResult.error?.message || 'ساخت محصول انجام نشد.');
+		if (!productResponse.ok) throw new Error(productResult.error?.message || 'ذخیره محصول انجام نشد.');
 		const upload = new FormData();
-		upload.append('image', values.get('image'));
-		const assetResponse = await fetch(`/api/products/${productResult.data.id}/assets`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, body: upload });
-		if (!assetResponse.ok) throw new Error('آپلود تصویر انجام نشد.');
+		if (values.get('image')?.size) {
+			upload.append('image', values.get('image'));
+			const assetResponse = await fetch(`/api/products/${productResult.data.id}/assets`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, body: upload });
+			if (!assetResponse.ok) throw new Error('آپلود تصویر انجام نشد.');
+		}
 		productModal.setAttribute('hidden', '');
 		productForm.reset();
+		editingProductId = null;
 		await loadProducts();
 	} catch (error) {
 		productMessage.className = 'form-message error-message';

@@ -39,3 +39,4 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .product-tile-art img { height: 100%; object-fit: cover; width: 100%; }
+.section-actions { align-items: center; display: flex; gap: 10px; }.library-search { background: transparent; border: 0; border-bottom: 1px solid var(--line); font: 11px Arial, sans-serif; max-width: 170px; outline: 0; padding: 10px 0; }.product-tile-actions { display: flex; gap: 8px; margin-top: 10px; }.product-tile-actions .small-button { padding: 7px 10px; }
