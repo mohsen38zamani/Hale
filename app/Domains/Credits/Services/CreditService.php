@@ -78,16 +78,26 @@ class CreditService
 
     public function grantBonus(User $user, int $amount, string $key): int
     {
+        return $this->grant($user, $amount, $key, 'bonus', ['reason' => $key]);
+    }
+
+    public function grantPurchase(User $user, int $amount, string $key, array $metadata = []): int
+    {
+        return $this->grant($user, $amount, $key, 'purchase', $metadata);
+    }
+
+    private function grant(User $user, int $amount, string $key, string $type, array $metadata): int
+    {
         $this->initialize($user);
 
-        return DB::transaction(function () use ($user, $amount, $key): int {
+        return DB::transaction(function () use ($user, $amount, $key, $type, $metadata): int {
             $account = $this->lockedAccount($user);
             if ($account->transactions()->where('idempotency_key', $key)->exists()) {
                 return 0;
             }
 
             $account->increment('balance', $amount);
-            $this->record($account->fresh(), null, 'bonus', $amount, $key, ['reason' => $key]);
+            $this->record($account->fresh(), null, $type, $amount, $key, $metadata);
 
             return $amount;
         });

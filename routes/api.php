@@ -21,6 +21,7 @@ Route::prefix('auth')->group(function (): void {
 
 Route::get('/user/profile', fn () => response()->json(['success' => true, 'data' => request()->user()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'error' => null]))->middleware('auth:sanctum');
 Route::get('/plans', [PlanController::class, 'index']);
+Route::post('/webhooks/payment', [PlanController::class, 'webhook']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
@@ -36,4 +37,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/credits/balance', [CreditController::class, 'balance']);
     Route::get('/credits/transactions', [CreditController::class, 'transactions']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/subscriptions/checkout', [PlanController::class, 'checkout']);
 });
