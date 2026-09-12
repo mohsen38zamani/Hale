@@ -41,37 +41,12 @@ Brand Kit، Campaign Generator، Content Calendar، ویرایش مکالمه‌
 ## گزینه‌های تولید محتوا
 
 | بخش | گزینه‌های اولیه |
-برای اجرای محیط توسعهٔ فعلی:
 |---|---|
 | هدف | معرفی محصول، افزایش فروش، برندینگ، تخفیف، محصول جدید، جذب مخاطب |
-docker compose build app
-docker compose up -d app nginx mysql redis mailpit
-docker compose exec app php artisan migrate --force
-```
-
-برای اجرای MinIO و ساخت خودکار bucket `hale` نیز از profile ذخیره‌سازی استفاده کنید:
-
-```bash
-docker compose --profile storage build minio minio-init
-docker compose --profile storage up -d
-```
-
-### آدرس سرویس‌ها
-
-| سرویس | آدرس |
-|---|---|
-| Laravel / Nginx | http://localhost:8080 |
-| Mailpit | http://localhost:8025 |
-| MinIO API | http://localhost:9000 |
-| MinIO Console | http://localhost:9001 |
-| MySQL | `localhost:33060` |
-| Redis | `localhost:63790` |
-
-اجرای تست‌ها در image پروژه که `pdo_sqlite` دارد:
-
-```bash
-docker compose run --rm app php artisan test
-```
+| سبک | Luxury، Minimal، Cinematic، Natural، Colorful، Dark، Professional، Fashion |
+| فرمت | Instagram Post (1:1)، Story (9:16)، Reel (9:16)، TikTok (9:16) |
+| مدت ویدئو | انتخاب کاربر از مدت‌های پشتیبانی‌شده توسط Provider/Model |
+| خروجی | تصویر استاندارد/پریمیوم، ویدئوی استاندارد/پریمیوم با مدت انتخابی |
 | سبک | Luxury، Minimal، Cinematic، Natural، Colorful، Dark، Professional، Fashion |
 | فرمت | Instagram Post (1:1)، Story (9:16)، Reel (9:16)، TikTok (9:16) |
 | مدت ویدئو | انتخاب کاربر از مدت‌های پشتیبانی‌شده توسط Provider/Model |
@@ -177,18 +152,13 @@ app/Domains/
 ```bash
 cp .env.example .env
 docker compose build app
-docker compose up -d app nginx mysql redis mailpit
+docker compose up -d
 docker compose exec app composer install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate --force
 ```
 
-برای اجرای MinIO و ساخت خودکار bucket `hale` نیز از profile ذخیره‌سازی استفاده کنید:
-
-```bash
-docker compose --profile storage build minio minio-init
-docker compose --profile storage up -d
-```
+اجرای `docker compose up -d`، MinIO و سرویس یک‌بارمصرف `minio-init` را نیز اجرا می‌کند و bucket `hale` را به‌صورت خودکار می‌سازد. `minio-init` پس از ساخت bucket با کد خروج `0` متوقف‌شدن طبیعی دارد.
 
 ### آدرس سرویس‌ها
 

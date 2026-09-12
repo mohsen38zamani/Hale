@@ -2,7 +2,13 @@ services:
   app:
     build: {context: ., dockerfile: docker/php/Dockerfile}
     volumes: [".:/var/www/html"]
-    depends_on: [mysql, redis]
+    depends_on:
+      mysql:
+        condition: service_started
+      redis:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
   nginx:
     image: nginx:alpine
     ports: ["8080:80"]
@@ -19,7 +25,6 @@ services:
   minio:
     build: {context: docker/minio}
     image: hale-minio:local
-    profiles: [storage]
     command: server /data --console-address :9001
     environment: {MINIO_ROOT_USER: hale, MINIO_ROOT_PASSWORD: hale-secret}
     ports: ["9000:9000", "9001:9001"]
@@ -27,7 +32,6 @@ services:
   minio-init:
     build: {context: docker/minio}
     image: hale-minio:local
-    profiles: [storage]
     entrypoint: /bin/sh /init.sh
     environment: {MINIO_ROOT_USER: hale, MINIO_ROOT_PASSWORD: hale-secret, AWS_BUCKET: hale}
     volumes: ["./docker/scripts/minio-init.sh:/init.sh:ro"]

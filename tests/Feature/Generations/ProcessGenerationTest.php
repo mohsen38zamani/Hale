@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use RuntimeException;
@@ -20,10 +21,17 @@ class ProcessGenerationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Cache::flush();
+        Redis::connection('default')->flushdb();
+    }
+
     public function test_generation_is_dispatched_and_pipeline_tracks_output_and_cost(): void
     {
         Queue::fake();
-        Storage::fake('local');
+        Storage::fake('s3');
         $user = User::factory()->create();
         Sanctum::actingAs($user);
         $product = $user->products()->create(['name' => 'عطر']);
@@ -38,7 +46,7 @@ class ProcessGenerationTest extends TestCase
         $this->assertSame('local', $generation->provider);
         $this->assertCount(1, $generation->usageLogs);
         $this->assertSame(10, $generation->credits_charged);
-        $this->assertTrue(Storage::disk('local')->exists($generation->outputMedia->path));
+        $this->assertTrue(Storage::disk('s3')->exists($generation->outputMedia->path));
     }
 
     public function test_failed_generation_can_be_retried_after_refund(): void
@@ -59,7 +67,7 @@ class ProcessGenerationTest extends TestCase
 
     public function test_transient_failure_keeps_reservation_and_successful_retry_settles_once(): void
     {
-        Storage::fake('local');
+        Storage::fake('s3');
         $user = User::factory()->create();
         $generation = $this->createGeneration($user);
         $credits = app(CreditService::class);
@@ -117,6 +125,7 @@ class ProcessGenerationTest extends TestCase
     public function test_duplicate_generation_jobs_are_only_dispatched_once(): void
     {
         Cache::flush();
+        Redis::connection('default')->flushdb();
         Queue::fake();
         $user = User::factory()->create();
         $generation = $this->createGeneration($user);
