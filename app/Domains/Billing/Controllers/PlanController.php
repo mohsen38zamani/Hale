@@ -21,7 +21,7 @@ class PlanController extends Controller
 
     public function checkout(CheckoutRequest $request, BillingService $billing): JsonResponse
     {
-        return $this->success($billing->checkout($request->user(), $request->string('plan_key')->value()), 201);
+        return $this->success($billing->checkout($request->user(), $request->string('plan_key')->value(), $request->header('Idempotency-Key')), 201);
     }
 
     public function payments(Request $request): JsonResponse

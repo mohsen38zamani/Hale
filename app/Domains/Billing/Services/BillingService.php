@@ -18,19 +18,32 @@ class BillingService
         private readonly CreditService $credits,
     ) {}
 
-    public function checkout(User $user, string $planKey): array
+    public function checkout(User $user, string $planKey, ?string $idempotencyKey = null): array
     {
         $plan = config('plans.'.$planKey);
+        $key = $idempotencyKey !== null && trim($idempotencyKey) !== ''
+            ? 'checkout:'.$user->id.':'.trim($idempotencyKey)
+            : 'checkout:'.$user->id.':'.str()->uuid();
+        $existing = Payment::query()->where('idempotency_key', $key)->first();
+
+        if ($existing !== null) {
+            return [
+                'payment_id' => $existing->id,
+                'authority' => $existing->authority,
+                'redirect_url' => $existing->metadata['redirect_url'] ?? null,
+            ];
+        }
+
         $payment = Payment::create([
             'user_id' => $user->id,
             'plan_key' => $planKey,
             'amount' => $plan['price_irr'],
             'gateway' => config('payment.driver'),
             'status' => 'pending',
-            'idempotency_key' => 'checkout:'.$user->id.':'.str()->uuid(),
+            'idempotency_key' => $key,
         ]);
         $gatewayPayment = $this->gateway->createPayment($user, $planKey, (int) $plan['price_irr']);
-        $payment->update(['authority' => $gatewayPayment['authority']]);
+        $payment->update(['authority' => $gatewayPayment['authority'], 'metadata' => ['redirect_url' => $gatewayPayment['redirect_url']]]);
 
         return ['payment_id' => $payment->id, 'authority' => $payment->authority, 'redirect_url' => $gatewayPayment['redirect_url']];
     }

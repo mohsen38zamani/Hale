@@ -66,6 +66,19 @@ class BillingApiTest extends TestCase
         $this->assertDatabaseHas('credit_transactions', ['user_id' => $user->id, 'type' => 'purchase', 'amount' => 200]);
     }
 
+    public function test_checkout_is_idempotent_when_client_reuses_key(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $headers = ['Idempotency-Key' => 'checkout-1'];
+
+        $first = $this->postJson('/api/subscriptions/checkout', ['plan_key' => 'starter'], $headers)->assertCreated();
+        $second = $this->postJson('/api/subscriptions/checkout', ['plan_key' => 'starter'], $headers)->assertCreated();
+
+        $this->assertSame($first->json('data.payment_id'), $second->json('data.payment_id'));
+        $this->assertDatabaseCount('payments', 1);
+    }
+
     public function test_duplicate_paid_webhook_does_not_grant_credits_twice(): void
     {
         $user = User::factory()->create();
