@@ -36,7 +36,7 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
 
     public function handle(AiGateway $gateway, CreditService $credits): void
     {
-        $generation = Generation::query()->with('creativeProject')->findOrFail($this->generationId);
+        $generation = Generation::query()->with('creativeProject.product.assets')->findOrFail($this->generationId);
         if (in_array($generation->status, ['processing', 'completed'], true)) {
             return;
         }
@@ -47,7 +47,15 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
 
         try {
             $project = $generation->creativeProject;
-            $response = $gateway->generate(new GenerationInput($generation->type, $project->prompt, $generation->metadata['aspect_ratio'], $project->video_duration_seconds));
+            $asset = $project->product?->assets->first(fn ($asset) => (bool) $asset->pivot->is_primary) ?? $project->product?->assets->first();
+            $response = $gateway->generate(new GenerationInput(
+                $generation->type,
+                $project->prompt,
+                $generation->metadata['aspect_ratio'],
+                $project->video_duration_seconds,
+                $asset?->disk,
+                $asset?->path,
+            ));
             $result = $response['result'];
             $this->assertOutputContract($generation->type, $result->mime, $result->extension);
             $path = "generations/{$generation->user_id}/{$generation->id}.{$result->extension}";

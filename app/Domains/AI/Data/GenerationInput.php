@@ -9,5 +9,7 @@ readonly class GenerationInput
         public string $prompt,
         public string $aspectRatio,
         public ?int $durationSeconds = null,
+        public ?string $assetDisk = null,
+        public ?string $assetPath = null,
     ) {}
 }
