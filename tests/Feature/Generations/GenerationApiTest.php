@@ -30,6 +30,21 @@ class GenerationApiTest extends TestCase
         $this->postJson('/api/generations', ['product_id' => $product->id, 'goal' => 'branding', 'style' => 'fashion', 'format' => 'instagram_reel'])->assertUnprocessable()->assertJsonValidationErrors('video_duration_seconds');
     }
 
+    public function test_free_plan_cannot_generate_video(): void
+    {
+        $user = User::factory()->create(['plan_key' => 'free']);
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'کفش']);
+
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'style' => 'fashion',
+            'format' => 'instagram_reel',
+            'video_duration_seconds' => 5,
+        ])->assertStatus(402)->assertJsonPath('error.code', 'PLAN_LIMIT_REACHED');
+    }
+
     public function test_owner_can_submit_feedback_for_completed_generation(): void
     {
         $user = User::factory()->create();

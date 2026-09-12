@@ -6,8 +6,10 @@ use App\Domains\AI\Services\PromptModerator;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Services\CreativeEngine;
 use App\Domains\Credits\Exceptions\InsufficientCredits;
+use App\Domains\Credits\Exceptions\PlanLimitReached;
 use App\Domains\Credits\Services\CreditEstimator;
 use App\Domains\Credits\Services\CreditService;
+use App\Domains\Credits\Services\PlanLimitService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Generations\Requests\StoreGenerationRequest;
@@ -28,12 +30,17 @@ class GenerationController extends Controller
         return $this->success($request->user()->generations()->with(['creativeProject.product', 'outputMedia'])->latest()->paginate(min($request->integer('per_page', 15), 50)));
     }
 
-    public function store(StoreGenerationRequest $request, CreativeEngine $engine, PromptModerator $moderator, CreditEstimator $estimator, CreditService $credits): JsonResponse
+    public function store(StoreGenerationRequest $request, CreativeEngine $engine, PromptModerator $moderator, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse
     {
         $product = Product::query()->findOrFail($request->integer('product_id'));
         abort_unless($product->user_id === $request->user()->id, 404);
         $data = $request->validated();
         $format = CreativeFormat::from($data['format']);
+        try {
+            $limits->ensureCanGenerate($request->user(), $format->type());
+        } catch (PlanLimitReached $exception) {
+            return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
+        }
         $brief = $engine->brief($product, $data);
         $prompt = $engine->prompt($brief, $format);
         abort_unless($moderator->passes($prompt), 422, 'درخواست با سیاست محتوایی سازگار نیست.');
@@ -64,10 +71,15 @@ class GenerationController extends Controller
         return $this->success($generation->load(['creativeProject.product', 'outputMedia']));
     }
 
-    public function retry(Request $request, Generation $generation, CreditEstimator $estimator, CreditService $credits): JsonResponse
+    public function retry(Request $request, Generation $generation, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse
     {
         abort_unless($generation->user_id === $request->user()->id, 404);
         abort_unless($generation->status === 'failed', 409, 'فقط تولید ناموفق قابل تلاش مجدد است.');
+        try {
+            $limits->ensureCanGenerate($request->user(), $generation->type);
+        } catch (PlanLimitReached $exception) {
+            return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
+        }
         try {
             $credits->reserve($request->user(), $generation, $estimator->estimate($generation->type, $generation->creativeProject->video_duration_seconds));
         } catch (InsufficientCredits $exception) {
