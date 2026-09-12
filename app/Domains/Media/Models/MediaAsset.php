@@ -13,7 +13,12 @@ class MediaAsset extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['disk', 'path', 'thumbnail_path', 'mime', 'size', 'width', 'height'];
+    protected $fillable = ['disk', 'path', 'thumbnail_path', 'mime', 'size', 'width', 'height', 'expires_at'];
+
+    protected function casts(): array
+    {
+        return ['expires_at' => 'datetime'];
+    }
 
     public function user(): BelongsTo
     {

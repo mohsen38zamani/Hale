@@ -6,6 +6,7 @@ use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Gateway\AiGateway;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
+use App\Domains\Notifications\Notifications\GenerationStatusNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -48,15 +49,17 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
             $project = $generation->creativeProject;
             $response = $gateway->generate(new GenerationInput($generation->type, $project->prompt, $generation->metadata['aspect_ratio'], $project->video_duration_seconds));
             $result = $response['result'];
+            $this->assertOutputContract($generation->type, $result->mime, $result->extension);
             $path = "generations/{$generation->user_id}/{$generation->id}.{$result->extension}";
             Storage::disk(config('ai.output_disk'))->put($path, $result->contents);
-            $media = $generation->user->mediaAssets()->create(['disk' => config('ai.output_disk'), 'path' => $path, 'mime' => $result->mime, 'size' => strlen($result->contents)]);
+            $media = $generation->user->mediaAssets()->create(['disk' => config('ai.output_disk'), 'path' => $path, 'mime' => $result->mime, 'size' => strlen($result->contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
             $elapsed = (int) ((hrtime(true) - $startedAt) / 1_000_000);
 
             $generation->usageLogs()->create(['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
             $generation->update(['status' => 'completed', 'provider' => $response['provider'], 'model' => $result->model, 'cost_usd' => $result->costUsd, 'processing_time_ms' => $elapsed, 'output_media_id' => $media->id]);
             $credits->settle($generation);
             $attempt->update(['status' => 'completed', 'finished_at' => now()]);
+            $generation->user->notify(new GenerationStatusNotification($generation->fresh(), 'completed'));
         } catch (Throwable $exception) {
             $attempt->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'finished_at' => now()]);
             $attemptNumber = max(1, $this->attempts());
@@ -74,5 +77,23 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
 
         $generation->update(['status' => 'failed', 'error_message' => $exception->getMessage()]);
         app(CreditService::class)->refund($generation);
+        $generation->user->notify(new GenerationStatusNotification($generation, 'failed'));
+    }
+
+    private function assertOutputContract(string $type, string $mime, string $extension): void
+    {
+        $expected = $type === 'video' ? ['video/mp4', 'mp4'] : [['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']];
+
+        if ($type === 'video' && $mime !== $expected[0]) {
+            throw new \RuntimeException('Provider خروجی ویدئو با MIME video/mp4 تولید نکرد.');
+        }
+
+        if ($type === 'video' && $extension !== $expected[1]) {
+            throw new \RuntimeException('Provider خروجی ویدئو با پسوند mp4 تولید نکرد.');
+        }
+
+        if ($type === 'image' && ! in_array([$mime, $extension], $expected, true)) {
+            throw new \RuntimeException('Provider خروجی تصویر با MIME و پسوند معتبر تولید نکرد.');
+        }
     }
 }
