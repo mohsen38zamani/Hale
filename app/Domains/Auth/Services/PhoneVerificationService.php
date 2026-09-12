@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class PhoneVerificationService
@@ -23,24 +24,25 @@ class PhoneVerificationService
         $code = config('verification.phone.testing_code') ?: str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expiresAt = Carbon::now()->addMinutes((int) config('verification.phone.expires_minutes'));
 
-        PhoneVerificationCode::query()
-            ->where('user_id', $user->id)
-            ->whereNull('verified_at')
-            ->delete();
+        return DB::transaction(function () use ($user, $phone, $code, $expiresAt): array {
+            PhoneVerificationCode::query()
+                ->where('user_id', $user->id)
+                ->whereNull('verified_at')
+                ->delete();
 
-        $user->forceFill(['phone' => $phone, 'phone_verified_at' => null])->save();
-        PhoneVerificationCode::create([
-            'user_id' => $user->id,
-            'phone' => $phone,
-            'code_hash' => Hash::make($code),
-            'expires_at' => $expiresAt,
-        ]);
+            PhoneVerificationCode::create([
+                'user_id' => $user->id,
+                'phone' => $phone,
+                'code_hash' => Hash::make($code),
+                'expires_at' => $expiresAt,
+            ]);
 
-        $this->sms->sendVerification($phone, $code);
+            $this->sms->sendVerification($phone, $code);
+            $user->forceFill(['phone' => $phone, 'phone_verified_at' => null])->save();
+            Log::info('Phone verification requested', ['user_id' => $user->id, 'phone_suffix' => substr($phone, -4)]);
 
-        Log::info('Phone verification code generated', ['user_id' => $user->id, 'phone' => $phone, 'code' => $code]);
-
-        return ['expires_at' => $expiresAt, 'debug_code' => app()->environment(['local', 'testing']) ? $code : null];
+            return ['expires_at' => $expiresAt, 'debug_code' => app()->environment(['local', 'testing']) ? $code : null];
+        });
     }
 
     public function verify(User $user, string $code): int
