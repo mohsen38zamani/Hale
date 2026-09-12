@@ -110,7 +110,7 @@
 
 - [ ] تکمیل Product Library.
   - نمایش thumbnail واقعی از Storage با endpoint احراز‌شده تکمیل شده است.
-  - edit، delete، search، pagination و re-upload.
+  - edit، delete، search و re-upload در UI تکمیل شده‌اند؛ pagination UI هنوز باقی است.
   - confirmation و state خطا برای حذف.
   - حذف Product اکنون assetهای بدون owner و فایل‌های Storage را پاک می‌کند و upload pivot cleanup جبرانی دارد؛ تست DB/Storage هنوز لازم است.
 
