@@ -145,8 +145,9 @@
 - [x] اعلان Generation completed/failed و Payment موفق.
 - [x] اعلان Credit کم و Welcome در channel database.
 - [ ] کانال In-app و Email؛ SMS فقط برای OTP باقی بماند.
+  - مرکز In-app در Dashboard و read/read-all آماده است؛ Email و push هنوز لازم است.
 - [ ] تست event، queue، unread/read و failure ارسال.
-  - after-commit فعال شده؛ تست rollback/queue و کانال Email هنوز لازم است.
+  - تست unread/read/read-all اضافه شده؛ event failure و Email queue هنوز لازم است.
 
 ### Watermark و Media
 
