@@ -151,5 +151,42 @@ if (builderForm) {
 		duration.innerHTML = options.data.video_durations.map((item) => `<option value="${item}">${item} ثانیه</option>`).join('');
 	}).catch(() => { message.textContent = 'دریافت گزینه‌ها انجام نشد. دوباره تلاش کن.'; });
 	formatBox.addEventListener('change', (event) => { durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value); });
-	builderForm.addEventListener('submit', async (event) => { event.preventDefault(); const values = Object.fromEntries(new FormData(builderForm)); const button = document.querySelector('[data-generate]'); button.disabled = true; message.textContent = 'در حال آماده‌سازی...'; const payload = { ...values, video_duration_seconds: values.video_duration_seconds ? Number(values.video_duration_seconds) : null }; try { const response = await fetch('/api/generations', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error?.message || 'ساخت محتوا انجام نشد.'); message.className = 'form-message success-message'; message.textContent = `درخواست ساخت ثبت شد. وضعیت: ${result.data.status}`; setTimeout(() => { window.location.href = '/dashboard'; }, 800); } catch (error) { message.className = 'form-message error-message'; message.textContent = error.message; } finally { button.disabled = false; } });
+	builderForm.addEventListener('submit', async (event) => { event.preventDefault(); const values = Object.fromEntries(new FormData(builderForm)); const button = document.querySelector('[data-generate]'); button.disabled = true; message.textContent = 'در حال آماده‌سازی...'; const payload = { ...values, video_duration_seconds: values.video_duration_seconds ? Number(values.video_duration_seconds) : null }; try { const response = await fetch('/api/generations', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error?.message || 'ساخت محتوا انجام نشد.'); window.location.href = `/generations/${result.data.id}`; } catch (error) { message.className = 'form-message error-message'; message.textContent = error.message; } finally { button.disabled = false; } });
+}
+
+const generationPage = document.querySelector('[data-generation-id]');
+if (generationPage && token) {
+	const generationId = generationPage.dataset.generationId;
+	const title = document.querySelector('[data-generation-title]');
+	const copy = document.querySelector('[data-generation-copy]');
+	const status = document.querySelector('[data-generation-status]');
+	const progress = document.querySelector('[data-generation-progress]');
+	const frame = document.querySelector('[data-result-frame]');
+	const actions = document.querySelector('[data-result-actions]');
+	const message = document.querySelector('[data-generation-message]');
+	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.' };
+	const poll = async () => {
+		const response = await fetch(`/api/generations/${generationId}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const result = await response.json();
+		if (!response.ok) throw new Error(result.error?.message || 'دریافت وضعیت ممکن نیست.');
+		const generation = result.data;
+		status.textContent = statusLabels[generation.status] || generation.status;
+		progress.style.width = generation.status === 'completed' ? '100%' : generation.status === 'processing' ? '65%' : generation.status === 'failed' ? '0%' : '25%';
+		if (generation.status === 'completed') {
+			title.innerHTML = 'محتوا<br><em>آماده است.</em>';
+			copy.textContent = 'حالا می‌توانی خروجی را دانلود کنی، بازخورد بدهی یا یک نسخه تازه بسازی.';
+			const media = generation.output_media;
+			frame.innerHTML = media?.mime?.startsWith('video') ? `<video controls src="/api/generations/${generationId}/download"></video>` : `<img alt="خروجی تولیدشده" src="/api/generations/${generationId}/download">`;
+			actions.hidden = false;
+			document.querySelector('[data-download]').href = `/api/generations/${generationId}/download`;
+			return;
+		}
+		if (generation.status === 'failed') { title.innerHTML = 'ساخت محتوا<br><em>متوقف شد.</em>'; message.textContent = generation.error_message || 'دوباره تلاش کن.'; actions.hidden = false; return; }
+		setTimeout(poll, 2500);
+	};
+	poll().catch((error) => { message.textContent = error.message; });
+	document.querySelector('[data-feedback="positive"]')?.addEventListener('click', () => sendFeedback('positive'));
+	document.querySelector('[data-feedback="negative"]')?.addEventListener('click', () => sendFeedback('negative'));
+	async function sendFeedback(feedback) { await fetch(`/api/generations/${generationId}/feedback`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ feedback }) }); message.textContent = 'بازخوردت ثبت شد، ممنون.'; }
+	document.querySelector('[data-regenerate]')?.addEventListener('click', async () => { const response = await fetch(`/api/generations/${generationId}/regenerate`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); const result = await response.json(); if (response.ok) window.location.href = `/generations/${result.data.id}`; else message.textContent = result.error?.message || 'تولید مجدد انجام نشد.'; });
 }

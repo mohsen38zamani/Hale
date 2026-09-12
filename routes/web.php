@@ -14,6 +14,10 @@ Route::get('/create', function () {
     return view('create');
 });
 
+Route::get('/generations/{generationId}', function (int $generationId) {
+    return view('generation', compact('generationId'));
+});
+
 Route::get('/reset-password/{token}', function (string $token) {
     return view('app', ['resetToken' => $token, 'email' => request('email')]);
 })->name('password.reset');
