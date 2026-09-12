@@ -227,7 +227,7 @@ GET    /api/payments/zarinpal/callback
 | SMS Provider | `FakeSmsProvider` برای تست و `SmsIrProvider` برای `sms.ir` |
 | Generation | Queue، Credit reserve/settle/refund، Plan limit، Retry و Regenerate |
 | Billing | Payment/Subscription، Checkout، Webhook امضاشده و Callback زرین‌پال |
-| باقی‌مانده | Frontend/PWA، Provider واقعی AI، Invoice، Notifications، Admin و E2E |
+| باقی‌مانده | اتصال Provider واقعی AI، Invoice، Notifications، Admin، Checkout UI و E2E |
 
 ## مدل درآمد و Credit
 

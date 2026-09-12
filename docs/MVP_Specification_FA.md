@@ -36,7 +36,7 @@
 - Product Asset deletion، Plan limit برای ویدئو و Regenerate
 - Payment/Subscription، Checkout، Webhook امضاشده و Provider پیش‌فرض زرین‌پال
 
-Frontend/PWA، Provider واقعی AI، Notifications، Admin، Invoice و E2E هنوز تکمیل نشده‌اند.
+Frontend/PWA پایه شامل Landing، Auth، Dashboard، Product Library، Creative Builder و Generation History آماده است؛ اتصال کامل Progress/Result/Checkout، Provider واقعی AI، Notifications، Admin، Invoice و E2E هنوز تکمیل نشده‌اند.
 
 ---
 
