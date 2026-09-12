@@ -87,7 +87,7 @@
   - login، profile و dashboard اکنون balance ledger را می‌خوانند؛ تست consistency همه endpointها در suite سبز است.
 
 - [ ] تکمیل Invoice و Payment History.
-  - endpoint تاریخچه پرداخت با pagination و receipt متنی قابل دانلود تکمیل شده؛ مدل Invoice هنوز لازم است.
+  - endpoint تاریخچه پرداخت، receipt متنی و Invoice پایدار با شماره یکتا تکمیل شده‌اند.
   - Pricing اکنون نتیجه paid/failed را نمایش می‌دهد و checkout header idempotency می‌فرستد؛ وضعیت pending و صفحه نتیجه کامل هنوز لازم است.
   - checkout با `Idempotency-Key` کلاینت idempotent شده است؛ Invoice و UI وضعیت پرداخت هنوز لازم است.
   - fake checkout محلی برای success/failure اضافه شده؛ production gateway و payment result UI هنوز باقی است.
