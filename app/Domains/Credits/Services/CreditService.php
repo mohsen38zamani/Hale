@@ -5,6 +5,7 @@ namespace App\Domains\Credits\Services;
 use App\Domains\Credits\Exceptions\InsufficientCredits;
 use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Generations\Models\Generation;
+use App\Domains\Notifications\Notifications\CreditsLowNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -22,7 +23,7 @@ class CreditService
 
     public function reserve(User $user, Generation $generation, int $amount): void
     {
-        DB::transaction(function () use ($user, $generation, $amount): void {
+        $remaining = DB::transaction(function () use ($user, $generation, $amount): int {
             $account = $this->lockedAccount($user);
             if ($account->balance < $amount) {
                 throw new InsufficientCredits('اعتبار کافی نیست.');
@@ -33,7 +34,18 @@ class CreditService
             $attempt = $account->transactions()->where('generation_id', $generation->id)->where('type', 'reserve')->count() + 1;
             $this->record($account->fresh(), $generation, 'reserve', -$amount, "generation:{$generation->id}:reserve:{$attempt}");
             $generation->update(['credits_reserved' => $amount]);
+            return (int) $account->fresh()->balance;
         });
+
+        if ($remaining <= (int) config('credits.low_balance_threshold')) {
+            $alreadyNotified = $user->unreadNotifications()
+                ->where('type', CreditsLowNotification::class)
+                ->whereJsonContains('data->kind', 'credits_low')
+                ->exists();
+            if (! $alreadyNotified) {
+                $user->notify(new CreditsLowNotification($remaining));
+            }
+        }
     }
 
     public function settle(Generation $generation): void

@@ -12,6 +12,7 @@ use App\Domains\Auth\Requests\UpdateProfileRequest;
 use App\Domains\Auth\Requests\VerifyPhoneRequest;
 use App\Domains\Auth\Services\PhoneVerificationService;
 use App\Domains\Credits\Services\CreditService;
+use App\Domains\Notifications\Notifications\WelcomeNotification;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
@@ -28,6 +29,7 @@ class AuthController extends Controller
     {
         $user = User::create($request->safe()->only(['name', 'email', 'phone', 'password']));
         $credits->initialize($user);
+        $user->notify(new WelcomeNotification());
 
         return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa'), 201);
     }
