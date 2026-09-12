@@ -27,8 +27,8 @@ Route::get('/user/profile', function (CreditService $credits) {
     return response()->json(['success' => true, 'data' => [...$user->only(['id', 'name', 'email', 'phone', 'plan_key']), 'credits_balance' => $credits->account($user)->balance], 'error' => null]);
 })->middleware('auth:sanctum');
 Route::get('/plans', [PlanController::class, 'index']);
-Route::post('/webhooks/payment', [PlanController::class, 'webhook']);
-Route::get('/payments/zarinpal/callback', [PlanController::class, 'zarinpalCallback']);
+Route::post('/webhooks/payment', [PlanController::class, 'webhook'])->middleware('throttle:payment-webhook');
+Route::get('/payments/zarinpal/callback', [PlanController::class, 'zarinpalCallback'])->middleware('throttle:payment-webhook');
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
@@ -39,8 +39,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/generations', [GenerationController::class, 'index']);
     Route::post('/generations', [GenerationController::class, 'store'])->middleware('throttle:generation');
     Route::get('/generations/{generation}', [GenerationController::class, 'show']);
-    Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry']);
-    Route::post('/generations/{generation}/regenerate', [GenerationController::class, 'regenerate']);
+    Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry'])->middleware('throttle:generation');
+    Route::post('/generations/{generation}/regenerate', [GenerationController::class, 'regenerate'])->middleware('throttle:generation');
     Route::post('/generations/{generation}/feedback', [GenerationController::class, 'feedback']);
     Route::get('/generations/{generation}/download', [GenerationController::class, 'download']);
     Route::get('/credits/balance', [CreditController::class, 'balance']);
