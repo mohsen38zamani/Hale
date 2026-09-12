@@ -63,13 +63,13 @@
   - تست sandbox و یک transaction واقعی کنترل‌شده.
   - بررسی مبلغ ریالی/واحد پول، duplicate callback و code 101.
 
-- [ ] تکمیل Subscription lifecycle.
-  - انقضای خودکار `ends_at` و برگشت به `free`.
+- [x] تکمیل بخش انقضای Subscription.
+  - انقضای lazy `ends_at` و برگشت به `free` پیش از بررسی محدودیت generation.
   - renewal ماهانه یا تصمیم صریح دربارهٔ عدم پشتیبانی renewal.
   - جلوگیری از فعال‌شدن plan منقضی.
 
-- [ ] تکمیل محدودیت‌های Plan.
-  - image limit و video limit ماهانه.
+- [x] تکمیل محدودیت‌های ماهانه Plan.
+  - image limit و video limit ماهانه و enforce قبل از reserve.
   - تفکیک Credit خریداری‌شده و Credit رایگان در صورت نیاز محصول.
   - enforce قبل از reserve و تست race/double-spend.
 
@@ -79,8 +79,7 @@
   - profile/dashboard نباید مقدار stale از `users.credits_balance` نمایش دهد.
 
 - [ ] تکمیل Invoice و Payment History.
-  - مدل/endpoint تاریخچه پرداخت.
-  - receipt قابل دانلود یا شناسه پیگیری.
+  - endpoint تاریخچه پرداخت با pagination و receipt متنی قابل دانلود تکمیل شده؛ مدل Invoice هنوز لازم است.
   - نمایش وضعیت pending/paid/failed در UI.
 
 - [ ] تکمیل Paywall واقعی.
@@ -117,18 +116,18 @@
   - keyboard navigation، focus state، contrast و labels.
   - حذف placeholderهای صرفاً نمایشی از مسیرهای اصلی.
 
-- [ ] PWA واقعی.
-  - manifest، service worker، install prompt و offline fallback.
+- [x] PWA پایه.
+  - manifest، service worker و offline fallback اضافه شده‌اند؛ install prompt سفارشی و push باقی است.
   - تصمیم دربارهٔ push notification.
 
 ## P1: قابلیت‌های لازم برای Launch
 
 ### Notifications
 
-- [ ] ساخت Notification domain و جدول `notifications`.
-- [ ] endpoint لیست/خواندن اعلان‌ها.
-- [ ] اعلان Generation completed/failed.
-- [ ] اعلان Credit کم، Payment موفق و Welcome.
+- [x] ساخت Notification domain و جدول `notifications`.
+- [x] endpoint لیست/خواندن اعلان‌ها.
+- [x] اعلان Generation completed/failed و Payment موفق.
+- [ ] اعلان Credit کم و Welcome.
 - [ ] کانال In-app و Email؛ SMS فقط برای OTP باقی بماند.
 - [ ] تست event، queue، unread/read و failure ارسال.
 
@@ -136,9 +135,9 @@
 
 - [ ] اعمال Watermark واقعی فقط برای Free در preview/output.
 - [ ] عدم Watermark برای Starter/Creator با تست.
-- [ ] metadata و MIME صحیح برای هر خروجی.
-- [ ] retention ۹۰ روزه و cleanup فایل‌های Storage.
-- [ ] job زمان‌بندی‌شده برای پاک‌سازی generation/media قدیمی.
+- [x] metadata و MIME صحیح برای هر خروجی؛ خروجی نامعتبر اکنون fail/refund می‌شود.
+- [x] retention ۹۰ روزه و cleanup فایل‌های Storage.
+- [x] command و schedule روزانه برای پاک‌سازی generation/media قدیمی.
 
 ### Admin و عملیات
 
@@ -152,8 +151,10 @@
 ### امنیت و پایداری
 
 - [ ] rate limit per user/plan برای Auth، Generate، SMS و Payment.
+  - limiterهای Generate، Checkout و Payment history اضافه شده‌اند؛ plan-aware و endpointهای Auth/SMS هنوز باقی است.
 - [ ] anti-fraud پایه: phone/IP/device limits و جلوگیری از چند bonus.
 - [ ] request ID، structured logging و حذف secret از log.
+  - `X-Request-ID` و context لاگ اضافه شده؛ structured logging و audit کامل هنوز باقی است.
 - [ ] Sentry یا جایگزین error tracking.
 - [ ] Horizon/worker production configuration و failed-job alert.
 - [ ] backup روزانه MySQL و restore drill.
@@ -168,6 +169,7 @@
 - [ ] browser test روی RTL و viewport ۳۲۰px.
 - [ ] تست Provider واقعی در sandbox برای SMS.ir و زرین‌پال.
 - [ ] CI شامل PHPUnit، `npm run build`، lint و migration test.
+  - `npm ci` و `npm run build` به workflow اضافه شده‌اند؛ migration test هنوز باید تکمیل شود.
 - [ ] staging با secrets واقعیِ staging، queue worker و HTTPS.
 - [ ] deployment/runbook و API documentation نهایی.
 - [ ] تست backup/restore و smoke test production.
