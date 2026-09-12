@@ -64,6 +64,8 @@ class BillingApiTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id, 'plan_key' => 'starter']);
         $this->assertDatabaseHas('subscriptions', ['user_id' => $user->id, 'plan_key' => 'starter', 'status' => 'active']);
         $this->assertDatabaseHas('credit_transactions', ['user_id' => $user->id, 'type' => 'purchase', 'amount' => 200]);
+        $this->assertDatabaseHas('invoices', ['payment_id' => 1, 'number' => 'INV-1', 'status' => 'paid']);
+        $this->getJson('/api/payments/1/invoice')->assertOk()->assertJsonPath('data.number', 'INV-1');
     }
 
     public function test_checkout_is_idempotent_when_client_reuses_key(): void

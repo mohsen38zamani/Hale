@@ -52,6 +52,13 @@ class PlanController extends Controller
         }, "payment-{$payment->id}-receipt.txt", ['Content-Type' => 'text/plain; charset=UTF-8']);
     }
 
+    public function invoice(Request $request, Payment $payment): JsonResponse
+    {
+        abort_unless($payment->user_id === $request->user()->id, 404);
+
+        return $this->success($payment->invoice);
+    }
+
     public function webhook(Request $request, BillingService $billing): JsonResponse
     {
         $authority = $request->string('authority')->value();

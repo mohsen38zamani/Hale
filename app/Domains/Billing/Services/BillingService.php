@@ -4,6 +4,7 @@ namespace App\Domains\Billing\Services;
 
 use App\Domains\Billing\Contracts\PaymentGateway;
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\Subscription;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Notifications\Notifications\PaymentSucceededNotification;
@@ -53,6 +54,8 @@ class BillingService
         return DB::transaction(function () use ($authority, $status): Payment {
             $payment = Payment::query()->where('authority', $authority)->lockForUpdate()->firstOrFail();
             if ($payment->status === 'paid') {
+                $this->ensureInvoice($payment);
+
                 return $payment;
             }
             if ($status !== 'paid') {
@@ -66,6 +69,7 @@ class BillingService
             $now = Carbon::now();
             $endsAt = $now->copy()->addMonths((int) config('payment.subscription_months'));
             $payment->update(['status' => 'paid', 'reference' => $verification['reference'], 'paid_at' => $now]);
+            $this->ensureInvoice($payment->fresh());
             Subscription::query()->where('user_id', $payment->user_id)->where('status', 'active')->update(['status' => 'expired']);
             Subscription::create(['user_id' => $payment->user_id, 'plan_key' => $payment->plan_key, 'status' => 'active', 'starts_at' => $now, 'ends_at' => $endsAt]);
             User::query()->whereKey($payment->user_id)->update(['plan_key' => $payment->plan_key]);
@@ -74,5 +78,20 @@ class BillingService
 
             return $payment->fresh();
         });
+    }
+
+    private function ensureInvoice(Payment $payment): Invoice
+    {
+        return $payment->invoice()->firstOrCreate(
+            [],
+            [
+                'user_id' => $payment->user_id,
+                'number' => 'INV-'.$payment->id,
+                'amount' => $payment->amount,
+                'status' => 'paid',
+                'issued_at' => $payment->paid_at ?? now(),
+                'metadata' => ['gateway' => $payment->gateway, 'reference' => $payment->reference],
+            ],
+        );
     }
 }
