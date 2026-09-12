@@ -118,3 +118,27 @@ productForm?.addEventListener('submit', async (event) => {
 	} finally { button.disabled = false; }
 });
 loadProducts();
+
+const builderForm = document.querySelector('[data-builder-form]');
+if (builderForm) {
+	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok' };
+	const select = document.querySelector('[data-product-select]');
+	const message = document.querySelector('[data-builder-message]');
+	const formatBox = document.querySelector('[data-formats]');
+	const durationField = document.querySelector('[data-duration-field]');
+	const duration = document.querySelector('[data-duration]');
+	const renderChoices = (target, values, name, withType = false) => { target.innerHTML = values.map((item) => { const key = withType ? item.key : item; return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${labels[key] || key}${withType ? `<small>${item.aspect_ratio}</small>` : ''}</span></label>`; }).join(''); };
+	Promise.all([
+		fetch('/api/products?per_page=50', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }).then((response) => response.json()),
+		fetch('/api/creative/options', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }).then((response) => response.json()),
+	]).then(([products, options]) => {
+		(products.data?.data || []).forEach((product) => { select.insertAdjacentHTML('beforeend', `<option value="${product.id}">${product.name}</option>`); });
+		renderChoices(document.querySelector('[data-goals]'), options.data.goals, 'goal');
+		renderChoices(document.querySelector('[data-styles]'), options.data.styles, 'style');
+		renderChoices(formatBox, options.data.formats, 'format', true);
+		document.querySelector('[data-environment]').innerHTML = options.data.environments.map((item) => `<option value="${item}">${labels[item] || item}</option>`).join('');
+		duration.innerHTML = options.data.video_durations.map((item) => `<option value="${item}">${item} ثانیه</option>`).join('');
+	}).catch(() => { message.textContent = 'دریافت گزینه‌ها انجام نشد. دوباره تلاش کن.'; });
+	formatBox.addEventListener('change', (event) => { durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value); });
+	builderForm.addEventListener('submit', async (event) => { event.preventDefault(); const values = Object.fromEntries(new FormData(builderForm)); const button = document.querySelector('[data-generate]'); button.disabled = true; message.textContent = 'در حال آماده‌سازی...'; const payload = { ...values, video_duration_seconds: values.video_duration_seconds ? Number(values.video_duration_seconds) : null }; try { const response = await fetch('/api/generations', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error?.message || 'ساخت محتوا انجام نشد.'); message.className = 'form-message success-message'; message.textContent = `درخواست ساخت ثبت شد. وضعیت: ${result.data.status}`; setTimeout(() => { window.location.href = '/dashboard'; }, 800); } catch (error) { message.className = 'form-message error-message'; message.textContent = error.message; } finally { button.disabled = false; } });
+}
