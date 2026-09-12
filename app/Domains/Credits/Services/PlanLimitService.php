@@ -15,7 +15,7 @@ class PlanLimitService
     {
         $this->subscriptions->syncExpired($user);
 
-        $plan = config('plans.' . $user->plan_key);
+        $plan = config('plans.' . ($user->plan_key ?: 'free'));
         $limit = (int) ($plan[$type . '_limit'] ?? 0);
         $used = $user->generations()
             ->where('type', $type)

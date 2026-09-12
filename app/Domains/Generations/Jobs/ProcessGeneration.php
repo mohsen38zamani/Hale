@@ -35,8 +35,9 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
         return (string) $this->generationId;
     }
 
-    public function handle(AiGateway $gateway, CreditService $credits, WatermarkService $watermarks): void
+    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null): void
     {
+        $watermarks ??= app(WatermarkService::class);
         $generation = Generation::query()->with('creativeProject.product.assets')->findOrFail($this->generationId);
         if (in_array($generation->status, ['processing', 'completed'], true)) {
             return;
