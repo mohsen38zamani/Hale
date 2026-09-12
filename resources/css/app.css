@@ -33,6 +33,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+.generation-credit { display: block; margin-top: 10px; }
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';

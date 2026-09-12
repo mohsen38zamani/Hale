@@ -233,6 +233,7 @@ if (generationPage && token) {
 	const frame = document.querySelector('[data-result-frame]');
 	const actions = document.querySelector('[data-result-actions]');
 	const message = document.querySelector('[data-generation-message]');
+	const creditInfo = document.querySelector('[data-generation-credit]');
 	const retryButton = document.querySelector('[data-retry]');
 	const regenerateButton = document.querySelector('[data-regenerate]');
 	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.' };
@@ -249,6 +250,11 @@ if (generationPage && token) {
 		const result = await response.json();
 		if (!response.ok) throw new Error(result.error?.message || 'دریافت وضعیت ممکن نیست.');
 		const generation = result.data;
+		creditInfo.textContent = generation.status === 'completed'
+			? `اعتبار مصرف‌شده: ${generation.credits_charged} Credit`
+			: generation.credits_reserved > 0
+				? `اعتبار رزروشده: ${generation.credits_reserved} Credit`
+				: 'اعتبار هنوز رزرو نشده است';
 		status.textContent = statusLabels[generation.status] || generation.status;
 		progress.style.width = generation.status === 'completed' ? '100%' : generation.status === 'processing' ? '65%' : generation.status === 'failed' ? '0%' : '25%';
 		if (generation.status === 'completed') {

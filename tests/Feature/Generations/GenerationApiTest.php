@@ -119,6 +119,20 @@ class GenerationApiTest extends TestCase
             ->assertJsonPath('data.feedback', 'positive');
     }
 
+    public function test_generation_status_exposes_credit_usage(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+        $project = $user->creativeProjects()->create(['product_id' => $product->id, 'goal' => 'sales', 'style' => 'luxury', 'format' => 'instagram_post', 'brief' => [], 'prompt' => 'prompt']);
+        $generation = $user->generations()->create(['creative_project_id' => $project->id, 'type' => 'image', 'status' => 'processing', 'prompt_hash' => hash('sha256', 'prompt'), 'credits_reserved' => 10]);
+
+        $this->getJson("/api/generations/{$generation->id}")
+            ->assertOk()
+            ->assertJsonPath('data.credits_reserved', 10)
+            ->assertJsonPath('data.credits_charged', 0);
+    }
+
     public function test_owner_can_download_completed_generation_output(): void
     {
         Storage::fake('local');
