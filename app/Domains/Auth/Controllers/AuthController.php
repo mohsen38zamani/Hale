@@ -32,7 +32,7 @@ class AuthController extends Controller
         return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa'), 201);
     }
 
-    public function login(LoginRequest $request): JsonResponse
+    public function login(LoginRequest $request, CreditService $credits): JsonResponse
     {
         $identifier = $request->string('identifier')->value();
         $user = User::query()
@@ -42,7 +42,7 @@ class AuthController extends Controller
             return $this->error('INVALID_CREDENTIALS', 'ایمیل یا شماره موبایل یا رمز عبور نادرست است.', 422);
         }
 
-        return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa'));
+        return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits));
     }
 
     public function logout(Request $request): JsonResponse
@@ -109,11 +109,16 @@ class AuthController extends Controller
 
         $user->fill($request->safe()->only(['name', 'email', 'password']))->save();
 
-        return $this->success($user->fresh()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']));
+        return $this->success($this->userPayload($user->fresh(), $credits));
     }
 
-    private function tokenPayload(User $user, string $deviceName): array
+    private function tokenPayload(User $user, string $deviceName, CreditService $credits): array
     {
-        return ['user' => $user->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'token' => $user->createToken($deviceName)->plainTextToken];
+        return ['user' => $this->userPayload($user, $credits), 'token' => $user->createToken($deviceName)->plainTextToken];
+    }
+
+    private function userPayload(User $user, CreditService $credits): array
+    {
+        return [...$user->only(['id', 'name', 'email', 'phone', 'plan_key']), 'credits_balance' => $credits->account($user)->balance];
     }
 }

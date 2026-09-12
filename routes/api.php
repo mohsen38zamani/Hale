@@ -4,6 +4,7 @@ use App\Domains\Auth\Controllers\AuthController;
 use App\Domains\Billing\Controllers\PlanController;
 use App\Domains\Creative\Controllers\CreativeController;
 use App\Domains\Credits\Controllers\CreditController;
+use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
 use App\Domains\Notifications\Controllers\NotificationController;
@@ -20,7 +21,11 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
-Route::get('/user/profile', fn () => response()->json(['success' => true, 'data' => request()->user()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'error' => null]))->middleware('auth:sanctum');
+Route::get('/user/profile', function (CreditService $credits) {
+    $user = request()->user();
+
+    return response()->json(['success' => true, 'data' => [...$user->only(['id', 'name', 'email', 'phone', 'plan_key']), 'credits_balance' => $credits->account($user)->balance], 'error' => null]);
+})->middleware('auth:sanctum');
 Route::get('/plans', [PlanController::class, 'index']);
 Route::post('/webhooks/payment', [PlanController::class, 'webhook']);
 Route::get('/payments/zarinpal/callback', [PlanController::class, 'zarinpalCallback']);
