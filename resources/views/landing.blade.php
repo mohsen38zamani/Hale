@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Hale | محتوای محصول، آماده انتشار</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="landing-page">
+    <div class="landing-wrap">
+        <header class="landing-nav"><a class="brand" href="#top">H<span>•</span>le</a><nav><a href="#method">روش ما</a><a href="#formats">خروجی‌ها</a><a href="#about">درباره Hale</a></nav><button class="nav-cta" data-open-auth="register">شروع رایگان <span>↗</span></button></header>
+        <main id="top">
+            <section class="landing-hero"><div class="hero-index">HALE / ۲۰۲۶<br><span>AI CONTENT STUDIO</span></div><div class="hero-title"><p class="display-kicker">برای محصولت، یک صحنه بساز.</p><h1>عکس تو.<br><em>تصویر تازه.</em></h1><p class="hero-intro">Hale عکس محصولت را به محتوای تبلیغاتی آماده انتشار تبدیل می‌کند؛ با چند انتخاب ساده و بدون نوشتن Prompt.</p><button class="hero-link" data-open-auth="register">اولین خروجی را بساز <span>↓</span></button></div><div class="hero-object"><div class="object-orbit orbit-one"></div><div class="object-orbit orbit-two"></div><div class="object-card"><span>HALE</span><b>OBJECT<br>STUDIO</b><small>01 / 04</small></div><div class="object-caption">YOUR PRODUCT<br><strong>IN A NEW LIGHT</strong></div></div><div class="scroll-cue"><span></span> اسکرول کن</div></section>
+            <section class="statement-section" id="method"><div class="section-number">۰۱ — روش</div><h2>از یک عکس خام<br>تا <em>یک دلیل برای توقف.</em></h2><p>هر محصول داستانی برای گفتن دارد. Hale نور، فضا و حال‌وهوای درست را می‌سازد تا محصولت همان‌طور که باید دیده شود.</p></section>
+            <section class="steps-section"><div class="section-number">سه حرکت ساده</div><div class="steps-grid"><article><span>۰۱</span><h3>محصول را بده</h3><p>عکس محصولت را از موبایل آپلود کن. همین.</p></article><article><span>۰۲</span><h3>جهت را انتخاب کن</h3><p>هدف، سبک و فرمت را با چند tap مشخص کن.</p></article><article><span>۰۳</span><h3>آماده انتشار</h3><p>تصویر یا Reel را دریافت کن و منتشرش کن.</p></article></div></section>
+            <section class="formats-section" id="formats"><div class="section-number">۰۲ — فرمت‌ها</div><div class="formats-head"><h2>یک محصول.<br><em>چند امکان.</em></h2><p>برای پست، استوری، Reel و TikTok؛ خروجی‌ای که با جای انتشارش هماهنگ است.</p></div><div class="format-stage"><div class="format-tile format-square"><span>POST</span><strong>۱:۱</strong><small>برای حضور ماندگار</small></div><div class="format-tile format-tall"><span>REEL / STORY</span><strong>۹:۱۶</strong><small>برای دیده‌شدن سریع</small></div><div class="format-tile format-wide"><span>STYLE</span><strong>∞</strong><small>Luxury تا Minimal</small></div></div></section>
+            <section class="about-section" id="about"><div class="section-number">۰۳ — Hale</div><div><h2>کمتر توضیح بده.<br><em>بیشتر نشان بده.</em></h2><p>برای فروشگاه‌هایی که می‌خواهند محصولشان حرفه‌ای دیده شود، بدون اینکه هر بار عکاسی و طراحی را از اول شروع کنند.</p><button class="underlined-link" data-open-auth="register">شروع با ۳۰ Credit رایگان <span>↗</span></button></div></section>
+        </main>
+        <footer class="landing-footer"><div class="footer-mark">H<span>•</span>le</div><p>AI CONTENT STUDIO<br>FOR PRODUCT STORIES</p><a href="mailto:hello@hale.studio">hello@hale.studio ↗</a><small>© ۲۰۲۶ HALE / MADE FOR THE NEXT POST</small></footer>
+    </div>
+    <div class="auth-modal" data-auth-modal hidden><div class="modal-backdrop" data-close-auth></div><section class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button class="close-button" data-close-auth aria-label="بستن">×</button><p class="eyebrow">WELCOME TO HALE</p><h2 id="auth-title">شروع ساخت</h2><p class="modal-copy">با ایمیل یا شماره موبایل وارد شو.</p><div class="auth-tabs"><button class="active" data-auth-tab="login">ورود</button><button data-auth-tab="register">ثبت‌نام</button></div><form data-auth-form><label data-name-field hidden>نام و نام خانوادگی<input name="name" autocomplete="name" placeholder="مثلاً سارا احمدی"></label><label>ایمیل یا شماره موبایل<input name="identifier" autocomplete="username" inputmode="email" placeholder="sara@example.com یا +98912..."></label><label>رمز عبور<input name="password" type="password" autocomplete="current-password" placeholder="حداقل ۸ کاراکتر"></label><label data-confirm-field hidden>تکرار رمز عبور<input name="password_confirmation" type="password" autocomplete="new-password"></label><p class="form-message" data-form-message role="alert"></p><button class="primary-button full-button" type="submit" data-submit-auth>ورود به Hale <span>←</span></button></form><p class="modal-footnote">با ثبت‌نام، مسیر ساخت اولین محتوایت شروع می‌شود.</p></section></div>
+</body>
+</html>
