@@ -81,11 +81,10 @@
   - enforce اتمیک قبل از reserve با lock روی user و transaction مشترک اضافه شده؛ تست race/double-spend واقعی هنوز لازم است.
   - تصمیم و تست بازه مصرف: ماه تقویمی فعلی با `starts_at/ends_at` اشتراک هم‌راستا نیست.
 
-- [ ] حذف دوگانگی منبع Credit/Plan.
+- [x] حذف دوگانگی منبع Credit/Plan.
   - `credit_accounts.balance` و ledger منبع اصلی بمانند.
-  - `users.credits_balance` یا حذف شود یا با migration/service به‌صورت رسمی sync شود.
-  - profile/dashboard نباید مقدار stale از `users.credits_balance` نمایش دهد.
-  - login، profile و dashboard اکنون balance ledger را می‌خوانند؛ حذف/deprecate ستون legacy و تست consistency همه endpointها باقی است.
+  - `users.credits_balance` با migration حذف شد.
+  - login، profile و dashboard اکنون balance ledger را می‌خوانند؛ تست consistency همه endpointها در suite سبز است.
 
 - [ ] تکمیل Invoice و Payment History.
   - endpoint تاریخچه پرداخت با pagination و receipt متنی قابل دانلود تکمیل شده؛ مدل Invoice هنوز لازم است.
