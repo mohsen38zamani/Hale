@@ -161,6 +161,20 @@ if (generationList && token) {
 		.catch(() => { generationList.innerHTML = '<p class="empty-state">تاریخچه فعلاً در دسترس نیست.</p>'; });
 }
 
+const notificationList = document.querySelector('[data-notification-list]');
+if (notificationList && token) {
+	const loadNotifications = async () => {
+		const response = await fetch('/api/notifications?per_page=8', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		if (!response.ok) throw new Error('دریافت اعلان‌ها انجام نشد.');
+		const result = await response.json();
+		const notifications = result.data?.items || [];
+		notificationList.innerHTML = notifications.length ? notifications.map((notification) => `<button class="notification-item ${notification.read_at ? '' : 'unread'}" data-notification-id="${notification.id}"><strong>${notification.data?.message || 'اعلان جدید'}</strong><small>${notification.created_at ? new Date(notification.created_at).toLocaleDateString('fa-IR') : ''}</small></button>`).join('') : '<p class="empty-state">اعلان جدیدی نداری.</p>';
+	};
+	loadNotifications().catch(() => { notificationList.innerHTML = '<p class="empty-state">اعلان‌ها فعلاً در دسترس نیستند.</p>'; });
+	notificationList.addEventListener('click', async (event) => { const item = event.target.closest('[data-notification-id]'); if (!item || !item.classList.contains('unread')) return; const response = await fetch(`/api/notifications/${item.dataset.notificationId}/read`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); if (response.ok) item.classList.remove('unread'); });
+	document.querySelector('[data-read-all-notifications]')?.addEventListener('click', async () => { const response = await fetch('/api/notifications/read-all', { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); if (response.ok) notificationList.querySelectorAll('.unread').forEach((item) => item.classList.remove('unread')); });
+}
+
 const builderForm = document.querySelector('[data-builder-form]');
 if (builderForm) {
 	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok' };
