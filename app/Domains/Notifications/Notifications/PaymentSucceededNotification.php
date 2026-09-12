@@ -5,6 +5,7 @@ namespace App\Domains\Notifications\Notifications;
 use App\Domains\Billing\Models\Payment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class PaymentSucceededNotification extends Notification implements ShouldQueue
@@ -15,7 +16,7 @@ class PaymentSucceededNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return $notifiable->email ? ['database', 'mail'] : ['database'];
     }
 
     public function toDatabase(object $notifiable): array
@@ -28,5 +29,15 @@ class PaymentSucceededNotification extends Notification implements ShouldQueue
             'reference' => $this->payment->reference,
             'message' => 'پرداخت شما با موفقیت ثبت شد و پلن فعال شد.',
         ];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('پرداخت Hale با موفقیت انجام شد')
+            ->greeting('سلام '.$notifiable->name)
+            ->line('پرداخت پلن '.$this->payment->plan_key.' با موفقیت ثبت شد.')
+            ->line('مبلغ: '.$this->payment->amount.' ریال')
+            ->action('مشاهده پرداخت‌ها', url('/pricing'));
     }
 }

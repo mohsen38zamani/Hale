@@ -4,6 +4,7 @@ namespace App\Domains\Notifications\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class CreditsLowNotification extends Notification implements ShouldQueue
@@ -14,7 +15,7 @@ class CreditsLowNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return $notifiable->email ? ['database', 'mail'] : ['database'];
     }
 
     public function toDatabase(object $notifiable): array
@@ -24,5 +25,14 @@ class CreditsLowNotification extends Notification implements ShouldQueue
             'balance' => $this->balance,
             'message' => 'اعتبار شما رو به پایان است. برای ادامه تولید، پلن خود را ارتقا دهید.',
         ];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('اعتبار Hale شما کم است')
+            ->greeting('سلام '.$notifiable->name)
+            ->line('اعتبار باقی‌مانده شما '.$this->balance.' Credit است.')
+            ->action('ارتقای پلن', url('/pricing'));
     }
 }
