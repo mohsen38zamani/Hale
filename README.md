@@ -47,10 +47,6 @@ Brand Kit، Campaign Generator، Content Calendar، ویرایش مکالمه‌
 | فرمت | Instagram Post (1:1)، Story (9:16)، Reel (9:16)، TikTok (9:16) |
 | مدت ویدئو | انتخاب کاربر از مدت‌های پشتیبانی‌شده توسط Provider/Model |
 | خروجی | تصویر استاندارد/پریمیوم، ویدئوی استاندارد/پریمیوم با مدت انتخابی |
-| سبک | Luxury، Minimal، Cinematic، Natural، Colorful، Dark، Professional، Fashion |
-| فرمت | Instagram Post (1:1)، Story (9:16)، Reel (9:16)، TikTok (9:16) |
-| مدت ویدئو | انتخاب کاربر از مدت‌های پشتیبانی‌شده توسط Provider/Model |
-| خروجی | تصویر استاندارد/پریمیوم، ویدئوی استاندارد/پریمیوم با مدت انتخابی |
 
 ## معماری پیشنهادی
 
