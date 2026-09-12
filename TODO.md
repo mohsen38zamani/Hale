@@ -88,7 +88,7 @@
 
 - [ ] تکمیل Invoice و Payment History.
   - endpoint تاریخچه پرداخت، receipt متنی و Invoice پایدار با شماره یکتا تکمیل شده‌اند.
-  - Pricing اکنون نتیجه paid/failed را نمایش می‌دهد و checkout header idempotency می‌فرستد؛ وضعیت pending و صفحه نتیجه کامل هنوز لازم است.
+  - Pricing اکنون نتیجه paid/failed، تاریخچه pending/paid/failed و receipt احراز‌شده را نمایش می‌دهد؛ pagination history و صفحه نتیجه کامل هنوز لازم است.
   - checkout با `Idempotency-Key` کلاینت idempotent شده است؛ Invoice و UI وضعیت پرداخت هنوز لازم است.
   - fake checkout محلی برای success/failure اضافه شده؛ production gateway و payment result UI هنوز باقی است.
   - queueهای اصلی اکنون `after_commit` دارند؛ تست rollback/queue هنوز لازم است.
