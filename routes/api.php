@@ -23,6 +23,7 @@ Route::get('/plans', [PlanController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
     Route::post('/products/{product}/assets', [ProductAssetController::class, 'store']);
+    Route::delete('/products/{product}/assets/{asset}', [ProductAssetController::class, 'destroy']);
     Route::get('/creative/options', [CreativeController::class, 'options']);
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
     Route::apiResource('generations', GenerationController::class)->only(['index', 'store', 'show']);

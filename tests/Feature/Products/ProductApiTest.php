@@ -50,4 +50,45 @@ class ProductApiTest extends TestCase
         Storage::disk('local')->assertExists($response->json('data.thumbnail_path'));
         $this->assertDatabaseHas('product_assets', ['product_id' => $product->id, 'is_primary' => true]);
     }
+
+    public function test_user_can_delete_a_product_asset_and_promote_the_next_asset(): void
+    {
+        Storage::fake('local');
+        config(['filesystems.media_disk' => 'local']);
+        $user = User::factory()->create();
+        $product = $user->products()->create(['name' => 'کفش']);
+        Sanctum::actingAs($user);
+
+        $first = $this->postJson("/api/products/{$product->id}/assets", [
+            'image' => UploadedFile::fake()->image('first.jpg', 1200, 1200),
+        ])->assertCreated()->json('data');
+        $second = $this->postJson("/api/products/{$product->id}/assets", [
+            'image' => UploadedFile::fake()->image('second.jpg', 1200, 1200),
+        ])->assertCreated()->json('data');
+
+        $this->deleteJson("/api/products/{$product->id}/assets/{$first['id']}")
+            ->assertOk();
+
+        Storage::disk('local')->assertMissing($first['path']);
+        $this->assertDatabaseMissing('media_assets', ['id' => $first['id']]);
+        $this->assertDatabaseHas('product_assets', [
+            'product_id' => $product->id,
+            'media_asset_id' => $second['id'],
+            'is_primary' => true,
+        ]);
+    }
+
+    public function test_user_cannot_delete_another_users_product_asset(): void
+    {
+        Storage::fake('local');
+        config(['filesystems.media_disk' => 'local']);
+        $owner = User::factory()->create();
+        $product = $owner->products()->create(['name' => 'کفش']);
+        $asset = $this->actingAs($owner)->postJson("/api/products/{$product->id}/assets", [
+            'image' => UploadedFile::fake()->image('shoe.jpg'),
+        ])->json('data');
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->deleteJson("/api/products/{$product->id}/assets/{$asset['id']}")->assertNotFound();
+    }
 }
