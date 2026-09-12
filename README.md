@@ -10,19 +10,11 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 
 پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative، Generation صف‌محور، AI Gateway، اعتبار و بخشی از Billing در مخزن پیاده‌سازی شده‌اند. مسیرهای feedback و download نیز برای Generation تکمیل شده‌اند، اما frontend/PWA، پرداخت، بازیابی رمز، تأیید تلفن، اعلان‌ها و اتصال Provider واقعی هنوز باقی مانده‌اند.
 
-## مسئله و راه‌حل
-
-فروشگاه‌های آنلاین برای تولید محتوا معمولاً با هزینه عکاسی، زمان طراحی و پیچیدگی ابزارهای AI روبه‌رو هستند. Hale این پیچیدگی را پشت یک گردش‌کار ساده پنهان می‌کند:
 
 ```text
 آپلود عکس محصول
       ↓
 انتخاب هدف، سبک، فرمت و مدت ویدئو
-      ↓
-Creative Engine و ساخت Creative Brief
-      ↓
-Cost Estimator و Model Router
-      ↓
 تولید Async تصویر یا ویدئو با مدت انتخابی کاربر
       ↓
 تسویه Credit، پیش‌نمایش و دانلود
@@ -30,19 +22,11 @@ Cost Estimator و Model Router
 
 ### مشتری هدف MVP
 
-فروشگاه‌های آنلاین پوشاک و عطر که صفحه اینستاگرام فعال، حداقل ۲٬۰۰۰ دنبال‌کننده و برنامه انتشار هفتگی دارند. تجربه محصول برای کاربران کم‌تجربه فنی و استفاده روی موبایل طراحی می‌شود.
-
-## محدوده MVP
 
 ### قابلیت‌های اصلی
 
 - ثبت‌نام، ورود، بازیابی رمز و تأیید شماره موبایل برای Credit رایگان
 - آپلود JPG، PNG و WebP تا سقف ۱۰ مگابایت
-- کتابخانه محصولات و مدیریت دارایی‌های رسانه‌ای
-- انتخاب هدف، سبک، محیط، فرمت و مدت ویدئو بدون ورودی Prompt
-- حالت «✨ خودت بهترینش را بساز» برای انتخاب خودکار تنظیمات
-- تولید تصویر و ویدئوی کوتاه از طریق صف پردازش
-- نمایش وضعیت Generation، تلاش مجدد، تاریخچه و دانلود
 - ثبت بازخورد 👍/👎 و Watermark برای پلن رایگان
 - سیستم Credit با چرخه Reserve → Settle/Refund
 - پلن اشتراکی، پرداخت داخلی و تاریخچه تراکنش‌ها
@@ -57,8 +41,37 @@ Brand Kit، Campaign Generator، Content Calendar، ویرایش مکالمه‌
 ## گزینه‌های تولید محتوا
 
 | بخش | گزینه‌های اولیه |
+برای اجرای محیط توسعهٔ فعلی:
 |---|---|
 | هدف | معرفی محصول، افزایش فروش، برندینگ، تخفیف، محصول جدید، جذب مخاطب |
+docker compose build app
+docker compose up -d app nginx mysql redis mailpit
+docker compose exec app php artisan migrate --force
+```
+
+برای اجرای MinIO و ساخت خودکار bucket `hale` نیز از profile ذخیره‌سازی استفاده کنید:
+
+```bash
+docker compose --profile storage build minio minio-init
+docker compose --profile storage up -d
+```
+
+### آدرس سرویس‌ها
+
+| سرویس | آدرس |
+|---|---|
+| Laravel / Nginx | http://localhost:8080 |
+| Mailpit | http://localhost:8025 |
+| MinIO API | http://localhost:9000 |
+| MinIO Console | http://localhost:9001 |
+| MySQL | `localhost:33060` |
+| Redis | `localhost:63790` |
+
+اجرای تست‌ها در image پروژه که `pdo_sqlite` دارد:
+
+```bash
+docker compose run --rm app php artisan test
+```
 | سبک | Luxury، Minimal، Cinematic، Natural، Colorful، Dark، Professional، Fashion |
 | فرمت | Instagram Post (1:1)، Story (9:16)، Reel (9:16)، TikTok (9:16) |
 | مدت ویدئو | انتخاب کاربر از مدت‌های پشتیبانی‌شده توسط Provider/Model |
@@ -157,19 +170,42 @@ app/Domains/
 - `docker/mysql/init/01-init.sql`: ایجاد دیتابیس‌های `hale` و `hale_testing`
 - `docker/scripts/minio-init.sh`: ایجاد Bucket در MinIO
 
-برای اجرای واقعی پروژه باید ابتدا اسکلت Laravel، فایل `.env.example` و `compose.yaml` تکمیل شوند. پس از اضافه شدن آن‌ها، جریان استاندارد مورد انتظار چنین خواهد بود:
+تصویر PHP بر پایه PHP 8.3 است و افزونه‌های `pdo_mysql`، `pdo_sqlite`، `mbstring`، `pcntl`، `bcmath`، `gd`، `zip`، `intl`، `opcache` و Redis را نصب می‌کند. imageهای PHP و Composer از mirror عمومی ECR دریافت می‌شوند.
+
+برای اجرای محیط توسعهٔ فعلی:
 
 ```bash
-git clone https://github.com/mohsen38zamani/Hale.git
-cd Hale
 cp .env.example .env
-docker compose up -d --build
+docker compose build app
+docker compose up -d app nginx mysql redis mailpit
 docker compose exec app composer install
 docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate --seed
+docker compose exec app php artisan migrate --force
 ```
 
-> این دستورات تا زمان اضافه شدن فایل‌های ذکرشده، راهنمای آینده‌اند و نباید به‌عنوان راه‌اندازی آماده فعلی در نظر گرفته شوند.
+برای اجرای MinIO و ساخت خودکار bucket `hale` نیز از profile ذخیره‌سازی استفاده کنید:
+
+```bash
+docker compose --profile storage build minio minio-init
+docker compose --profile storage up -d
+```
+
+### آدرس سرویس‌ها
+
+| سرویس | آدرس |
+|---|---|
+| Laravel / Nginx | http://localhost:8080 |
+| Mailpit | http://localhost:8025 |
+| MinIO API | http://localhost:9000 |
+| MinIO Console | http://localhost:9001 |
+| MySQL | `localhost:33060` |
+| Redis | `localhost:63790` |
+
+اجرای تست‌ها در image پروژه که `pdo_sqlite` دارد:
+
+```bash
+docker compose run --rm app php artisan test
+```
 
 ## API برنامه‌ریزی‌شده MVP
 
