@@ -18,6 +18,10 @@ Route::get('/generations/{generationId}', function (int $generationId) {
     return view('generation', compact('generationId'));
 });
 
+Route::get('/pricing', function () {
+    return view('pricing');
+});
+
 Route::get('/reset-password/{token}', function (string $token) {
     return view('app', ['resetToken' => $token, 'email' => request('email')]);
 })->name('password.reset');
