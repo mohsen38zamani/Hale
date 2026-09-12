@@ -45,6 +45,44 @@ class GenerationApiTest extends TestCase
         ])->assertStatus(402)->assertJsonPath('error.code', 'PLAN_LIMIT_REACHED');
     }
 
+    public function test_user_can_regenerate_a_completed_generation(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+        $project = $user->creativeProjects()->create([
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'brief' => [],
+            'prompt' => 'prompt',
+        ]);
+        $generation = $user->generations()->create([
+            'creative_project_id' => $project->id,
+            'type' => 'image',
+            'status' => 'completed',
+            'prompt_hash' => hash('sha256', 'prompt'),
+            'metadata' => ['aspect_ratio' => '1:1'],
+        ]);
+
+        $newGeneration = $this->postJson("/api/generations/{$generation->id}/regenerate")
+            ->assertStatus(202)
+            ->assertJsonPath('data.status', 'queued')
+            ->json('data');
+
+        $this->assertNotSame($generation->id, $newGeneration['id']);
+        $this->assertDatabaseHas('generations', [
+            'id' => $newGeneration['id'],
+            'creative_project_id' => $project->id,
+        ]);
+        $this->assertDatabaseHas('credit_transactions', [
+            'generation_id' => $newGeneration['id'],
+            'type' => 'charge',
+            'amount' => 10,
+        ]);
+    }
+
     public function test_owner_can_submit_feedback_for_completed_generation(): void
     {
         $user = User::factory()->create();

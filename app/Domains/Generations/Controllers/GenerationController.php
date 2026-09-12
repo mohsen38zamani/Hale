@@ -91,6 +91,43 @@ class GenerationController extends Controller
         return $this->success($generation->fresh(), 202);
     }
 
+    public function regenerate(Request $request, Generation $generation, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse
+    {
+        abort_unless($generation->user_id === $request->user()->id, 404);
+        abort_unless($generation->status === 'completed', 409, 'فقط تولید تکمیل‌شده قابل تولید مجدد است.');
+
+        $project = $generation->creativeProject;
+        try {
+            $limits->ensureCanGenerate($request->user(), $generation->type);
+        } catch (PlanLimitReached $exception) {
+            return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
+        }
+
+        $newGeneration = $project->generations()->create([
+            'user_id' => $request->user()->id,
+            'type' => $generation->type,
+            'status' => 'queued',
+            'prompt_hash' => $generation->prompt_hash,
+            'metadata' => $generation->metadata,
+        ]);
+
+        try {
+            $credits->reserve(
+                $request->user(),
+                $newGeneration,
+                $estimator->estimate($generation->type, $project->video_duration_seconds),
+            );
+        } catch (InsufficientCredits $exception) {
+            $newGeneration->delete();
+
+            return $this->failure('INSUFFICIENT_CREDITS', $exception->getMessage(), 402);
+        }
+
+        ProcessGeneration::dispatch($newGeneration->id)->onQueue('generations');
+
+        return $this->success($newGeneration->load('creativeProject'), 202);
+    }
+
     public function feedback(Request $request, Generation $generation): JsonResponse
     {
         abort_unless($generation->user_id === $request->user()->id, 404);
