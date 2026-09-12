@@ -29,8 +29,44 @@ class AuthApiTest extends TestCase
     public function test_user_can_login_and_access_profile(): void
     {
         User::factory()->create(['email' => 'sara@example.com', 'password' => 'Secret123']);
-        $token = $this->postJson('/api/auth/login', ['email' => 'sara@example.com', 'password' => 'Secret123'])->json('data.token');
+        $token = $this->postJson('/api/auth/login', ['identifier' => 'sara@example.com', 'password' => 'Secret123'])->json('data.token');
         $this->withToken($token)->getJson('/api/user/profile')->assertOk()->assertJsonPath('data.email', 'sara@example.com');
+    }
+
+    public function test_user_can_register_without_email_and_login_with_mobile(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'name' => 'مریم',
+            'phone' => '+989121234567',
+            'password' => 'Secret123',
+            'password_confirmation' => 'Secret123',
+        ])->assertCreated()->assertJsonPath('data.user.phone', '+989121234567');
+
+        $this->postJson('/api/auth/login', [
+            'identifier' => '+989121234567',
+            'password' => 'Secret123',
+        ])->assertOk()->assertJsonPath('data.user.phone', '+989121234567');
+    }
+
+    public function test_registration_requires_email_or_mobile(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'name' => 'کاربر بدون شناسه',
+            'password' => 'Secret123',
+            'password_confirmation' => 'Secret123',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['email', 'phone']);
+    }
+
+    public function test_mobile_number_must_be_unique(): void
+    {
+        User::factory()->create(['phone' => '+989121234567']);
+
+        $this->postJson('/api/auth/register', [
+            'name' => 'کاربر دوم',
+            'phone' => '+989121234567',
+            'password' => 'Secret123',
+            'password_confirmation' => 'Secret123',
+        ])->assertUnprocessable()->assertJsonValidationErrors('phone');
     }
 
     public function test_invalid_registration_uses_standard_error_envelope(): void
@@ -80,7 +116,7 @@ class AuthApiTest extends TestCase
     public function test_authenticated_user_can_update_profile_and_password(): void
     {
         $user = User::factory()->create(['email' => 'sara@example.com', 'password' => 'OldSecret123']);
-        $token = $this->postJson('/api/auth/login', ['email' => $user->email, 'password' => 'OldSecret123'])->json('data.token');
+        $token = $this->postJson('/api/auth/login', ['identifier' => $user->email, 'password' => 'OldSecret123'])->json('data.token');
 
         $this->withToken($token)->putJson('/api/user/profile', [
             'name' => 'سارا جدید',

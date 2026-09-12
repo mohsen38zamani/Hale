@@ -21,16 +21,19 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = User::create($request->safe()->only(['name', 'email', 'password']));
+        $user = User::create($request->safe()->only(['name', 'email', 'phone', 'password']));
 
         return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa'), 201);
     }
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->string('email'))->first();
+        $identifier = $request->string('identifier')->value();
+        $user = User::query()
+            ->where(fn ($query) => $query->where('email', $identifier)->orWhere('phone', $identifier))
+            ->first();
         if (! $user || ! Hash::check($request->string('password'), $user->password)) {
-            return $this->error('INVALID_CREDENTIALS', 'ایمیل یا رمز عبور نادرست است.', 422);
+            return $this->error('INVALID_CREDENTIALS', 'ایمیل یا شماره موبایل یا رمز عبور نادرست است.', 422);
         }
 
         return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa'));
@@ -82,6 +85,6 @@ class AuthController extends Controller
 
     private function tokenPayload(User $user, string $deviceName): array
     {
-        return ['user' => $user->only(['id', 'name', 'email', 'credits_balance', 'plan_key']), 'token' => $user->createToken($deviceName)->plainTextToken];
+        return ['user' => $user->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'token' => $user->createToken($deviceName)->plainTextToken];
     }
 }
