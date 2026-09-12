@@ -78,18 +78,18 @@
 - [ ] تکمیل محدودیت‌های ماهانه Plan.
   - image limit و video limit ماهانه و enforce قبل از reserve.
   - تفکیک Credit خریداری‌شده و Credit رایگان در صورت نیاز محصول.
-  - enforce اتمیک قبل از reserve و تست race/double-spend؛ count فعلی در دو request هم‌زمان قفل quota ندارد.
+  - enforce اتمیک قبل از reserve با lock روی user و transaction مشترک اضافه شده؛ تست race/double-spend واقعی هنوز لازم است.
   - تصمیم و تست بازه مصرف: ماه تقویمی فعلی با `starts_at/ends_at` اشتراک هم‌راستا نیست.
 
 - [ ] حذف دوگانگی منبع Credit/Plan.
   - `credit_accounts.balance` و ledger منبع اصلی بمانند.
   - `users.credits_balance` یا حذف شود یا با migration/service به‌صورت رسمی sync شود.
   - profile/dashboard نباید مقدار stale از `users.credits_balance` نمایش دهد.
-  - `AuthController` و profile route فعلی هنوز مقدار legacy را در login/profile برمی‌گردانند؛ معیار پایان: login، profile، dashboard، balance و ledger یک مقدار واحد نشان دهند.
+  - login، profile و dashboard اکنون balance ledger را می‌خوانند؛ حذف/deprecate ستون legacy و تست consistency همه endpointها باقی است.
 
 - [ ] تکمیل Invoice و Payment History.
   - endpoint تاریخچه پرداخت با pagination و receipt متنی قابل دانلود تکمیل شده؛ مدل Invoice هنوز لازم است.
-  - نمایش وضعیت pending/paid/failed در UI.
+  - Pricing اکنون نتیجه paid/failed را نمایش می‌دهد و checkout header idempotency می‌فرستد؛ وضعیت pending و صفحه نتیجه کامل هنوز لازم است.
   - checkout با `Idempotency-Key` کلاینت idempotent شده است؛ Invoice و UI وضعیت پرداخت هنوز لازم است.
   - fake checkout محلی برای success/failure اضافه شده؛ production gateway و payment result UI هنوز باقی است.
   - queueهای اصلی اکنون `after_commit` دارند؛ تست rollback/queue هنوز لازم است.
