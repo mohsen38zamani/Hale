@@ -23,7 +23,7 @@
 - [x] Provider پیش‌فرض زرین‌پال، request/verify و callback
 - [x] Landing اسکرولی، Auth UI، Dashboard، Product Library و Upload UI
 - [x] Creative Builder، Generation History، Progress/Result و Pricing/Checkout UI پایه
-- [ ] تست‌های Backend و Providerها: عدد ثبت‌شده ۴۷ تست و ۱۵۸ assertion باید با شمارش CI و پوشش مسیرهای بحرانی بازبینی شود.
+- [x] تست‌های Backend و Providerها: ۴۹ تست و ۱۶۵ assertion در Docker با `pdo_sqlite` سبز هستند؛ پوشش E2E و integration واقعی هنوز جداگانه لازم است.
 
 ## P0: تکمیل مسیر واقعی MVP
 
