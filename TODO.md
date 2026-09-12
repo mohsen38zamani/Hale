@@ -94,9 +94,9 @@
   - queueهای اصلی اکنون `after_commit` دارند؛ تست rollback/queue هنوز لازم است.
 
 - [ ] تکمیل Paywall واقعی.
-  - خطای 402 به CTA `/pricing` وصل شود.
-  - نمایش Credit estimate قبل از Generate.
-  - Low-credit threshold و پیام قابل‌فهم.
+  - خطای 402 اکنون به CTA `/pricing` وصل است.
+  - endpoint و نمایش Credit estimate قبل از Generate اضافه شده است.
+  - low-credit threshold و اعلان آن اضافه شده؛ تست browser و UX کامل هنوز لازم است.
 
 ### Frontend مسیر اصلی
 
