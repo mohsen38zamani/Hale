@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class CreditService
 {
+    public function initialize(User $user, int $balance = 0): CreditAccount
+    {
+        return $user->creditAccount()->firstOrCreate([], ['balance' => $balance]);
+    }
+
     public function account(User $user): CreditAccount
     {
         return $user->creditAccount()->firstOrCreate([], ['balance' => config('credits.initial_balance')]);
@@ -71,8 +76,25 @@ class CreditService
         return CreditAccount::query()->where('user_id', $user->id)->lockForUpdate()->firstOrFail();
     }
 
-    private function record(CreditAccount $account, Generation $generation, string $type, int $amount, string $key): void
+    public function grantBonus(User $user, int $amount, string $key): int
     {
-        $account->transactions()->create(['user_id' => $generation->user_id, 'generation_id' => $generation->id, 'type' => $type, 'amount' => $amount, 'balance_after' => $account->balance, 'idempotency_key' => $key]);
+        $this->initialize($user);
+
+        return DB::transaction(function () use ($user, $amount, $key): int {
+            $account = $this->lockedAccount($user);
+            if ($account->transactions()->where('idempotency_key', $key)->exists()) {
+                return 0;
+            }
+
+            $account->increment('balance', $amount);
+            $this->record($account->fresh(), null, 'bonus', $amount, $key, ['reason' => $key]);
+
+            return $amount;
+        });
+    }
+
+    private function record(CreditAccount $account, ?Generation $generation, string $type, int $amount, string $key, ?array $metadata = null): void
+    {
+        $account->transactions()->create(['user_id' => $generation?->user_id ?? $account->user_id, 'generation_id' => $generation?->id, 'type' => $type, 'amount' => $amount, 'balance_after' => $account->balance, 'idempotency_key' => $key, 'metadata' => $metadata]);
     }
 }

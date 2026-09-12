@@ -6,7 +6,11 @@ use App\Domains\Auth\Requests\ForgotPasswordRequest;
 use App\Domains\Auth\Requests\LoginRequest;
 use App\Domains\Auth\Requests\RegisterRequest;
 use App\Domains\Auth\Requests\ResetPasswordRequest;
+use App\Domains\Auth\Requests\SendPhoneVerificationRequest;
 use App\Domains\Auth\Requests\UpdateProfileRequest;
+use App\Domains\Auth\Requests\VerifyPhoneRequest;
+use App\Domains\Auth\Services\PhoneVerificationService;
+use App\Domains\Credits\Services\CreditService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
@@ -19,9 +23,10 @@ class AuthController extends Controller
 {
     use ApiResponse;
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request, CreditService $credits): JsonResponse
     {
         $user = User::create($request->safe()->only(['name', 'email', 'phone', 'password']));
+        $credits->initialize($user);
 
         return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa'), 201);
     }
@@ -68,6 +73,25 @@ class AuthController extends Controller
         }
 
         return $this->success(['message' => 'رمز عبور با موفقیت تغییر کرد.']);
+    }
+
+    public function sendPhoneVerification(SendPhoneVerificationRequest $request, PhoneVerificationService $verification): JsonResponse
+    {
+        return $this->success($verification->send($request->user(), $request->string('phone')->value()));
+    }
+
+    public function verifyPhone(VerifyPhoneRequest $request, PhoneVerificationService $verification): JsonResponse
+    {
+        try {
+            $credited = $verification->verify($request->user(), $request->string('code')->value());
+        } catch (\RuntimeException $exception) {
+            return $this->error('PHONE_VERIFICATION_FAILED', $exception->getMessage(), 422);
+        }
+
+        return $this->success([
+            'user' => $request->user()->fresh()->only(['id', 'name', 'email', 'phone', 'phone_verified_at']),
+            'credits_added' => $credited,
+        ]);
     }
 
     public function updateProfile(UpdateProfileRequest $request): JsonResponse

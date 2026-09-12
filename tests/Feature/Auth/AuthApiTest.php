@@ -140,4 +140,37 @@ class AuthApiTest extends TestCase
             'current_password' => 'WrongSecret123',
         ])->assertUnprocessable()->assertJsonPath('error.code', 'INVALID_CURRENT_PASSWORD');
     }
+
+    public function test_user_can_verify_mobile_and_receive_free_credits_once(): void
+    {
+        config(['verification.phone.testing_code' => '123456']);
+        $user = User::factory()->create(['phone' => null]);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/auth/phone/send-code', ['phone' => '+989121234567'])
+            ->assertOk()
+            ->assertJsonPath('data.debug_code', '123456');
+
+        $this->postJson('/api/auth/verify-phone', ['code' => '123456'])
+            ->assertOk()
+            ->assertJsonPath('data.credits_added', 30)
+            ->assertJsonPath('data.user.phone_verified_at', fn ($value) => $value !== null);
+
+        $this->assertDatabaseHas('credit_accounts', ['user_id' => $user->id, 'balance' => 30]);
+        $this->assertDatabaseHas('credit_transactions', ['user_id' => $user->id, 'type' => 'bonus', 'amount' => 30]);
+    }
+
+    public function test_phone_bonus_is_idempotent_and_invalid_code_is_rejected(): void
+    {
+        config(['verification.phone.testing_code' => '123456']);
+        $user = User::factory()->create(['phone' => '+989121234567']);
+        Sanctum::actingAs($user);
+        $this->postJson('/api/auth/phone/send-code', ['phone' => $user->phone]);
+
+        $this->postJson('/api/auth/verify-phone', ['code' => '000000'])
+            ->assertUnprocessable()->assertJsonPath('error.code', 'PHONE_VERIFICATION_FAILED');
+        $this->postJson('/api/auth/verify-phone', ['code' => '123456'])->assertOk()->assertJsonPath('data.credits_added', 30);
+        $this->postJson('/api/auth/verify-phone', ['code' => '123456'])->assertUnprocessable();
+        $this->assertDatabaseCount('credit_transactions', 1);
+    }
 }

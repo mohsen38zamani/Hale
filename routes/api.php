@@ -14,6 +14,8 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:30,1');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:30,1');
+    Route::post('/phone/send-code', [AuthController::class, 'sendPhoneVerification'])->middleware(['auth:sanctum', 'throttle:3,10']);
+    Route::post('/verify-phone', [AuthController::class, 'verifyPhone'])->middleware(['auth:sanctum', 'throttle:10,10']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
