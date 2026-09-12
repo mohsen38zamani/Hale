@@ -5,6 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domains\Creative\Models\CreativeProject;
 use App\Domains\Credits\Models\CreditAccount;
+use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Models\Subscription;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Products\Models\Product;
@@ -82,5 +84,15 @@ class User extends Authenticatable implements CanResetPassword
     public function creditAccount(): HasOne
     {
         return $this->hasOne(CreditAccount::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 }

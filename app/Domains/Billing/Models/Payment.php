@@ -10,6 +10,8 @@ class Payment extends Model
 {
     protected $fillable = ['user_id', 'plan_key', 'amount', 'gateway', 'authority', 'reference', 'status', 'idempotency_key', 'paid_at', 'metadata'];
 
+    protected $hidden = ['idempotency_key'];
+
     protected function casts(): array
     {
         return ['amount' => 'integer', 'paid_at' => 'datetime', 'metadata' => 'array'];

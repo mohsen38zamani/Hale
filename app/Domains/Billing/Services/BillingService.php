@@ -6,6 +6,7 @@ use App\Domains\Billing\Contracts\PaymentGateway;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\Subscription;
 use App\Domains\Credits\Services\CreditService;
+use App\Domains\Notifications\Notifications\PaymentSucceededNotification;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,7 @@ class BillingService
             Subscription::create(['user_id' => $payment->user_id, 'plan_key' => $payment->plan_key, 'status' => 'active', 'starts_at' => $now, 'ends_at' => $endsAt]);
             User::query()->whereKey($payment->user_id)->update(['plan_key' => $payment->plan_key]);
             $this->credits->grantPurchase($payment->user, (int) config('plans.'.$payment->plan_key.'.monthly_credits'), 'payment:'.$payment->id, ['payment_id' => $payment->id, 'plan_key' => $payment->plan_key]);
+            $payment->user->notify(new PaymentSucceededNotification($payment->fresh()));
 
             return $payment->fresh();
         });

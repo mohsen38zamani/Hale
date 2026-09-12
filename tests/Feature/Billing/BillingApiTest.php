@@ -37,6 +37,19 @@ class BillingApiTest extends TestCase
         ]);
     }
 
+    public function test_user_can_download_own_payment_receipt(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $paymentId = $this->postJson('/api/subscriptions/checkout', ['plan_key' => 'starter'])
+            ->assertCreated()
+            ->json('data.payment_id');
+
+        $this->get("/api/payments/{$paymentId}/receipt")
+            ->assertOk()
+            ->assertDownload("payment-{$paymentId}-receipt.txt");
+    }
+
     public function test_paid_webhook_activates_subscription_and_credits(): void
     {
         $user = User::factory()->create();
