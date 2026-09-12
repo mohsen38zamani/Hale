@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#1d2420">
     <title>{{ config('app.name', 'Hale') }} | استودیوی محتوای تبلیغاتی</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -64,5 +66,11 @@
             <p class="modal-footnote">با ثبت‌نام، مسیر ساخت اولین محتوایت شروع می‌شود.</p>
         </section>
     </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+        }
+    </script>
 </body>
 </html>

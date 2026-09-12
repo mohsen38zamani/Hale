@@ -1,0 +1,13 @@
+{
+  "name": "Hale AI Content Studio",
+  "short_name": "Hale",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f0e8",
+  "theme_color": "#1d2420",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ]
+}
