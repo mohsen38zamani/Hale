@@ -104,7 +104,7 @@
   - polling در tab فعال/غیرفعال.
   - loading/empty/error state.
   - retry failed و regenerate completed.
-  - نمایش Credit مصرف‌شده و وضعیت دقیق.
+  - نمایش Credit مصرف‌شده/رزروشده و وضعیت دقیق تکمیل شده؛ browser test و polling lifecycle هنوز لازم است.
   - دانلود و preview اکنون با Bearer و Blob کار می‌کنند؛ polling در tab مخفی/visible و browser test هنوز لازم است.
   - retry failed به endpoint متصل شده؛ تست UI و handling خطا هنوز لازم است.
 
