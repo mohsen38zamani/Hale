@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
@@ -74,5 +75,33 @@ class AuthApiTest extends TestCase
             'password' => 'NewSecret123',
             'password_confirmation' => 'NewSecret123',
         ])->assertUnprocessable()->assertJsonPath('error.code', 'INVALID_RESET_TOKEN');
+    }
+
+    public function test_authenticated_user_can_update_profile_and_password(): void
+    {
+        $user = User::factory()->create(['email' => 'sara@example.com', 'password' => 'OldSecret123']);
+        $token = $this->postJson('/api/auth/login', ['email' => $user->email, 'password' => 'OldSecret123'])->json('data.token');
+
+        $this->withToken($token)->putJson('/api/user/profile', [
+            'name' => 'سارا جدید',
+            'email' => 'new@example.com',
+            'current_password' => 'OldSecret123',
+            'password' => 'NewSecret123',
+            'password_confirmation' => 'NewSecret123',
+        ])->assertOk()->assertJsonPath('data.email', 'new@example.com');
+
+        $this->assertTrue(password_verify('NewSecret123', $user->fresh()->password));
+    }
+
+    public function test_profile_password_change_requires_the_current_password(): void
+    {
+        $user = User::factory()->create(['password' => 'OldSecret123']);
+        Sanctum::actingAs($user);
+
+        $this->putJson('/api/user/profile', [
+            'password' => 'NewSecret123',
+            'password_confirmation' => 'NewSecret123',
+            'current_password' => 'WrongSecret123',
+        ])->assertUnprocessable()->assertJsonPath('error.code', 'INVALID_CURRENT_PASSWORD');
     }
 }

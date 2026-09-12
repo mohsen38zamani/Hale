@@ -6,6 +6,7 @@ use App\Domains\Auth\Requests\ForgotPasswordRequest;
 use App\Domains\Auth\Requests\LoginRequest;
 use App\Domains\Auth\Requests\RegisterRequest;
 use App\Domains\Auth\Requests\ResetPasswordRequest;
+use App\Domains\Auth\Requests\UpdateProfileRequest;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
@@ -64,6 +65,19 @@ class AuthController extends Controller
         }
 
         return $this->success(['message' => 'رمز عبور با موفقیت تغییر کرد.']);
+    }
+
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($request->filled('password') && ! Hash::check($request->string('current_password'), $user->password)) {
+            return $this->error('INVALID_CURRENT_PASSWORD', 'رمز عبور فعلی نادرست است.', 422);
+        }
+
+        $user->fill($request->safe()->only(['name', 'email', 'password']))->save();
+
+        return $this->success($user->fresh()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']));
     }
 
     private function tokenPayload(User $user, string $deviceName): array

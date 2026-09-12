@@ -31,4 +31,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/generations/{generation}/download', [GenerationController::class, 'download']);
     Route::get('/credits/balance', [CreditController::class, 'balance']);
     Route::get('/credits/transactions', [CreditController::class, 'transactions']);
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
 });
