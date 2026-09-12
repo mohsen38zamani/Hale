@@ -7,6 +7,7 @@ use App\Domains\AI\Gateway\AiGateway;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Notifications\Notifications\GenerationStatusNotification;
+use App\Domains\Media\Services\WatermarkService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -34,7 +35,7 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
         return (string) $this->generationId;
     }
 
-    public function handle(AiGateway $gateway, CreditService $credits): void
+    public function handle(AiGateway $gateway, CreditService $credits, WatermarkService $watermarks): void
     {
         $generation = Generation::query()->with('creativeProject.product.assets')->findOrFail($this->generationId);
         if (in_array($generation->status, ['processing', 'completed'], true)) {
@@ -57,13 +58,14 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
                 $asset?->path,
             ));
             $result = $response['result'];
-            $this->assertOutputContract($generation->type, $result->mime, $result->extension, $result->contents);
+            $contents = $watermarks->applyForPlan($result->contents, $result->mime, $generation->user->plan_key);
+            $this->assertOutputContract($generation->type, $result->mime, $result->extension, $contents);
             $path = "generations/{$generation->user_id}/{$generation->id}.{$result->extension}";
             $disk = Storage::disk(config('ai.output_disk'));
-            if (! $disk->put($path, $result->contents)) {
+            if (! $disk->put($path, $contents)) {
                 throw new \RuntimeException('ذخیره خروجی generation ناموفق بود.');
             }
-            $media = $generation->user->mediaAssets()->firstOrCreate(['path' => $path], ['disk' => config('ai.output_disk'), 'mime' => $result->mime, 'size' => strlen($result->contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
+            $media = $generation->user->mediaAssets()->firstOrCreate(['path' => $path], ['disk' => config('ai.output_disk'), 'mime' => $result->mime, 'size' => strlen($contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
             $elapsed = (int) ((hrtime(true) - $startedAt) / 1_000_000);
 
             $generation->usageLogs()->create(['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
