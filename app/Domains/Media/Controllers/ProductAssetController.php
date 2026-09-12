@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class ProductAssetController extends Controller
 {
@@ -20,8 +21,15 @@ class ProductAssetController extends Controller
         abort_unless($product->user_id === $request->user()->id, 404);
 
         $asset = $uploader->storeProductImage($request->user(), $request->file('image'));
-        DB::table('product_assets')->where('product_id', $product->id)->update(['is_primary' => false]);
-        $product->assets()->attach($asset->id, ['is_primary' => true]);
+        try {
+            DB::transaction(function () use ($product, $asset): void {
+                DB::table('product_assets')->where('product_id', $product->id)->update(['is_primary' => false]);
+                $product->assets()->attach($asset->id, ['is_primary' => true]);
+            });
+        } catch (Throwable $exception) {
+            $uploader->delete($asset);
+            throw $exception;
+        }
 
         return $this->success($asset, 201);
     }

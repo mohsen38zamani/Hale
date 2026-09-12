@@ -5,6 +5,7 @@ namespace App\Domains\Products\Controllers;
 use App\Domains\Products\Models\Product;
 use App\Domains\Products\Requests\StoreProductRequest;
 use App\Domains\Products\Requests\UpdateProductRequest;
+use App\Domains\Media\Services\MediaUploadService;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -47,10 +48,17 @@ class ProductController extends Controller
         return $this->success($product->fresh('assets'));
     }
 
-    public function destroy(Request $request, Product $product): JsonResponse
+    public function destroy(Request $request, Product $product, MediaUploadService $media): JsonResponse
     {
         $this->ensureOwner($request, $product);
+        $assets = $product->assets()->get();
         $product->delete();
+
+        foreach ($assets as $asset) {
+            if (! $asset->products()->exists()) {
+                $media->delete($asset);
+            }
+        }
 
         return $this->success(['message' => 'محصول حذف شد.']);
     }
