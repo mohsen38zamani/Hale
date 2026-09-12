@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -15,6 +16,7 @@ class BillingApiTest extends TestCase
     {
         parent::setUp();
         config(['payment.webhook_secret' => 'test-secret']);
+        config(['payment.driver' => 'fake']);
     }
 
     public function test_user_can_start_checkout_for_a_paid_plan(): void
@@ -88,5 +90,30 @@ class BillingApiTest extends TestCase
 
         $this->postJson('/api/webhooks/payment', ['authority' => $authority, 'status' => 'paid'], ['X-Payment-Signature' => 'invalid'])
             ->assertUnauthorized();
+    }
+
+    public function test_zarinpal_callback_verifies_and_activates_the_plan(): void
+    {
+        config([
+            'payment.driver' => 'zarinpal',
+            'payment.zarinpal.merchant_id' => 'merchant-id',
+            'payment.zarinpal.callback_url' => 'https://hale.test/api/payments/zarinpal/callback',
+        ]);
+        Http::fake([
+            'https://payment.zarinpal.com/pg/v4/payment/request.json' => Http::response([
+                'data' => ['code' => 100, 'authority' => 'A0000000000000000000000000000wwOGYpd'],
+            ]),
+            'https://payment.zarinpal.com/pg/v4/payment/verify.json' => Http::response([
+                'data' => ['code' => 100, 'ref_id' => 987654],
+            ]),
+        ]);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/subscriptions/checkout', ['plan_key' => 'starter'])->assertCreated();
+        $this->getJson('/api/payments/zarinpal/callback?Authority=A0000000000000000000000000000wwOGYpd&Status=OK')
+            ->assertOk()->assertJsonPath('data.status', 'paid');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'plan_key' => 'starter']);
     }
 }

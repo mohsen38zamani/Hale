@@ -22,6 +22,7 @@ Route::prefix('auth')->group(function (): void {
 Route::get('/user/profile', fn () => response()->json(['success' => true, 'data' => request()->user()->only(['id', 'name', 'email', 'phone', 'credits_balance', 'plan_key']), 'error' => null]))->middleware('auth:sanctum');
 Route::get('/plans', [PlanController::class, 'index']);
 Route::post('/webhooks/payment', [PlanController::class, 'webhook']);
+Route::get('/payments/zarinpal/callback', [PlanController::class, 'zarinpalCallback']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
