@@ -17,6 +17,9 @@ class RequestId
         $request->attributes->set('request_id', $requestId);
         Log::withContext(['request_id' => $requestId]);
 
-        return $next($request)->header('X-Request-ID', $requestId);
+        $response = $next($request);
+        $response->headers->set('X-Request-ID', $requestId);
+
+        return $response;
     }
 }

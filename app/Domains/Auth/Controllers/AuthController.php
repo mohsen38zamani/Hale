@@ -31,7 +31,7 @@ class AuthController extends Controller
         $credits->initialize($user);
         $user->notify(new WelcomeNotification());
 
-        return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa'), 201);
+        return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits), 201);
     }
 
     public function login(LoginRequest $request, CreditService $credits): JsonResponse
@@ -101,7 +101,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    public function updateProfile(UpdateProfileRequest $request, CreditService $credits): JsonResponse
     {
         $user = $request->user();
 
