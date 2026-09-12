@@ -59,15 +59,22 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
             $result = $response['result'];
             $this->assertOutputContract($generation->type, $result->mime, $result->extension);
             $path = "generations/{$generation->user_id}/{$generation->id}.{$result->extension}";
-            Storage::disk(config('ai.output_disk'))->put($path, $result->contents);
-            $media = $generation->user->mediaAssets()->create(['disk' => config('ai.output_disk'), 'path' => $path, 'mime' => $result->mime, 'size' => strlen($result->contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
+            $disk = Storage::disk(config('ai.output_disk'));
+            if (! $disk->put($path, $result->contents)) {
+                throw new \RuntimeException('ذخیره خروجی generation ناموفق بود.');
+            }
+            $media = $generation->user->mediaAssets()->firstOrCreate(['path' => $path], ['disk' => config('ai.output_disk'), 'mime' => $result->mime, 'size' => strlen($result->contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
             $elapsed = (int) ((hrtime(true) - $startedAt) / 1_000_000);
 
             $generation->usageLogs()->create(['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
             $generation->update(['status' => 'completed', 'provider' => $response['provider'], 'model' => $result->model, 'cost_usd' => $result->costUsd, 'processing_time_ms' => $elapsed, 'output_media_id' => $media->id]);
             $credits->settle($generation);
             $attempt->update(['status' => 'completed', 'finished_at' => now()]);
-            $generation->user->notify(new GenerationStatusNotification($generation->fresh(), 'completed'));
+            try {
+                $generation->user->notify(new GenerationStatusNotification($generation->fresh(), 'completed'));
+            } catch (Throwable $notificationException) {
+                report($notificationException);
+            }
         } catch (Throwable $exception) {
             $attempt->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'finished_at' => now()]);
             $attemptNumber = max(1, $this->attempts());
