@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Generation extends Model
 {
-    protected $fillable = ['user_id', 'type', 'status', 'provider', 'model', 'prompt_hash', 'credits_reserved', 'credits_charged', 'cost_usd', 'processing_time_ms', 'output_media_id', 'error_message', 'feedback', 'metadata'];
+    protected $fillable = ['user_id', 'creative_project_id', 'type', 'status', 'provider', 'model', 'prompt_hash', 'credits_reserved', 'credits_charged', 'cost_usd', 'processing_time_ms', 'output_media_id', 'error_message', 'feedback', 'metadata'];
 
     protected function casts(): array
     {

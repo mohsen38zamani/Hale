@@ -20,8 +20,8 @@ class FakeGenerationProvider implements GenerationProvider
 
     public function generate(GenerationInput $input): GenerationResult
     {
-        $contents = sprintf('<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080"><rect width="100%%" height="100%%" fill="#111827"/><text x="50%%" y="50%%" fill="white" text-anchor="middle" font-size="42">Hale Preview</text></svg>');
+        $contents = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true);
 
-        return new GenerationResult($contents, 'image/svg+xml', 'svg', 'local-preview-v1', 0, metadata: ['fake' => true]);
+        return new GenerationResult($contents, 'image/png', 'png', 'local-preview-v1', 0, metadata: ['fake' => true]);
     }
 }

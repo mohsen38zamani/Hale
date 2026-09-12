@@ -15,4 +15,9 @@ trait ApiResponse
     {
         return response()->json(['success' => false, 'data' => null, 'error' => ['code' => $code, 'message' => $message]], $status);
     }
+
+    protected function failure(string $code, string $message, int $status): JsonResponse
+    {
+        return $this->error($code, $message, $status);
+    }
 }

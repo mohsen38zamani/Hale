@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CreditTransaction extends Model
 {
-    protected $fillable = ['user_id', 'generation_id', 'type', 'amount', 'balance_after', 'idempotency_key', 'metadata'];
+    protected $fillable = ['credit_account_id', 'user_id', 'generation_id', 'type', 'amount', 'balance_after', 'idempotency_key', 'metadata'];
 
     protected function casts(): array
     {

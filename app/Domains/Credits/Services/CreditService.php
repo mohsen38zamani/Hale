@@ -25,7 +25,8 @@ class CreditService
 
             $account->decrement('balance', $amount);
             $account->increment('reserved', $amount);
-            $this->record($account->fresh(), $generation, 'reserve', -$amount, "generation:{$generation->id}:reserve");
+            $attempt = $account->transactions()->where('generation_id', $generation->id)->where('type', 'reserve')->count() + 1;
+            $this->record($account->fresh(), $generation, 'reserve', -$amount, "generation:{$generation->id}:reserve:{$attempt}");
             $generation->update(['credits_reserved' => $amount]);
         });
     }
@@ -57,7 +58,8 @@ class CreditService
             $amount = $generation->credits_reserved;
             $account->decrement('reserved', $amount);
             $account->increment('balance', $amount);
-            $this->record($account->fresh(), $generation, 'refund', $amount, "generation:{$generation->id}:refund:{$generation->jobs()->count()}");
+            $refundNumber = $account->transactions()->where('generation_id', $generation->id)->where('type', 'refund')->count() + 1;
+            $this->record($account->fresh(), $generation, 'refund', $amount, "generation:{$generation->id}:refund:{$refundNumber}");
             $generation->update(['credits_reserved' => 0]);
         });
     }

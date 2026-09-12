@@ -17,14 +17,16 @@ services:
     image: redis:7-alpine
     ports: ["63790:6379"]
   minio:
-    image: quay.io/minio/minio:latest
+    build: {context: docker/minio}
+    image: hale-minio:local
     profiles: [storage]
     command: server /data --console-address :9001
     environment: {MINIO_ROOT_USER: hale, MINIO_ROOT_PASSWORD: hale-secret}
     ports: ["9000:9000", "9001:9001"]
     volumes: ["minio-data:/data"]
   minio-init:
-    image: quay.io/minio/mc:latest
+    build: {context: docker/minio}
+    image: hale-minio:local
     profiles: [storage]
     entrypoint: /bin/sh /init.sh
     environment: {MINIO_ROOT_USER: hale, MINIO_ROOT_PASSWORD: hale-secret, AWS_BUCKET: hale}

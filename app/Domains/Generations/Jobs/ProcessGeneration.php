@@ -8,13 +8,14 @@ use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
-class ProcessGeneration implements ShouldQueue
+class ProcessGeneration implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -23,11 +24,22 @@ class ProcessGeneration implements ShouldQueue
     /** @var list<int> */
     public array $backoff = [10, 30, 90];
 
+    public int $uniqueFor = 300;
+
     public function __construct(public readonly int $generationId) {}
+
+    public function uniqueId(): string
+    {
+        return (string) $this->generationId;
+    }
 
     public function handle(AiGateway $gateway, CreditService $credits): void
     {
         $generation = Generation::query()->with('creativeProject')->findOrFail($this->generationId);
+        if (in_array($generation->status, ['processing', 'completed'], true)) {
+            return;
+        }
+
         $attempt = $generation->jobs()->create(['queue_job_id' => $this->job?->getJobId(), 'attempt' => $this->attempts(), 'status' => 'processing', 'started_at' => now()]);
         $startedAt = hrtime(true);
         $generation->update(['status' => 'processing', 'error_message' => null]);
@@ -47,9 +59,20 @@ class ProcessGeneration implements ShouldQueue
             $attempt->update(['status' => 'completed', 'finished_at' => now()]);
         } catch (Throwable $exception) {
             $attempt->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'finished_at' => now()]);
-            $generation->update(['status' => 'failed', 'error_message' => $exception->getMessage()]);
-            $credits->refund($generation);
+            $attemptNumber = max(1, $this->attempts());
+            $generation->update(['status' => $attemptNumber >= $this->tries ? 'failed' : 'queued', 'error_message' => $exception->getMessage()]);
             throw $exception;
         }
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        $generation = Generation::query()->find($this->generationId);
+        if ($generation === null) {
+            return;
+        }
+
+        $generation->update(['status' => 'failed', 'error_message' => $exception->getMessage()]);
+        app(CreditService::class)->refund($generation);
     }
 }

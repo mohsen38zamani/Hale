@@ -17,6 +17,7 @@ use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class GenerationController extends Controller
 {
@@ -76,5 +77,39 @@ class GenerationController extends Controller
         ProcessGeneration::dispatch($generation->id)->onQueue('generations');
 
         return $this->success($generation->fresh(), 202);
+    }
+
+    public function feedback(Request $request, Generation $generation): JsonResponse
+    {
+        abort_unless($generation->user_id === $request->user()->id, 404);
+        abort_unless($generation->status === 'completed', 409, 'فقط تولید تکمیل‌شده قابل ارزیابی است.');
+
+        $data = $request->validate(['feedback' => ['required', 'string', 'in:positive,negative']]);
+        $generation->update(['feedback' => $data['feedback']]);
+
+        return $this->success($generation->fresh());
+    }
+
+    public function download(Request $request, Generation $generation)
+    {
+        abort_unless($generation->user_id === $request->user()->id, 404);
+        abort_unless($generation->status === 'completed' && $generation->outputMedia, 404);
+
+        $media = $generation->outputMedia;
+
+        return response()->streamDownload(function () use ($media): void {
+            $stream = Storage::disk($media->disk)->readStream($media->path);
+            fpassthru($stream);
+            fclose($stream);
+        }, "generation-{$generation->id}.{$this->extension($media->mime)}", ['Content-Type' => $media->mime]);
+    }
+
+    private function extension(string $mime): string
+    {
+        return match ($mime) {
+            'image/png' => 'png',
+            'video/mp4' => 'mp4',
+            default => 'jpg',
+        };
     }
 }
