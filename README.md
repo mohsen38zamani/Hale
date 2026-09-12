@@ -8,7 +8,7 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 
 ## وضعیت پروژه
 
-پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative، Generation صف‌محور، AI Gateway، اعتبار و Billing پایه در مخزن پیاده‌سازی شده‌اند. احراز هویت با ایمیل یا موبایل، بازیابی رمز، OTP و Credit رایگان، Provider قابل‌تعویض SMS، محدودیت پلن، Regenerate و پرداخت با Provider پیش‌فرض زرین‌پال آماده است. frontend/PWA، اتصال Provider واقعی AI، اعلان‌ها، پنل مدیریت و بعضی قابلیت‌های عملیاتی هنوز باقی مانده‌اند.
+پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative، Generation صف‌محور، AI Gateway، اعتبار و Billing پایه در مخزن پیاده‌سازی شده‌اند. احراز هویت با ایمیل یا موبایل، بازیابی رمز، OTP و Credit رایگان، Provider قابل‌تعویض SMS، محدودیت پلن، Regenerate، Landing، Dashboard، Builder، Result UI و پرداخت با Provider پیش‌فرض زرین‌پال آماده است. اتصال Provider واقعی AI، Notifications، پنل مدیریت، Invoice، Watermark و تست/عملیات production هنوز باقی مانده‌اند. فهرست جزئیات در [TODO.md](TODO.md) نگهداری می‌شود.
 
 
 ```text
@@ -227,7 +227,7 @@ GET    /api/payments/zarinpal/callback
 | SMS Provider | `FakeSmsProvider` برای تست و `SmsIrProvider` برای `sms.ir` |
 | Generation | Queue، Credit reserve/settle/refund، Plan limit، Retry و Regenerate |
 | Billing | Payment/Subscription، Checkout، Webhook امضاشده و Callback زرین‌پال |
-| باقی‌مانده | اتصال Provider واقعی AI، Invoice، Notifications، Admin، Checkout UI و E2E |
+| باقی‌مانده | Provider واقعی AI، Invoice، Notifications، Admin، Watermark، E2E و عملیات production |
 
 ## مدل درآمد و Credit
 

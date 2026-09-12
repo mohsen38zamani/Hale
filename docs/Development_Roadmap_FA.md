@@ -31,6 +31,8 @@
 
 علامت `✅` یعنی Backend آن بخش پیاده‌سازی و تست شده است؛ نبودن علامت به معنی باقی‌ماندن کار یا تکمیل‌نبودن بخش Frontend/عملیاتی است.
 
+جزئیات موردهای باقی‌مانده، وابستگی‌ها و معیار پایان در فایل ریشهٔ [`TODO.md`](../TODO.md) نگهداری می‌شود.
+
 ---
 
 ## نمای کلی فازها
@@ -233,9 +235,9 @@ app/Domains/
 ### Frontend
 | # | Feature | Tasks |
 |---|---------|-------|
-| 4.11 | Generation Progress UI | Polling/WebSocket, progress bar |
-| 4.12 | Generation Result Page | Preview, download, regenerate |
-| 4.13 | Generation History | List past generations with filters |
+| 4.11 | Generation Progress UI | ✅ Polling پایه و progress bar؛ تست مرورگر و stateهای کامل باقی‌مانده |
+| 4.12 | Generation Result Page | ✅ Preview، download، regenerate و feedback UI پایه |
+| 4.13 | Generation History | ✅ نمایش تاریخچه پایه؛ filter/date/search باقی‌مانده |
 | 4.14 | Error States | Failed generation, retry button |
 
 ### Infrastructure
@@ -282,7 +284,7 @@ app/Domains/
 |---|---------|-------|
 | 5.12 | Credit Balance Display | Header widget |
 | 5.13 | Pricing Page | Plans comparison |
-| 5.14 | Checkout Flow | Select plan → payment → confirmation |
+| 5.14 | Checkout Flow | ✅ Pricing و شروع Checkout UI؛ callback/payment result باقی‌مانده |
 | 5.15 | Payment History | List transactions |
 | 5.16 | Low Credit Warning | Notification when credits low |
 | 5.17 | Paywall | Block generation when no credits |
