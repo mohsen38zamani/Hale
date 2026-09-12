@@ -164,7 +164,17 @@ if (generationPage && token) {
 	const frame = document.querySelector('[data-result-frame]');
 	const actions = document.querySelector('[data-result-actions]');
 	const message = document.querySelector('[data-generation-message]');
+	const retryButton = document.querySelector('[data-retry]');
+	const regenerateButton = document.querySelector('[data-regenerate]');
 	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.' };
+	let outputUrl;
+	const loadOutput = async () => {
+		const response = await fetch(`/api/generations/${generationId}/download`, { headers: { Accept: 'application/octet-stream', Authorization: `Bearer ${token}` } });
+		if (!response.ok) throw new Error('دریافت خروجی ممکن نیست.');
+		if (outputUrl) URL.revokeObjectURL(outputUrl);
+		outputUrl = URL.createObjectURL(await response.blob());
+		return outputUrl;
+	};
 	const poll = async () => {
 		const response = await fetch(`/api/generations/${generationId}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
 		const result = await response.json();
@@ -176,17 +186,23 @@ if (generationPage && token) {
 			title.innerHTML = 'محتوا<br><em>آماده است.</em>';
 			copy.textContent = 'حالا می‌توانی خروجی را دانلود کنی، بازخورد بدهی یا یک نسخه تازه بسازی.';
 			const media = generation.output_media;
-			frame.innerHTML = media?.mime?.startsWith('video') ? `<video controls src="/api/generations/${generationId}/download"></video>` : `<img alt="خروجی تولیدشده" src="/api/generations/${generationId}/download">`;
+			const output = await loadOutput();
+			frame.innerHTML = media?.mime?.startsWith('video') ? `<video controls src="${output}"></video>` : `<img alt="خروجی تولیدشده" src="${output}">`;
 			actions.hidden = false;
-			document.querySelector('[data-download]').href = `/api/generations/${generationId}/download`;
+			document.querySelector('[data-download]').href = output;
+			document.querySelector('[data-download]').download = `generation-${generationId}.${media?.mime === 'video/mp4' ? 'mp4' : 'png'}`;
+			retryButton.hidden = true;
+			regenerateButton.hidden = false;
 			return;
 		}
-		if (generation.status === 'failed') { title.innerHTML = 'ساخت محتوا<br><em>متوقف شد.</em>'; message.textContent = generation.error_message || 'دوباره تلاش کن.'; actions.hidden = false; return; }
-		setTimeout(poll, 2500);
+		if (generation.status === 'failed') { title.innerHTML = 'ساخت محتوا<br><em>متوقف شد.</em>'; message.textContent = generation.error_message || 'دوباره تلاش کن.'; actions.hidden = false; retryButton.hidden = false; regenerateButton.hidden = true; return; }
+		if (document.visibilityState === 'visible') setTimeout(poll, 2500);
 	};
 	poll().catch((error) => { message.textContent = error.message; });
+	document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !actions.hidden) return; if (document.visibilityState === 'visible') poll().catch((error) => { message.textContent = error.message; }); });
 	document.querySelector('[data-feedback="positive"]')?.addEventListener('click', () => sendFeedback('positive'));
 	document.querySelector('[data-feedback="negative"]')?.addEventListener('click', () => sendFeedback('negative'));
 	async function sendFeedback(feedback) { await fetch(`/api/generations/${generationId}/feedback`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ feedback }) }); message.textContent = 'بازخوردت ثبت شد، ممنون.'; }
 	document.querySelector('[data-regenerate]')?.addEventListener('click', async () => { const response = await fetch(`/api/generations/${generationId}/regenerate`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); const result = await response.json(); if (response.ok) window.location.href = `/generations/${result.data.id}`; else message.textContent = result.error?.message || 'تولید مجدد انجام نشد.'; });
+	retryButton?.addEventListener('click', async () => { retryButton.disabled = true; const response = await fetch(`/api/generations/${generationId}/retry`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); if (response.ok) window.location.reload(); else { const result = await response.json(); message.textContent = result.error?.message || 'تلاش مجدد انجام نشد.'; retryButton.disabled = false; } });
 }
