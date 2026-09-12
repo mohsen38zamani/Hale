@@ -43,6 +43,7 @@
 
 - [ ] انتقال asset محصول به pipeline generation.
   - قرارداد `GenerationInput` و job اکنون disk/path asset اصلی را منتقل می‌کند؛ Provider واقعی هنوز باید آن را مصرف کند.
+  - تست contract برای primary asset و نبود asset باید اضافه شود.
   - معیار پایان: asset انتخاب‌شده از Product تا Provider و خروجی واقعی end-to-end قابل ردیابی باشد.
 
 - [ ] تکمیل `ModelRouter` برای quality، plan، cost و duration support.
@@ -70,7 +71,7 @@
   - بررسی مبلغ ریالی/واحد پول، duplicate callback و code 101.
 
 - [ ] تکمیل بخش انقضای Subscription.
-  - lazy expiry و command/schedule batch برای `ends_at` و برگشت به active plan/free اضافه شده است.
+  - lazy expiry و command/schedule batch برای `ends_at` و برگشت به active plan/free اضافه شده است؛ تست مرزی و renewal هنوز باقی است.
   - renewal ماهانه یا تصمیم صریح دربارهٔ عدم پشتیبانی renewal و UX پیش از expiry.
   - جلوگیری از فعال‌شدن plan منقضی.
 
@@ -143,15 +144,15 @@
 - [x] ساخت Notification domain و جدول `notifications`.
 - [x] endpoint لیست/خواندن اعلان‌ها.
 - [x] اعلان Generation completed/failed و Payment موفق.
-- [ ] اعلان Credit کم و Welcome.
+- [x] اعلان Credit کم و Welcome در channel database.
 - [ ] کانال In-app و Email؛ SMS فقط برای OTP باقی بماند.
 - [ ] تست event، queue، unread/read و failure ارسال.
-  - after-commit فعال شده؛ تست rollback/queue و کانال‌های Email/low-credit هنوز لازم است.
+  - after-commit فعال شده؛ تست rollback/queue و کانال Email هنوز لازم است.
 
 ### Watermark و Media
 
-- [ ] اعمال Watermark واقعی فقط برای Free در preview/output.
-- [ ] عدم Watermark برای Starter/Creator با تست.
+- [x] اعمال Watermark واقعی برای تصویر پلن Free در output.
+- [ ] عدم Watermark برای Starter/Creator با تست integration.
 - [x] metadata و MIME صحیح برای هر خروجی؛ خروجی نامعتبر اکنون fail/refund می‌شود.
 - [x] retention ۹۰ روزه و cleanup فایل‌های Storage.
 - [x] command و schedule روزانه برای پاک‌سازی generation/media قدیمی.
