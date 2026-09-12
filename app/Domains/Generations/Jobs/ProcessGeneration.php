@@ -57,7 +57,7 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
                 $asset?->path,
             ));
             $result = $response['result'];
-            $this->assertOutputContract($generation->type, $result->mime, $result->extension);
+            $this->assertOutputContract($generation->type, $result->mime, $result->extension, $result->contents);
             $path = "generations/{$generation->user_id}/{$generation->id}.{$result->extension}";
             $disk = Storage::disk(config('ai.output_disk'));
             if (! $disk->put($path, $result->contents)) {
@@ -95,9 +95,13 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
         $generation->user->notify(new GenerationStatusNotification($generation, 'failed'));
     }
 
-    private function assertOutputContract(string $type, string $mime, string $extension): void
+    private function assertOutputContract(string $type, string $mime, string $extension, string $contents): void
     {
         $expected = $type === 'video' ? ['video/mp4', 'mp4'] : [['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']];
+
+        if ($contents === '' || strlen($contents) > config('ai.max_output_bytes')) {
+            throw new \RuntimeException('اندازه خروجی generation معتبر نیست.');
+        }
 
         if ($type === 'video' && $mime !== $expected[0]) {
             throw new \RuntimeException('Provider خروجی ویدئو با MIME video/mp4 تولید نکرد.');
@@ -105,6 +109,10 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
 
         if ($type === 'video' && $extension !== $expected[1]) {
             throw new \RuntimeException('Provider خروجی ویدئو با پسوند mp4 تولید نکرد.');
+        }
+
+        if ($type === 'video' && (strlen($contents) < 12 || substr($contents, 4, 4) !== 'ftyp')) {
+            throw new \RuntimeException('محتوای خروجی ویدئو MP4 معتبر نیست.');
         }
 
         if ($type === 'image' && ! in_array([$mime, $extension], $expected, true)) {
