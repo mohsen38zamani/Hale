@@ -12,6 +12,29 @@ class GenerationApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_user_can_estimate_image_credit_cost(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/credits/estimate', ['type' => 'image'])
+            ->assertOk()
+            ->assertJsonPath('data.cost', 10)
+            ->assertJsonPath('data.sufficient', true);
+    }
+
+    public function test_video_estimate_reports_insufficient_balance(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/credits/estimate', ['type' => 'video', 'video_duration_seconds' => 5])
+            ->assertOk()
+            ->assertJsonPath('data.cost', 45)
+            ->assertJsonPath('data.sufficient', false)
+            ->assertJsonPath('data.pricing_url', '/pricing');
+    }
+
     public function test_user_can_preview_auto_best_and_queue_generation(): void
     {
         $user = User::factory()->create();

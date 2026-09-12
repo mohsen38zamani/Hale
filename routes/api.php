@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/generations/{generation}/download', [GenerationController::class, 'download']);
     Route::get('/credits/balance', [CreditController::class, 'balance']);
     Route::get('/credits/transactions', [CreditController::class, 'transactions']);
+    Route::post('/credits/estimate', [CreditController::class, 'estimate']);
     Route::get('/payments', [PlanController::class, 'payments'])->middleware('throttle:payment-history');
     Route::get('/payments/{payment}/receipt', [PlanController::class, 'receipt']);
     Route::get('/payments/{payment}/invoice', [PlanController::class, 'invoice']);
