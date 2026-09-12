@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use App\Domains\Media\Models\MediaAsset;
+use App\Domains\Billing\Services\SubscriptionService;
 use Illuminate\Support\Facades\Storage;
 
 Artisan::command('inspire', function () {
@@ -22,3 +23,8 @@ Artisan::command('media:cleanup-expired', function (): void {
 
     $this->info("Deleted {$count} expired media assets.");
 })->purpose('Delete expired generation media from storage and database');
+
+Artisan::command('subscriptions:expire', function (SubscriptionService $subscriptions): void {
+    $count = $subscriptions->expireAll();
+    $this->info("Expired {$count} subscriptions.");
+})->purpose('Expire subscriptions and restore users to their active plan');

@@ -10,20 +10,53 @@ class SubscriptionService
 {
     public function syncExpired(User $user): void
     {
-        $subscription = $user->subscriptions()
-            ->where('status', 'active')
-            ->where('ends_at', '<', now())
-            ->latest('ends_at')
-            ->first();
+        DB::transaction(fn () => $this->expireForUser($user));
+    }
 
-        if ($subscription === null) {
-            return;
+    public function expireAll(): int
+    {
+        $expired = 0;
+
+        Subscription::query()
+            ->where('status', 'active')
+            ->where('ends_at', '<=', now())
+            ->chunkById(100, function ($subscriptions) use (&$expired): void {
+                foreach ($subscriptions as $subscription) {
+                    $user = User::query()->find($subscription->user_id);
+                    if ($user === null) {
+                        continue;
+                    }
+
+                    DB::transaction(function () use ($user, &$expired): void {
+                        $expired += $this->expireForUser($user);
+                    });
+                }
+            });
+
+        return $expired;
+    }
+
+    private function expireForUser(User $user): int
+    {
+        $expired = $user->subscriptions()
+            ->where('status', 'active')
+            ->where('ends_at', '<=', now())
+            ->lockForUpdate()
+            ->get();
+
+        if ($expired->isEmpty()) {
+            return 0;
         }
 
-        DB::transaction(function () use ($user, $subscription): void {
-            $subscription->update(['status' => 'expired']);
-            $user->update(['plan_key' => 'free']);
-        });
+        $expired->each->update(['status' => 'expired']);
+        $active = $user->subscriptions()
+            ->where('status', 'active')
+            ->where('ends_at', '>', now())
+            ->latest('ends_at')
+            ->first();
+        $user->update(['plan_key' => $active?->plan_key ?? 'free']);
+
+        return $expired->count();
     }
 
     public function active(User $user): ?Subscription
