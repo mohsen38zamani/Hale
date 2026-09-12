@@ -42,7 +42,7 @@
   - معیار پایان: یک Reel واقعی در کمتر از SLA مستند تولید و دانلود شود.
 
 - [ ] انتقال asset محصول به pipeline generation.
-  - `GenerationInput` و Provider فعلی فقط prompt/aspect ratio/duration می‌گیرند و تصویر محصول را دریافت نمی‌کنند.
+  - قرارداد `GenerationInput` و job اکنون disk/path asset اصلی را منتقل می‌کند؛ Provider واقعی هنوز باید آن را مصرف کند.
   - معیار پایان: asset انتخاب‌شده از Product تا Provider و خروجی واقعی end-to-end قابل ردیابی باشد.
 
 - [ ] تکمیل `ModelRouter` برای quality، plan، cost و duration support.
@@ -59,8 +59,8 @@
   - webhook idempotency یا polling امن.
   - dead-letter handling و alert برای failure نهایی.
   - محدودیت retry طبق PRD و تست integration.
-  - recovery اتمیک برای خطای بین ذخیره output، settle اعتبار و notification؛ generation تکمیل‌شده نباید reservation باز داشته باشد.
-  - بررسی موفقیت `Storage::put` و integrity/size/duration خروجی پیش از ثبت `completed`.
+  - recovery اتمیک برای خطای بین ذخیره output، settle اعتبار و notification؛ storage failure و notification failure پایه پوشش داده شده، recovery settle و integrity کامل باقی است.
+  - موفقیت `Storage::put` اکنون بررسی می‌شود؛ integrity/size/duration واقعی خروجی هنوز لازم است.
 
 ### Billing و Credit مالی
 
@@ -70,7 +70,7 @@
   - بررسی مبلغ ریالی/واحد پول، duplicate callback و code 101.
 
 - [ ] تکمیل بخش انقضای Subscription.
-  - انقضای lazy `ends_at` و برگشت به `free` پیش از بررسی محدودیت generation.
+  - lazy expiry و command/schedule batch برای `ends_at` و برگشت به active plan/free اضافه شده است.
   - renewal ماهانه یا تصمیم صریح دربارهٔ عدم پشتیبانی renewal و UX پیش از expiry.
   - جلوگیری از فعال‌شدن plan منقضی.
 
@@ -89,9 +89,9 @@
 - [ ] تکمیل Invoice و Payment History.
   - endpoint تاریخچه پرداخت با pagination و receipt متنی قابل دانلود تکمیل شده؛ مدل Invoice هنوز لازم است.
   - نمایش وضعیت pending/paid/failed در UI.
-  - checkout به `Idempotency-Key` کلاینت و جلوگیری از double-click/payment pending تکراری نیاز دارد.
-  - fake gateway به `/fake-checkout/{authority}` redirect می‌کند اما route/view محلی ندارد؛ flow fake باید قابل تکمیل یا صریحاً حذف شود.
-  - notification پرداخت باید after-commit dispatch شود؛ queue فعلی `after_commit=false` است.
+  - checkout با `Idempotency-Key` کلاینت idempotent شده است؛ Invoice و UI وضعیت پرداخت هنوز لازم است.
+  - fake checkout محلی برای success/failure اضافه شده؛ production gateway و payment result UI هنوز باقی است.
+  - queueهای اصلی اکنون `after_commit` دارند؛ تست rollback/queue هنوز لازم است.
 
 - [ ] تکمیل Paywall واقعی.
   - خطای 402 به CTA `/pricing` وصل شود.
@@ -105,14 +105,14 @@
   - loading/empty/error state.
   - retry failed و regenerate completed.
   - نمایش Credit مصرف‌شده و وضعیت دقیق.
-  - `img`/`video`/download link فعلی بدون Bearer به endpoint محافظت‌شده می‌روند؛ fetch احراز‌شده با Blob یا signed URL لازم است.
-  - دکمه retry در صفحه generation به endpoint retry متصل نشده و polling در tab مخفی متوقف نمی‌شود.
+  - دانلود و preview اکنون با Bearer و Blob کار می‌کنند؛ polling در tab مخفی/visible و browser test هنوز لازم است.
+  - retry failed به endpoint متصل شده؛ تست UI و handling خطا هنوز لازم است.
 
 - [ ] تکمیل Product Library.
   - نمایش thumbnail واقعی از Storage به‌جای placeholder.
   - edit، delete، search، pagination و re-upload.
   - confirmation و state خطا برای حذف.
-  - حذف Product باید assetهای بدون owner و فایل‌های Storage را پاک کند؛ upload محصول نیز به transaction/cleanup جبرانی نیاز دارد.
+  - حذف Product اکنون assetهای بدون owner و فایل‌های Storage را پاک می‌کند و upload pivot cleanup جبرانی دارد؛ تست DB/Storage هنوز لازم است.
 
 - [ ] تکمیل Creative Builder.
   - Auto Best preview واقعی.
@@ -146,7 +146,7 @@
 - [ ] اعلان Credit کم و Welcome.
 - [ ] کانال In-app و Email؛ SMS فقط برای OTP باقی بماند.
 - [ ] تست event، queue، unread/read و failure ارسال.
-  - notificationهای پرداخت داخل transaction dispatch می‌شوند؛ after-commit و تست rollback/queue لازم است.
+  - after-commit فعال شده؛ تست rollback/queue و کانال‌های Email/low-credit هنوز لازم است.
 
 ### Watermark و Media
 
@@ -176,9 +176,8 @@
 - [ ] Horizon/worker production configuration و failed-job alert.
 - [ ] backup روزانه MySQL و restore drill.
 - [ ] security review برای upload، webhook، authorization و Storage paths.
-  - OTP خام در log ثبت می‌شود؛ باید حذف و redaction آن تست شود.
-  - شکست Provider پیامک بعد از تغییر phone و ساخت verification record rollback کامل ندارد.
-  - نتیجه Storage با disk دارای `throw=false` بررسی نمی‌شود و می‌تواند media تکمیل‌شده‌ی غیرقابل‌دانلود بسازد.
+  - OTP خام از log حذف شده و تغییر phone در failure Provider rollback می‌شود؛ تست امنیتی آن لازم است.
+  - نتیجه Storage بررسی می‌شود؛ integrity و failure integration test هنوز لازم است.
 - [ ] جلوگیری از سوءاستفاده و replay در عملیات مالی و generation.
   - retry/regenerate و callback/webhook محدودیت عملیاتی و idempotency کلاینتی کامل ندارند.
   - معیار پایان: تست هم‌زمانی، double-click، replay callback و rate limit per-user/IP سبز باشد.
@@ -195,7 +194,7 @@
   - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue و download احراز‌شده پوشش داده شوند.
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
 - [ ] CI شامل PHPUnit، `npm run build`، lint و migration test.
-  - `npm ci` و `npm run build` به workflow اضافه شده‌اند؛ migration test هنوز باید تکمیل شود.
+  - `npm ci`، `npm run build` و `migrate:fresh` به workflow اضافه شده‌اند؛ E2E/integration و lint JavaScript هنوز باقی است.
   - browser/E2E، lint JavaScript و integration با MySQL/Redis/S3 هنوز در CI نیست.
 - [ ] staging با secrets واقعیِ staging، queue worker و HTTPS.
 - [ ] deployment/runbook و API documentation نهایی.
