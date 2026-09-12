@@ -119,6 +119,17 @@ productForm?.addEventListener('submit', async (event) => {
 });
 loadProducts();
 
+const generationList = document.querySelector('[data-generation-list]');
+if (generationList && token) {
+	fetch('/api/generations?per_page=6', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } })
+		.then((response) => response.json())
+		.then((result) => {
+			const generations = result.data?.data || [];
+			generationList.innerHTML = generations.length ? generations.map((generation) => `<a class="generation-row" href="/dashboard"><span class="generation-icon ${generation.status}">${generation.type === 'video' ? '▶' : '✦'}</span><strong>${generation.creative_project?.product?.name || 'محصول'}</strong><span>${generation.status === 'completed' ? 'آماده' : generation.status === 'failed' ? 'ناموفق' : 'در حال ساخت'}</span><small>${generation.created_at ? new Date(generation.created_at).toLocaleDateString('fa-IR') : ''}</small></a>`).join('') : '<p class="empty-state">هنوز محتوایی نساخته‌ای.</p>';
+		})
+		.catch(() => { generationList.innerHTML = '<p class="empty-state">تاریخچه فعلاً در دسترس نیست.</p>'; });
+}
+
 const builderForm = document.querySelector('[data-builder-form]');
 if (builderForm) {
 	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok' };
