@@ -78,6 +78,22 @@ class ProductApiTest extends TestCase
         ]);
     }
 
+    public function test_owner_can_download_a_product_thumbnail(): void
+    {
+        Storage::fake('local');
+        config(['filesystems.media_disk' => 'local']);
+        $user = User::factory()->create();
+        $product = $user->products()->create(['name' => 'کفش']);
+        Sanctum::actingAs($user);
+        $asset = $this->postJson("/api/products/{$product->id}/assets", [
+            'image' => UploadedFile::fake()->image('shoe.jpg'),
+        ])->assertCreated()->json('data');
+
+        $this->get("/api/products/{$product->id}/assets/{$asset['id']}/download")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg');
+    }
+
     public function test_user_cannot_delete_another_users_product_asset(): void
     {
         Storage::fake('local');

@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class ProductAssetController extends Controller
@@ -56,5 +57,18 @@ class ProductAssetController extends Controller
         }
 
         return $this->success(['message' => 'رسانه با موفقیت حذف شد.']);
+    }
+
+    public function download(Product $product, MediaAsset $asset)
+    {
+        abort_unless($product->user_id === request()->user()->id, 404);
+        abort_unless($product->assets()->whereKey($asset->id)->exists(), 404);
+
+        return response()->stream(function () use ($asset): void {
+            $stream = Storage::disk($asset->disk)->readStream($asset->thumbnail_path ?: $asset->path);
+            abort_unless(is_resource($stream), 404);
+            fpassthru($stream);
+            fclose($stream);
+        }, 200, ['Content-Type' => $asset->mime]);
     }
 }

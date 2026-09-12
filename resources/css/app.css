@@ -37,3 +37,5 @@ button, a { -webkit-tap-highlight-color: transparent; }
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.product-tile-art img { height: 100%; object-fit: cover; width: 100%; }

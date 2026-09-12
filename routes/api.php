@@ -33,6 +33,7 @@ Route::get('/payments/zarinpal/callback', [PlanController::class, 'zarinpalCallb
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
     Route::post('/products/{product}/assets', [ProductAssetController::class, 'store']);
+    Route::get('/products/{product}/assets/{asset}/download', [ProductAssetController::class, 'download']);
     Route::delete('/products/{product}/assets/{asset}', [ProductAssetController::class, 'destroy']);
     Route::get('/creative/options', [CreativeController::class, 'options']);
     Route::post('/creative/preview', [CreativeController::class, 'preview']);

@@ -90,7 +90,8 @@ const loadProducts = async () => {
 	if (!response.ok) return;
 	const result = await response.json();
 	const products = result.data?.data || [];
-	productGrid.innerHTML = products.length ? products.map((product) => `<article class="product-tile"><div class="product-tile-art">${product.assets?.length ? '<span>IMAGE</span>' : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small></article>`).join('') : '<p class="empty-state">هنوز محصولی نداری. اولین محصولت را اضافه کن.</p>';
+	productGrid.innerHTML = products.length ? products.map((product) => { const primary = product.assets?.[0]; return `<article class="product-tile"><div class="product-tile-art">${primary ? `<img data-product-asset="${primary.id}" alt="${product.name}">` : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small></article>`; }).join('') : '<p class="empty-state">هنوز محصولی نداری. اولین محصولت را اضافه کن.</p>';
+	await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => { const asset = product.assets[0]; const response = await fetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'image/*', Authorization: `Bearer ${token}` } }); if (!response.ok) return; const image = document.querySelector(`[data-product-asset="${asset.id}"]`); if (image) image.src = URL.createObjectURL(await response.blob()); }));
 };
 
 document.querySelectorAll('[data-open-product]').forEach((button) => button.addEventListener('click', () => productModal?.removeAttribute('hidden')));
