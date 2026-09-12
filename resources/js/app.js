@@ -87,16 +87,26 @@ const productSearch = document.querySelector('[data-product-search]');
 const productFormTitle = document.querySelector('[data-product-form-title]');
 const productSubmit = document.querySelector('[data-product-submit]');
 const productImage = productForm?.querySelector('input[name="image"]');
+const productPagination = document.querySelector('[data-product-pagination]');
+const productPage = document.querySelector('[data-product-page]');
+const productPrev = document.querySelector('[data-product-prev]');
+const productNext = document.querySelector('[data-product-next]');
+let productPageNumber = 1;
 let editingProductId = null;
 
 const loadProducts = async () => {
 	if (!productGrid || !token) return;
-	const query = new URLSearchParams({ per_page: '12' });
+	const query = new URLSearchParams({ per_page: '12', page: String(productPageNumber) });
 	if (productSearch?.value.trim()) query.set('search', productSearch.value.trim());
 	const response = await fetch(`/api/products?${query}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
 	if (!response.ok) return;
 	const result = await response.json();
 	const products = result.data?.data || [];
+	const pagination = result.data || {};
+	productPagination.hidden = (pagination.last_page || 1) <= 1;
+	productPage.textContent = `${pagination.current_page || 1} / ${pagination.last_page || 1}`;
+	productPrev.disabled = (pagination.current_page || 1) <= 1;
+	productNext.disabled = (pagination.current_page || 1) >= (pagination.last_page || 1);
 	productGrid.innerHTML = products.length ? products.map((product) => { const primary = product.assets?.[0]; return `<article class="product-tile"><div class="product-tile-art">${primary ? `<img data-product-asset="${primary.id}" alt="${product.name}">` : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`; }).join('') : '<p class="empty-state">محصولی با این مشخصات پیدا نشد.</p>';
 	await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => { const asset = product.assets[0]; const response = await fetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'image/*', Authorization: `Bearer ${token}` } }); if (!response.ok) return; const image = document.querySelector(`[data-product-asset="${asset.id}"]`); if (image) image.src = URL.createObjectURL(await response.blob()); }));
 };
@@ -104,6 +114,8 @@ const loadProducts = async () => {
 document.querySelectorAll('[data-open-product]').forEach((button) => button.addEventListener('click', () => { editingProductId = null; productForm?.reset(); productFormTitle.textContent = 'محصول جدید'; productSubmit.innerHTML = 'افزودن محصول <span>←</span>'; productImage.required = true; productModal?.removeAttribute('hidden'); }));
 document.querySelectorAll('[data-close-product]').forEach((button) => button.addEventListener('click', () => productModal?.setAttribute('hidden', '')));
 productSearch?.addEventListener('input', () => loadProducts());
+productPrev?.addEventListener('click', () => { if (productPageNumber > 1) { productPageNumber -= 1; loadProducts(); } });
+productNext?.addEventListener('click', () => { productPageNumber += 1; loadProducts(); });
 productGrid?.addEventListener('click', async (event) => {
 	const editButton = event.target.closest('[data-edit-product]');
 	const deleteButton = event.target.closest('[data-delete-product]');
