@@ -1,0 +1,15 @@
+/* Self-hosted Vazirmatn variable font (Fontsource) for the landing page */
+@import '@fontsource-variable/vazirmatn';
+
+.landing-page,
+.landing-page button,
+.landing-page input,
+.landing-page select,
+.landing-page textarea {
+    font-family: 'Vazirmatn Variable', Tahoma, Arial, sans-serif;
+}
+
+.landing-page .brand,
+.landing-page .footer-mark {
+    font-family: Georgia, 'Times New Roman', serif;
+}

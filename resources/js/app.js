@@ -223,6 +223,38 @@ if (builderForm) {
 	builderForm.addEventListener('submit', async (event) => { event.preventDefault(); const values = Object.fromEntries(new FormData(builderForm)); const button = document.querySelector('[data-generate]'); button.disabled = true; message.textContent = 'در حال آماده‌سازی...'; const payload = { ...values, video_duration_seconds: values.video_duration_seconds ? Number(values.video_duration_seconds) : null }; try { const response = await fetch('/api/generations', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) { if (response.status === 402) { message.innerHTML = `${result.error?.message || 'اعتبار کافی نیست.'} <a href="/pricing">مشاهده پلن‌ها</a>`; return; } throw new Error(result.error?.message || 'ساخت محتوا انجام نشد.'); } window.location.href = `/generations/${result.data.id}`; } catch (error) { message.className = 'form-message error-message'; message.textContent = error.message; } finally { button.disabled = false; } });
 }
 
+// ---- Landing hero 3D tilt (pointer + device orientation, desktop only) ----
+if (document.body.classList.contains('landing-page') && matchMedia('(hover: hover)').matches) {
+	const card = document.querySelector('[data-tilt]');
+	if (card) {
+		let raf = 0;
+		const apply = (rx, ry) => { card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`; };
+		const move = (px, py) => {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(() => {
+				const ry = (px - 0.5) * 24;
+				const rx = (0.5 - py) * 16;
+				apply(rx, ry);
+				card.style.setProperty('--glow-x', `${px * 100}%`);
+				card.style.setProperty('--glow-y', `${py * 100}%`);
+			});
+		};
+		const onPointer = (event) => {
+			const rect = card.getBoundingClientRect();
+			move((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
+		};
+		window.addEventListener('pointermove', (event) => {
+			if (event.pointerType === 'touch') return;
+			onPointer(event);
+		});
+		window.addEventListener('deviceorientation', (event) => {
+			if (event.beta === null || event.gamma === null) return;
+			move(Math.min(1, Math.max(0, 0.5 + event.gamma / 60)), Math.min(1, Math.max(0, 0.5 + (event.beta - 45) / 60)));
+		});
+		window.addEventListener('pointerleave', () => apply(0, 0));
+	}
+}
+
 const generationPage = document.querySelector('[data-generation-id]');
 if (generationPage && token) {
 	const generationId = generationPage.dataset.generationId;
