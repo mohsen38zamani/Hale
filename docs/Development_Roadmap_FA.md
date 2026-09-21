@@ -223,8 +223,8 @@ app/Domains/
 |---|---------|-------|
 | 4.1 | AI Gateway Service | Single entry point for all AI calls |
 | 4.2 | Provider Interface | `ImageGenerator`, `VideoGenerator`, `ImageAnalyzer`؛ اعلام مدت‌های پشتیبانی‌شده هر Video Provider |
-| 4.3 | Google Provider Adapter | Gemini (analysis), Imagen (image), Veo (video) |
-| 4.4 | Model Router | Select model based on type, quality, duration support, cost |
+| 4.3 | Google Provider Adapter | ✅ Gemini/Imagen (تصویر) و Veo (ویدئو) آماده اتصال به همراه تست Http::fake |
+| 4.4 | Model Router | ✅ انتخاب مدل با پشتیبانی Fallback Provider و Circuit Breaker |
 | 4.5 | Generation Job (Queue) | Async processing with Horizon |
 | 4.6 | Webhook Handler | Provider callback, idempotent |
 | 4.7 | Generation Status Updates | queued → processing → completed/failed |
@@ -304,13 +304,13 @@ plans (config or table)
 
 | # | Feature | Tasks |
 |---|---------|-------|
-| 6.1 | Admin Panel (minimal) | View users, generations, refund credits |
+| 6.1 | Admin Panel (minimal) | ✅ کنترلر و روت‌های Admin: مشاهده کاربران، جزئیات، مانیتور صف و Refund دستی |
 | 6.2 | Notifications | Email: generation ready, low credits, subscription |
 | 6.3 | Feedback Loop | 👍/👎 after generation |
 | 6.4 | Download & Export | Download image/video, share link |
 | 6.5 | Watermark (Free plan) | Add watermark to free tier outputs |
 | 6.6 | Rate Limiting | API rate limits per user/plan |
-| 6.7 | Circuit Breaker | Daily AI cost budget alert |
+| 6.7 | Circuit Breaker | ✅ سقف بودجه روزانه AI و مسدودسازی خودکار بر مبنای usage_logs |
 | 6.8 | Logging & Monitoring | Structured logs, basic dashboards |
 | 6.9 | Security Audit | API key protection, input validation |
 | 6.10 | Performance | Query optimization, caching |

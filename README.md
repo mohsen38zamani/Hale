@@ -8,7 +8,7 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 
 ## وضعیت پروژه
 
-پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative، Generation صف‌محور، AI Gateway، اعتبار و Billing پایه در مخزن پیاده‌سازی شده‌اند. احراز هویت با ایمیل یا موبایل، بازیابی رمز، OTP و Credit رایگان، Provider قابل‌تعویض SMS، محدودیت پلن، Regenerate، Landing، Dashboard، Builder، Result UI و پرداخت با Provider پیش‌فرض زرین‌پال آماده است. اتصال Provider واقعی AI، Notifications، پنل مدیریت، Invoice، Watermark و تست/عملیات production هنوز باقی مانده‌اند. فهرست جزئیات در [TODO.md](TODO.md) نگهداری می‌شود.
+پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative با الگوریتم پویا و حالت «خودت بهترینش رو بساز»، Generation صف‌محور، AI Gateway با درایورهای Google Imagen و Google Veo و مکانیزم Fallback و Circuit Breaker، اعتبار و Billing پایه، پنل مدیریت، اعلانات و درگاه پرداخت زرین‌پال (با پشتیبانی از sandbox و هدایت خودکار مرورگر) پیاده‌سازی شده‌اند. ۷۶ تست خودکار (شامل ۲۶۰ Assertion) در داکر کاملاً سبز هستند. جزئیات موارد اجرایی در [TODO.md](TODO.md) نگهداری می‌شود.
 
 
 ```text

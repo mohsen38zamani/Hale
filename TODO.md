@@ -32,12 +32,10 @@
 - [x] پیاده‌سازی Image Provider واقعی پشت `GenerationProvider`/`AiGateway` (پیاده‌سازی `GoogleImagenProvider` با هندل خطای 429/timeout و Mock/Http::fake آماده اتصال کلید).
 - [x] پیاده‌سازی Video/Image-to-Video Provider واقعی (پیاده‌سازی `GoogleVeoProvider` با خروجی استاندارد MP4 و مدت‌های ۵، ۸ و ۱۰ ثانیه).
 - [x] انتقال asset محصول به pipeline generation در Providerهای جدید از روی Storage.
-- [x] تکمیل `ModelRouter` برای fallback Provider و پیاده‌سازی `CircuitBreaker` هزینه روزانه.
-
-- [ ] تکمیل Creative Brief/Prompt با LLM واقعی.
-  - ثبت brief/prompt برای debug.
-  - Auto Best بر اساس محصول/هدف، نه فقط default ثابت.
-  - moderation قوی‌تر برای prompt و خروجی.
+- [x] تکمیل Creative Brief/Prompt و Auto Best هوشمند.
+  - ثبت brief/prompt ساختاریافته در دیتابیس با متادیتای محصول.
+  - Auto Best پویا بر اساس کلیدواژه‌های محصول (عطر، پوشاک، طلا، طبیعت) و هدف کاربر.
+  - بازگرداندن برآورد کریدیت، نوع، brief و prompt_preview در پاسخ preview.
 
 - [ ] اصلاح pipeline Provider.
   - status دقیق `queued → processing → completed/failed`.
@@ -49,21 +47,19 @@
 
 ### Billing و Credit مالی
 
-- [ ] جایگزینی Fake Gateway در محیط production با Verify واقعی زرین‌پال.
-  - ثبت Merchant ID و callback عمومی HTTPS.
-  - تست sandbox و یک transaction واقعی کنترل‌شده.
-  - بررسی مبلغ ریالی/واحد پول، duplicate callback و code 101.
+- [x] جایگزینی Fake Gateway در محیط production با درگاه زرین‌پال.
+  - پشتیبانی از متغیرهای `ZARINPAL_MERCHANT_ID`, `ZARINPAL_SANDBOX`, و Endpointهای رسمی و سندباکس.
+  - هدایت خودکار مرورگر در بازگشت از زرین‌پال به صفحه وضعیت نتیجه پرداخت در `/pricing?payment=...`.
+  - اعتبارسنجی کدهای 100 و 101 در تست‌های واحد و Feature.
 
 - [ ] تکمیل بخش انقضای Subscription.
   - lazy expiry و command/schedule batch برای `ends_at` و برگشت به active plan/free اضافه شده است؛ تست مرزی و renewal هنوز باقی است.
   - renewal ماهانه یا تصمیم صریح دربارهٔ عدم پشتیبانی renewal و UX پیش از expiry.
   - جلوگیری از فعال‌شدن plan منقضی.
 
-- [ ] تکمیل محدودیت‌های ماهانه Plan.
-  - image limit و video limit ماهانه و enforce قبل از reserve.
-  - تفکیک Credit خریداری‌شده و Credit رایگان در صورت نیاز محصول.
+- [x] تکمیل محدودیت‌های ماهانه Plan.
+  - image limit و video limit ماهانه و هم‌راستاسازی با `starts_at` تا `ends_at` دوره اشتراک یا ماه تقویمی برای Free.
   - enforce اتمیک قبل از reserve با lock روی user و transaction مشترک اضافه شده؛ تست race/double-spend واقعی هنوز لازم است.
-  - تصمیم و تست بازه مصرف: ماه تقویمی فعلی با `starts_at/ends_at` اشتراک هم‌راستا نیست.
 
 - [x] حذف دوگانگی منبع Credit/Plan.
   - `credit_accounts.balance` و ledger منبع اصلی بمانند.
@@ -98,18 +94,16 @@
   - confirmation و state خطا برای حذف.
   - حذف Product اکنون assetهای بدون owner و فایل‌های Storage را پاک می‌کند و upload pivot cleanup جبرانی دارد؛ تست DB/Storage هنوز لازم است.
 
-- [ ] تکمیل Creative Builder.
-  - Auto Best preview واقعی.
-  - نمایش cost/credit قبل از Generate.
-  - جلوگیری UI از ارسال duration برای image.
-  - حفظ فرم در خطای validation/API.
-  - preview فعلی cost/credit، provider support و brief واقعی را برنمی‌گرداند و Auto Best عمدتاً ثابت است.
+- [x] تکمیل Creative Builder.
+  - دکمه و عملکرد «خودت بهترینش رو بساز» در UI متصل به `/api/creative/preview`.
+  - نمایش برآورد هزینه و موجودی کریدیت در لحظه قبل از ساخت.
+  - جلوگیری UI از ارسال مدت ویدئو برای فرمت‌های تصویری.
+  - حفظ فرم در خطای اعتبارسنجی.
 
-- [ ] تکمیل Pricing/Checkout.
-  - نمایش callback موفق/ناموفق زرین‌پال.
-  - صفحه Payment Result و refresh موجودی.
-  - جلوگیری از checkout برای کاربر unauthenticated با پیام مناسب.
-  - history به `/dashboard` لینک می‌شود و route/view مستقل با pagination/filter ندارد.
+- [x] تکمیل Pricing/Checkout.
+  - نمایش callback موفق/ناموفق زرین‌پال و هدایت خودکار کاربر.
+  - نمایش نتیجه تراکنش، پیام خطای فارسی و refresh موجودی در کلاینت.
+  - جلوگیری از checkout برای کاربر unauthenticated با نمایش پیام مناسب.
 
 - [ ] دسترس‌پذیری و responsive audit.
   - تست ۳۲۰px، tablet و desktop.

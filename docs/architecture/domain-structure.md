@@ -10,7 +10,8 @@ AI Providerها نباید به Business Logic نشت کنند، Generation با
 ## Providerهای خارجی پیاده‌سازی‌شده
 
 - `Auth\Contracts\SmsProvider`: قرارداد ارسال OTP؛ `SmsIrProvider` برای `sms.ir` و `FakeSmsProvider` برای تست و توسعه.
-- `Billing\Contracts\PaymentGateway`: قرارداد ساخت و Verify پرداخت؛ `ZarinpalPaymentGateway` به‌عنوان driver پیش‌فرض و `FakePaymentGateway` برای تست.
+- `Billing\Contracts\PaymentGateway`: قرارداد ساخت و Verify پرداخت؛ `ZarinpalPaymentGateway` به‌عنوان driver پیش‌فرض با پشتیبانی sandbox و `FakePaymentGateway` برای تست.
+- `AI\Contracts\GenerationProvider`: قرارداد تولید محتوا؛ `GoogleImagenProvider` (تصویر) و `GoogleVeoProvider` (ویدئو) به همراه `FakeGenerationProvider`؛ پشتیبانی از Fallback در `ModelRouter` و کنترل سقف بودجه روزانه با `CircuitBreaker`.
 - کلیدها و شناسه‌های Provider فقط از environment/config خوانده می‌شوند و در کد یا commit ذخیره نمی‌شوند.
 - Webhook پرداخت Fake با HMAC بررسی می‌شود و callback زرین‌پال با Verify رسمی Authority و مبلغ اعتبارسنجی می‌گردد؛ ثبت Credit و Subscription داخل transaction و با idempotency انجام می‌شود.
 

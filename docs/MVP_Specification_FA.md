@@ -33,10 +33,14 @@
 - ثبت‌نام و ورود با ایمیل یا شماره موبایل؛ ثبت‌نام بدون ایمیل با حداقل یک شناسه
 - Password Reset، Profile Update و تغییر رمز با الزام رمز فعلی
 - Phone OTP با محدودیت تلاش، Provider قابل‌تعویض و فعال‌سازی یک‌باره Credit رایگان
-- Product Asset deletion، Plan limit برای ویدئو و Regenerate
-- Payment/Subscription، Checkout، Webhook امضاشده و Provider پیش‌فرض زرین‌پال
+- Product CRUD و آپلود، thumbnail، Product Asset deletion و انطباق بازه محدودیت پلن با دوره اشتراک
+- Payment/Subscription، Checkout، Webhook امضاشده و درگاه زرین‌پال با پشتیبانی sandbox و هدایت مرورگر
+- Providerهای Google Imagen و Google Veo با مدیریت خطا و تست‌های Http::fake
+- ModelRouter با پشتیبانی Fallback و Circuit Breaker برای کنترل هزینه روزانه AI
+- Admin Domain برای مشاهده و جستجوی کاربران، مانیتور صف Generationها و بازگشت دستی Credit
+- Creative Builder با دکمه و الگوریتم پویای Auto Best و برآورد زنده هزینه Credit
 
-Frontend/PWA پایه شامل Landing، Auth، Dashboard، Product Library، Creative Builder، Progress/Result، Generation History و Pricing/Checkout UI آماده است؛ اتصال Provider واقعی AI، Notifications، Admin، Invoice، Watermark، callback کامل پرداخت و E2E هنوز تکمیل نشده‌اند. فهرست اجرایی کامل در `TODO.md` است.
+Frontend/PWA پایه شامل Landing، Auth، Dashboard، Product Library، Creative Builder، Progress/Result، Generation History و Pricing/Checkout UI آماده است. فهرست جزئیات اجرایی در `TODO.md` است.
 
 ---
 

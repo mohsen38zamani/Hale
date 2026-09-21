@@ -7,6 +7,7 @@ use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
 use App\Domains\Creative\Requests\PreviewCreativeRequest;
 use App\Domains\Creative\Services\CreativeEngine;
+use App\Domains\Credits\Services\CreditEstimator;
 use App\Domains\Products\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
@@ -21,12 +22,24 @@ class CreativeController extends Controller
         return $this->success(['goals' => array_column(CreativeGoal::cases(), 'value'), 'styles' => array_column(CreativeStyle::cases(), 'value'), 'formats' => array_map(fn (CreativeFormat $format) => ['key' => $format->value, 'type' => $format->type(), 'aspect_ratio' => $format->aspectRatio()], CreativeFormat::cases()), 'environments' => config('creative.environments'), 'video_durations' => config('creative.video_durations')]);
     }
 
-    public function preview(PreviewCreativeRequest $request, CreativeEngine $engine): JsonResponse
+    public function preview(PreviewCreativeRequest $request, CreativeEngine $engine, CreditEstimator $estimator): JsonResponse
     {
         $product = Product::query()->findOrFail($request->integer('product_id'));
         abort_unless($product->user_id === $request->user()->id, 404);
         $goal = CreativeGoal::from($request->input('goal', CreativeGoal::Introduction->value));
 
-        return $this->success($engine->autoBest($product, $goal));
+        $suggestion = $engine->autoBest($product, $goal);
+        $format = CreativeFormat::from($suggestion['format']);
+        $brief = $engine->brief($product, $suggestion);
+        $prompt = $engine->prompt($brief, $format);
+        $creditCost = $estimator->estimate($format->type(), $suggestion['video_duration_seconds'] ?? null);
+
+        return $this->success([
+            ...$suggestion,
+            'type' => $format->type(),
+            'brief' => $brief,
+            'prompt_preview' => $prompt,
+            'estimated_credits' => $creditCost,
+        ]);
     }
 }

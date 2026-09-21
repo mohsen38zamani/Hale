@@ -218,9 +218,82 @@ if (builderForm) {
 		document.querySelector('[data-environment]').innerHTML = options.data.environments.map((item) => `<option value="${item}">${labels[item] || item}</option>`).join('');
 		duration.innerHTML = options.data.video_durations.map((item) => `<option value="${item}">${item} ثانیه</option>`).join('');
 	}).catch(() => { message.textContent = 'دریافت گزینه‌ها انجام نشد. دوباره تلاش کن.'; });
+	const autoBestBtn = document.querySelector('[data-auto-best]');
+	if (autoBestBtn) {
+		autoBestBtn.addEventListener('click', async () => {
+			if (!select.value) {
+				message.textContent = 'ابتدا محصول مورد نظرت را انتخاب کن.';
+				return;
+			}
+			autoBestBtn.disabled = true;
+			autoBestBtn.textContent = 'در حال انتخاب بهترین ترکیب...';
+			try {
+				const response = await fetch('/api/creative/preview', {
+					method: 'POST',
+					headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+					body: JSON.stringify({ product_id: Number(select.value) })
+				});
+				const result = await response.json();
+				if (!response.ok) throw new Error(result.error?.message || 'دریافت پیشنهاد انجام نشد.');
+				const data = result.data;
+				const setRadio = (name, val) => {
+					const el = builderForm.querySelector(`input[name="${name}"][value="${val}"]`);
+					if (el) el.checked = true;
+				};
+				setRadio('goal', data.goal);
+				setRadio('style', data.style);
+				setRadio('format', data.format);
+				const envSelect = document.querySelector('[data-environment]');
+				if (envSelect && data.environment) envSelect.value = data.environment;
+				durationField.hidden = !['instagram_reel', 'tiktok'].includes(data.format);
+				if (data.video_duration_seconds) duration.value = data.video_duration_seconds;
+				message.className = 'form-message success-message';
+				message.textContent = `✨ پیشنهاد خودکار: سبک ${labels[data.style] || data.style} (${labels[data.format] || data.format})`;
+				await updateEstimate().catch(() => {});
+			} catch (err) {
+				message.className = 'form-message error-message';
+				message.textContent = err.message;
+			} finally {
+				autoBestBtn.disabled = false;
+				autoBestBtn.textContent = '✨ خودت بهترینش رو بساز';
+			}
+		});
+	}
 	formatBox.addEventListener('change', (event) => { durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value); updateEstimate().catch(() => {}); });
 	duration.addEventListener('change', () => updateEstimate().catch(() => {}));
-	builderForm.addEventListener('submit', async (event) => { event.preventDefault(); const values = Object.fromEntries(new FormData(builderForm)); const button = document.querySelector('[data-generate]'); button.disabled = true; message.textContent = 'در حال آماده‌سازی...'; const payload = { ...values, video_duration_seconds: values.video_duration_seconds ? Number(values.video_duration_seconds) : null }; try { const response = await fetch('/api/generations', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) { if (response.status === 402) { message.innerHTML = `${result.error?.message || 'اعتبار کافی نیست.'} <a href="/pricing">مشاهده پلن‌ها</a>`; return; } throw new Error(result.error?.message || 'ساخت محتوا انجام نشد.'); } window.location.href = `/generations/${result.data.id}`; } catch (error) { message.className = 'form-message error-message'; message.textContent = error.message; } finally { button.disabled = false; } });
+	builderForm.addEventListener('submit', async (event) => {
+		event.preventDefault();
+		const values = Object.fromEntries(new FormData(builderForm));
+		const button = document.querySelector('[data-generate]');
+		button.disabled = true;
+		message.textContent = 'در حال آماده‌سازی...';
+		const isVideo = ['instagram_reel', 'tiktok'].includes(values.format);
+		const payload = {
+			...values,
+			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null
+		};
+		try {
+			const response = await fetch('/api/generations', {
+				method: 'POST',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+				body: JSON.stringify(payload)
+			});
+			const result = await response.json();
+			if (!response.ok) {
+				if (response.status === 402) {
+					message.innerHTML = `${result.error?.message || 'اعتبار کافی نیست.'} <a href="/pricing">مشاهده پلن‌ها</a>`;
+					return;
+				}
+				throw new Error(result.error?.message || 'ساخت محتوا انجام نشد.');
+			}
+			window.location.href = `/generations/${result.data.id}`;
+		} catch (error) {
+			message.className = 'form-message error-message';
+			message.textContent = error.message;
+		} finally {
+			button.disabled = false;
+		}
+	});
 }
 
 // ---- Landing hero 3D tilt (pointer + device orientation, desktop only) ----

@@ -40,7 +40,10 @@ class GenerationApiTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
         $product = $user->products()->create(['name' => 'عطر']);
-        $this->postJson('/api/creative/preview', ['product_id' => $product->id, 'goal' => 'sales'])->assertOk()->assertJsonPath('data.goal', 'sales');
+        $preview = $this->postJson('/api/creative/preview', ['product_id' => $product->id, 'goal' => 'sales'])
+            ->assertOk()
+            ->assertJsonPath('data.goal', 'sales')
+            ->assertJsonStructure(['data' => ['goal', 'style', 'format', 'environment', 'brief', 'prompt_preview', 'estimated_credits', 'type']]);
         $id = $this->postJson('/api/generations', ['product_id' => $product->id, 'goal' => 'sales', 'style' => 'luxury', 'format' => 'instagram_post', 'environment' => 'studio'])->assertStatus(202)->assertJsonPath('data.status', 'queued')->json('data.id');
         $this->getJson("/api/generations/{$id}")->assertOk()->assertJsonPath('data.creative_project.product.name', 'عطر');
     }

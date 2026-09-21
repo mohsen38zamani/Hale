@@ -70,13 +70,19 @@ class PlanController extends Controller
         return $this->success($billing->settle($authority, $status));
     }
 
-    public function zarinpalCallback(Request $request, BillingService $billing): JsonResponse
+    public function zarinpalCallback(Request $request, BillingService $billing)
     {
         $authority = $request->string('Authority')->value();
         $status = strtoupper($request->string('Status')->value()) === 'OK' ? 'paid' : 'failed';
 
         abort_unless($authority !== '', 422, 'شناسه پرداخت دریافت نشد.');
 
-        return $this->success($billing->settle($authority, $status));
+        $result = $billing->settle($authority, $status);
+
+        if (! $request->wantsJson()) {
+            return redirect('/pricing?payment='.$status);
+        }
+
+        return $this->success($result);
     }
 }
