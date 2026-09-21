@@ -56,3 +56,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/subscriptions/checkout', [PlanController::class, 'checkout'])->middleware('throttle:checkout');
 });
+
+Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])->group(function (): void {
+    Route::get('/users', [\App\Domains\Admin\Controllers\AdminController::class, 'users']);
+    Route::get('/users/{user}', [\App\Domains\Admin\Controllers\AdminController::class, 'user']);
+    Route::get('/generations', [\App\Domains\Admin\Controllers\AdminController::class, 'generations']);
+    Route::post('/users/{user}/refund', [\App\Domains\Admin\Controllers\AdminController::class, 'refund']);
+});

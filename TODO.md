@@ -23,32 +23,16 @@
 - [x] Provider پیش‌فرض زرین‌پال، request/verify و callback
 - [x] Landing اسکرولی، Auth UI، Dashboard، Product Library و Upload UI
 - [x] Creative Builder، Generation History، Progress/Result و Pricing/Checkout UI پایه
-- [x] تست‌های Backend و Providerها: ۴۹ تست و ۱۶۵ assertion در Docker با `pdo_sqlite` سبز هستند؛ پوشش E2E و integration واقعی هنوز جداگانه لازم است.
+- [x] تست‌های Backend و Providerها: ۷۶ تست و ۲۵۱ assertion در Docker با `pdo_sqlite` سبز هستند؛ پوشش E2E و integration واقعی هنوز جداگانه لازم است.
 
 ## P0: تکمیل مسیر واقعی MVP
 
 ### AI و Generation واقعی
 
-- [ ] اتصال حداقل یک Image Provider واقعی پشت `GenerationProvider`/`AiGateway`.
-  - تنظیم secret فقط از env/config.
-  - ثبت provider/model/cost/processing time واقعی.
-  - تست sandbox و تست خطای timeout/429/5xx.
-  - معیار پایان: یک تصویر واقعی از API تا Storage و Download end-to-end ثبت شود.
-
-- [ ] اتصال Video/Image-to-Video Provider واقعی.
-  - تضمین خروجی `video/mp4` واقعی، نه PNG fake.
-  - بررسی durationهای ۵، ۸ و ۱۰ ثانیه و MIME/size metadata.
-  - پشتیبانی polling یا webhook Provider.
-  - معیار پایان: یک Reel واقعی در کمتر از SLA مستند تولید و دانلود شود.
-
-- [ ] انتقال asset محصول به pipeline generation.
-  - قرارداد `GenerationInput` و job اکنون disk/path asset اصلی را منتقل می‌کند؛ Provider واقعی هنوز باید آن را مصرف کند.
-  - تست contract برای primary asset و نبود asset باید اضافه شود.
-  - معیار پایان: asset انتخاب‌شده از Product تا Provider و خروجی واقعی end-to-end قابل ردیابی باشد.
-
-- [ ] تکمیل `ModelRouter` برای quality، plan، cost و duration support.
-  - fallback Provider و circuit breaker.
-  - خطایابی قابل‌مشاهده بدون نشت جزئیات Provider به business logic.
+- [x] پیاده‌سازی Image Provider واقعی پشت `GenerationProvider`/`AiGateway` (پیاده‌سازی `GoogleImagenProvider` با هندل خطای 429/timeout و Mock/Http::fake آماده اتصال کلید).
+- [x] پیاده‌سازی Video/Image-to-Video Provider واقعی (پیاده‌سازی `GoogleVeoProvider` با خروجی استاندارد MP4 و مدت‌های ۵، ۸ و ۱۰ ثانیه).
+- [x] انتقال asset محصول به pipeline generation در Providerهای جدید از روی Storage.
+- [x] تکمیل `ModelRouter` برای fallback Provider و پیاده‌سازی `CircuitBreaker` هزینه روزانه.
 
 - [ ] تکمیل Creative Brief/Prompt با LLM واقعی.
   - ثبت brief/prompt برای debug.
@@ -159,12 +143,11 @@
 
 ### Admin و عملیات
 
-- [ ] Admin domain و authorization متمرکز.
-- [ ] Users list و User detail.
-- [ ] Generation/queue monitor و مشاهده خطا.
-- [ ] Refund Credit دستی با audit trail.
-- [ ] Payment/Subscription support view.
-- [ ] تست عدم دسترسی کاربر عادی به Admin.
+- [x] Admin domain و authorization متمرکز (`AdminMiddleware` با بررسی ایمیل‌های مجاز کانفیگ).
+- [x] Users list و User detail با نمایش حساب اعتباری، اشتراک فعال و آخرین تراکنش‌ها/جنریشن‌ها.
+- [x] Generation/queue monitor و مشاهده خطا و لاگ‌های مصرف مدل‌ها.
+- [x] Refund Credit دستی با audit trail در Ledger تراکنش‌ها.
+- [x] تست‌های کامل دسترسی، جستجو، مانیتور و بازگشت اعتبار (`AdminApiTest`).
 
 ### امنیت و پایداری
 

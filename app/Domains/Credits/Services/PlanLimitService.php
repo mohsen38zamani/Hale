@@ -27,13 +27,21 @@ class PlanLimitService
 
     private function assertCanGenerate(User $user, string $type): void
     {
-
         $plan = config('plans.' . ($user->plan_key ?: 'free'));
         $limit = (int) ($plan[$type . '_limit'] ?? 0);
+
+        $activeSubscription = $user->subscriptions()
+            ->where('status', 'active')
+            ->where('ends_at', '>', now())
+            ->latest('ends_at')
+            ->first();
+
+        $since = $activeSubscription?->starts_at ?? Carbon::now()->startOfMonth();
+
         $used = $user->generations()
             ->where('type', $type)
             ->whereIn('status', ['queued', 'processing', 'completed'])
-            ->where('created_at', '>=', Carbon::now()->startOfMonth())
+            ->where('created_at', '>=', $since)
             ->count();
 
         if ($used >= $limit) {

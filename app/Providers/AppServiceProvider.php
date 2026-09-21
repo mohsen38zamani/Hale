@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domains\AI\Providers\Google\GoogleImagenProvider;
+use App\Domains\AI\Providers\Google\GoogleVeoProvider;
 use App\Domains\AI\Providers\Local\FakeGenerationProvider;
 use App\Domains\AI\Router\ModelRouter;
 use App\Domains\Billing\Contracts\PaymentGateway;
@@ -22,9 +24,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(ModelRouter::class, fn () => new ModelRouter([
-            $this->app->make(FakeGenerationProvider::class),
-        ]));
+        $this->app->singleton(ModelRouter::class, function ($app): ModelRouter {
+            $providers = [];
+            if (config('ai.driver') === 'google') {
+                $providers[] = $app->make(GoogleImagenProvider::class);
+                $providers[] = $app->make(GoogleVeoProvider::class);
+            }
+            $providers[] = $app->make(FakeGenerationProvider::class);
+
+            return new ModelRouter($providers);
+        });
         $this->app->singleton(SmsProvider::class, function ($app): SmsProvider {
             return match (config('services.sms.driver')) {
                 'sms_ir' => $app->make(SmsIrProvider::class),

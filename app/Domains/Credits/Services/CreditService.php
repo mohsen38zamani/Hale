@@ -98,6 +98,17 @@ class CreditService
         return $this->grant($user, $amount, $key, 'purchase', $metadata);
     }
 
+    public function manualRefund(User $user, int $amount, string $reason, ?int $adminId = null): int
+    {
+        $key = 'admin:refund:' . $user->id . ':' . uniqid('', true);
+
+        return $this->grant($user, $amount, $key, 'refund', [
+            'reason' => $reason,
+            'admin_id' => $adminId,
+            'manual' => true,
+        ]);
+    }
+
     private function grant(User $user, int $amount, string $key, string $type, array $metadata): int
     {
         $this->initialize($user);
