@@ -13,6 +13,7 @@ use App\Domains\Credits\Services\PlanLimitService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Generations\Requests\StoreGenerationRequest;
+use App\Domains\Generations\Services\RetryGeneration;
 use App\Domains\Products\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
@@ -27,7 +28,20 @@ class GenerationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return $this->success($request->user()->generations()->with(['creativeProject.product', 'outputMedia'])->latest()->paginate(min($request->integer('per_page', 15), 50)));
+        $data = $request->validate([
+            'type' => ['nullable', 'in:image,video'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        return $this->success($request->user()->generations()
+            ->with(['creativeProject.product', 'outputMedia'])
+            ->when($data['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
+            ->when($data['from'] ?? null, fn ($query, $from) => $query->whereDate('created_at', '>=', $from))
+            ->when($data['to'] ?? null, fn ($query, $to) => $query->whereDate('created_at', '<=', $to))
+            ->latest()
+            ->paginate($data['per_page'] ?? 15));
     }
 
     public function store(StoreGenerationRequest $request, CreativeEngine $engine, PromptModerator $moderator, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse
@@ -72,21 +86,11 @@ class GenerationController extends Controller
         return $this->success($generation->load(['creativeProject.product', 'outputMedia']));
     }
 
-    public function retry(Request $request, Generation $generation, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse
+    public function retry(Request $request, Generation $generation, RetryGeneration $retry): JsonResponse
     {
         abort_unless($generation->user_id === $request->user()->id, 404);
-        abort_unless($generation->status === 'failed', 409, 'فقط تولید ناموفق قابل تلاش مجدد است.');
         try {
-            $limits->ensureCanGenerate($request->user(), $generation->type);
-        } catch (PlanLimitReached $exception) {
-            return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
-        }
-        try {
-            DB::transaction(function () use ($request, $generation, $limits, $credits, $estimator): void {
-                $limits->ensureCanGenerateLocked($request->user(), $generation->type);
-                $credits->reserve($request->user(), $generation, $estimator->estimate($generation->type, $generation->creativeProject->video_duration_seconds));
-                $generation->update(['status' => 'queued', 'error_message' => null]);
-            });
+            $generation = $retry->execute($request->user(), $generation->id);
         } catch (PlanLimitReached $exception) {
             return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
         } catch (InsufficientCredits $exception) {
@@ -94,7 +98,7 @@ class GenerationController extends Controller
         }
         ProcessGeneration::dispatch($generation->id)->onQueue('generations');
 
-        return $this->success($generation->fresh(), 202);
+        return $this->success($generation, 202);
     }
 
     public function regenerate(Request $request, Generation $generation, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse

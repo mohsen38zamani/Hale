@@ -11,11 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Generation extends Model
 {
-    protected $fillable = ['user_id', 'creative_project_id', 'type', 'status', 'provider', 'model', 'prompt_hash', 'credits_reserved', 'credits_charged', 'cost_usd', 'processing_time_ms', 'output_media_id', 'error_message', 'feedback', 'metadata'];
+    protected $fillable = ['user_id', 'creative_project_id', 'type', 'status', 'provider', 'model', 'prompt_hash', 'credits_reserved', 'credits_charged', 'cost_usd', 'processing_time_ms', 'output_media_id', 'error_message', 'feedback', 'manual_retry_count', 'processing_lease_expires_at', 'metadata'];
 
     protected function casts(): array
     {
-        return ['metadata' => 'array', 'cost_usd' => 'decimal:6'];
+        return ['metadata' => 'array', 'cost_usd' => 'decimal:6', 'processing_lease_expires_at' => 'datetime'];
     }
 
     public function user(): BelongsTo

@@ -11,6 +11,8 @@ use App\Domains\Notifications\Notifications\PaymentSucceededNotification;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class BillingService
 {
@@ -25,47 +27,77 @@ class BillingService
         $key = $idempotencyKey !== null && trim($idempotencyKey) !== ''
             ? 'checkout:'.$user->id.':'.trim($idempotencyKey)
             : 'checkout:'.$user->id.':'.str()->uuid();
-        $existing = Payment::query()->where('idempotency_key', $key)->first();
+        try {
+            $payment = DB::transaction(function () use ($user, $planKey, $plan, $key): Payment {
+                $existing = Payment::query()->where('idempotency_key', $key)->lockForUpdate()->first();
+                if ($existing !== null) {
+                    if ($existing->authority !== null) {
+                        return $existing;
+                    }
+                    if ($existing->status === 'initializing') {
+                        throw new ConflictHttpException('در حال ایجاد پرداخت است؛ با همان کلید دوباره تلاش کنید.');
+                    }
+                    $existing->update(['status' => 'initializing', 'metadata' => null]);
 
-        if ($existing !== null) {
-            return [
-                'payment_id' => $existing->id,
-                'authority' => $existing->authority,
-                'redirect_url' => $existing->metadata['redirect_url'] ?? null,
-            ];
+                    return $existing->fresh();
+                }
+
+                return Payment::query()->create([
+                    'user_id' => $user->id,
+                    'plan_key' => $planKey,
+                    'amount' => $plan['price_irr'],
+                    'gateway' => config('payment.driver'),
+                    'status' => 'initializing',
+                    'idempotency_key' => $key,
+                ]);
+            });
+        } catch (QueryException $exception) {
+            // A concurrent insert won the unique key; its request owns gateway creation.
+            throw new ConflictHttpException('در حال ایجاد پرداخت است؛ با همان کلید دوباره تلاش کنید.', $exception);
+        }
+        if ($payment->authority !== null) {
+            return $this->paymentPayload($payment);
         }
 
-        $payment = Payment::create([
-            'user_id' => $user->id,
-            'plan_key' => $planKey,
-            'amount' => $plan['price_irr'],
-            'gateway' => config('payment.driver'),
-            'status' => 'pending',
-            'idempotency_key' => $key,
-        ]);
-        $gatewayPayment = $this->gateway->createPayment($user, $planKey, (int) $plan['price_irr']);
-        $payment->update(['authority' => $gatewayPayment['authority'], 'metadata' => ['redirect_url' => $gatewayPayment['redirect_url']]]);
+        try {
+            $gatewayPayment = $this->gateway->createPayment($user, $planKey, (int) $plan['price_irr']);
+        } catch (\Throwable $exception) {
+            $payment->update(['status' => 'failed', 'metadata' => ['gateway_error' => $exception->getMessage()]]);
+            throw $exception;
+        }
+        $payment->update(['authority' => $gatewayPayment['authority'], 'status' => 'pending', 'metadata' => ['redirect_url' => $gatewayPayment['redirect_url']]]);
 
-        return ['payment_id' => $payment->id, 'authority' => $payment->authority, 'redirect_url' => $gatewayPayment['redirect_url']];
+        return $this->paymentPayload($payment->fresh());
     }
 
     public function settle(string $authority, string $status): Payment
     {
-        return DB::transaction(function () use ($authority, $status): Payment {
+        $snapshot = Payment::query()->where('authority', $authority)->firstOrFail();
+        if ($snapshot->status === 'paid') {
+            return $snapshot;
+        }
+        if ($status !== 'paid') {
+            return DB::transaction(function () use ($authority): Payment {
+                $payment = Payment::query()->where('authority', $authority)->lockForUpdate()->firstOrFail();
+                if ($payment->status !== 'paid') {
+                    $payment->update(['status' => 'failed']);
+                }
+
+                return $payment->fresh();
+            });
+        }
+
+        // HTTP is deliberately outside the short database transaction/row lock.
+        $verification = $this->gateway->verifyPayment($authority, (int) $snapshot->amount);
+        abort_unless($verification !== false, 422, 'پرداخت توسط درگاه تأیید نشد.');
+
+        return DB::transaction(function () use ($authority, $verification): Payment {
             $payment = Payment::query()->where('authority', $authority)->lockForUpdate()->firstOrFail();
             if ($payment->status === 'paid') {
                 $this->ensureInvoice($payment);
 
                 return $payment;
             }
-            if ($status !== 'paid') {
-                $payment->update(['status' => 'failed']);
-
-                return $payment->fresh();
-            }
-
-            $verification = $this->gateway->verifyPayment($authority, (int) $payment->amount);
-            abort_unless($verification !== false, 422, 'پرداخت توسط درگاه تأیید نشد.');
             $now = Carbon::now();
             $endsAt = $now->copy()->addMonths((int) config('payment.subscription_months'));
             $payment->update(['status' => 'paid', 'reference' => $verification['reference'], 'paid_at' => $now]);
@@ -74,7 +106,7 @@ class BillingService
             Subscription::create(['user_id' => $payment->user_id, 'plan_key' => $payment->plan_key, 'status' => 'active', 'starts_at' => $now, 'ends_at' => $endsAt]);
             User::query()->whereKey($payment->user_id)->update(['plan_key' => $payment->plan_key]);
             $this->credits->grantPurchase($payment->user, (int) config('plans.'.$payment->plan_key.'.monthly_credits'), 'payment:'.$payment->id, ['payment_id' => $payment->id, 'plan_key' => $payment->plan_key]);
-            $payment->user->notify(new PaymentSucceededNotification($payment->fresh()));
+            DB::afterCommit(fn () => $payment->user->notify(new PaymentSucceededNotification($payment->fresh())));
 
             return $payment->fresh();
         });
@@ -93,5 +125,14 @@ class BillingService
                 'metadata' => ['gateway' => $payment->gateway, 'reference' => $payment->reference],
             ],
         );
+    }
+
+    private function paymentPayload(Payment $payment): array
+    {
+        return [
+            'payment_id' => $payment->id,
+            'authority' => $payment->authority,
+            'redirect_url' => $payment->metadata['redirect_url'] ?? null,
+        ];
     }
 }

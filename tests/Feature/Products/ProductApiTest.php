@@ -91,7 +91,7 @@ class ProductApiTest extends TestCase
 
         $this->get("/api/products/{$product->id}/assets/{$asset['id']}/download")
             ->assertOk()
-            ->assertHeader('Content-Type', 'image/jpeg');
+            ->assertHeader('Content-Type', 'image/webp');
     }
 
     public function test_user_cannot_delete_another_users_product_asset(): void

@@ -5,6 +5,7 @@ namespace Tests\Feature\Generations;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -134,6 +135,39 @@ class GenerationApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.credits_reserved', 10)
             ->assertJsonPath('data.credits_charged', 0);
+    }
+
+    public function test_generation_history_can_be_filtered_by_type_and_date(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+        $project = $user->creativeProjects()->create(['product_id' => $product->id, 'goal' => 'sales', 'style' => 'luxury', 'format' => 'instagram_post', 'brief' => [], 'prompt' => 'prompt']);
+        $image = $user->generations()->create(['creative_project_id' => $project->id, 'type' => 'image', 'status' => 'completed', 'prompt_hash' => hash('sha256', 'image')]);
+        $user->generations()->create(['creative_project_id' => $project->id, 'type' => 'video', 'status' => 'completed', 'prompt_hash' => hash('sha256', 'video')]);
+
+        $this->getJson('/api/generations?type=image&from='.now()->toDateString().'&to='.now()->toDateString())
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath('data.data.0.id', $image->id);
+    }
+
+    public function test_manual_retry_is_limited_to_two_attempts(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+        $project = $user->creativeProjects()->create(['product_id' => $product->id, 'goal' => 'sales', 'style' => 'luxury', 'format' => 'instagram_post', 'brief' => [], 'prompt' => 'prompt']);
+        $generation = $user->generations()->create(['creative_project_id' => $project->id, 'type' => 'image', 'status' => 'failed', 'prompt_hash' => hash('sha256', 'retry')]);
+
+        foreach ([1, 2] as $attempt) {
+            $this->postJson("/api/generations/{$generation->id}/retry")->assertAccepted();
+            $generation->refresh()->update(['status' => 'failed', 'credits_reserved' => 0]);
+            $user->creditAccount()->update(['reserved' => 0]);
+        }
+
+        $this->postJson("/api/generations/{$generation->id}/retry")->assertConflict();
     }
 
     public function test_owner_can_download_completed_generation_output(): void

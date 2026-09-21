@@ -6,10 +6,10 @@ use App\Domains\AI\Contracts\GenerationProvider;
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Data\GenerationResult;
 use App\Domains\AI\Gateway\AiGateway;
+use App\Domains\AI\Models\AiDailyBudget;
 use App\Domains\AI\Router\ModelRouter;
 use App\Domains\AI\Services\CircuitBreaker;
 use App\Domains\Generations\Models\Generation;
-use App\Domains\Generations\Models\UsageLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -31,30 +31,7 @@ class CircuitBreakerTest extends TestCase
     {
         config(['ai.daily_budget_usd' => 5.0]);
 
-        $user = User::factory()->create();
-        $product = $user->products()->create(['name' => 'Perfume', 'status' => 'active']);
-        $project = $user->creativeProjects()->create([
-            'product_id' => $product->id,
-            'goal' => 'introduction',
-            'style' => 'minimal',
-            'format' => 'instagram_post',
-            'brief' => ['summary' => 'test brief'],
-            'prompt' => 'test prompt',
-        ]);
-        $generation = Generation::query()->create([
-            'user_id' => $user->id,
-            'creative_project_id' => $project->id,
-            'type' => 'image',
-            'status' => 'completed',
-            'prompt_hash' => hash('sha256', 'test prompt'),
-            'metadata' => ['aspect_ratio' => '1:1'],
-        ]);
-
-        $generation->usageLogs()->create([
-            'provider' => 'test',
-            'model' => 'test-model',
-            'cost_usd' => 6.00,
-        ]);
+        AiDailyBudget::query()->create(['budget_date' => now()->toDateString(), 'spent_usd' => 6.00]);
 
         $circuitBreaker = new CircuitBreaker();
         $this->assertFalse($circuitBreaker->isAvailable());

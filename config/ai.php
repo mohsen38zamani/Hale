@@ -6,6 +6,7 @@ return [
     'retention_days' => (int) env('AI_OUTPUT_RETENTION_DAYS', 90),
     'max_output_bytes' => (int) env('AI_MAX_OUTPUT_BYTES', 50 * 1024 * 1024),
     'daily_budget_usd' => (float) env('AI_DAILY_BUDGET_USD', 50.0),
+    'processing_lease_seconds' => (int) env('AI_PROCESSING_LEASE_SECONDS', 600),
     'moderation' => [
         'blocked_terms' => ['pornographic', 'sexual violence', 'child abuse'],
     ],

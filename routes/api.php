@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/payments/{payment}/receipt', [PlanController::class, 'receipt']);
     Route::get('/payments/{payment}/invoice', [PlanController::class, 'invoice']);
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/user/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);

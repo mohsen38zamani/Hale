@@ -11,5 +11,6 @@ readonly class GenerationInput
         public ?int $durationSeconds = null,
         public ?string $assetDisk = null,
         public ?string $assetPath = null,
+        public ?int $generationId = null,
     ) {}
 }

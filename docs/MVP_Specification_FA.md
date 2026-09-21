@@ -441,7 +441,7 @@ GET    /api/payments/zarinpal/callback
 ```http
 GET    /api/user/profile
 PUT    /api/user/profile
-GET    /api/user/notifications
+GET    /api/notifications
 ```
 
 ---

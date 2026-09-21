@@ -64,11 +64,13 @@ class ProductAssetController extends Controller
         abort_unless($product->user_id === request()->user()->id, 404);
         abort_unless($product->assets()->whereKey($asset->id)->exists(), 404);
 
-        return response()->stream(function () use ($asset): void {
-            $stream = Storage::disk($asset->disk)->readStream($asset->thumbnail_path ?: $asset->path);
+        $isThumbnail = $asset->thumbnail_path !== null;
+
+        return response()->stream(function () use ($asset, $isThumbnail): void {
+            $stream = Storage::disk($asset->disk)->readStream($isThumbnail ? $asset->thumbnail_path : $asset->path);
             abort_unless(is_resource($stream), 404);
             fpassthru($stream);
             fclose($stream);
-        }, 200, ['Content-Type' => $asset->mime]);
+        }, 200, ['Content-Type' => $isThumbnail ? 'image/webp' : $asset->mime]);
     }
 }

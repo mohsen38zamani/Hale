@@ -4,6 +4,7 @@ namespace App\Domains\Generations\Jobs;
 
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Gateway\AiGateway;
+use App\Domains\AI\Services\CircuitBreaker;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Notifications\Notifications\GenerationStatusNotification;
@@ -14,6 +15,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -35,17 +37,29 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
         return (string) $this->generationId;
     }
 
-    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null): void
+    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null): void
     {
         $watermarks ??= app(WatermarkService::class);
-        $generation = Generation::query()->with('creativeProject.product.assets')->findOrFail($this->generationId);
-        if (in_array($generation->status, ['processing', 'completed'], true)) {
+        $claimed = DB::transaction(function (): ?array {
+            $generation = Generation::query()->whereKey($this->generationId)->lockForUpdate()->firstOrFail();
+            if ($generation->status !== 'queued') {
+                return null;
+            }
+            $generation->update([
+                'status' => 'processing',
+                'error_message' => null,
+                'processing_lease_expires_at' => now()->addSeconds(config('ai.processing_lease_seconds')),
+            ]);
+            $attempt = $generation->jobs()->create(['queue_job_id' => $this->job?->getJobId(), 'attempt' => $this->attempts(), 'status' => 'processing', 'started_at' => now()]);
+
+            return [$generation->fresh(), $attempt];
+        });
+        if ($claimed === null) {
             return;
         }
-
-        $attempt = $generation->jobs()->create(['queue_job_id' => $this->job?->getJobId(), 'attempt' => $this->attempts(), 'status' => 'processing', 'started_at' => now()]);
+        [$generation, $attempt] = $claimed;
+        $generation->load('creativeProject.product.assets');
         $startedAt = hrtime(true);
-        $generation->update(['status' => 'processing', 'error_message' => null]);
 
         try {
             $project = $generation->creativeProject;
@@ -57,6 +71,7 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
                 $project->video_duration_seconds,
                 $asset?->disk,
                 $asset?->path,
+                $generation->id,
             ));
             $result = $response['result'];
             $contents = $watermarks->applyForPlan($result->contents, $result->mime, $generation->user->plan_key);
@@ -66,22 +81,35 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
             if (! $disk->put($path, $contents)) {
                 throw new \RuntimeException('ذخیره خروجی generation ناموفق بود.');
             }
-            $media = $generation->user->mediaAssets()->firstOrCreate(['path' => $path], ['disk' => config('ai.output_disk'), 'mime' => $result->mime, 'size' => strlen($contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
             $elapsed = (int) ((hrtime(true) - $startedAt) / 1_000_000);
-
-            $generation->usageLogs()->create(['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
-            $generation->update(['status' => 'completed', 'provider' => $response['provider'], 'model' => $result->model, 'cost_usd' => $result->costUsd, 'processing_time_ms' => $elapsed, 'output_media_id' => $media->id]);
-            $credits->settle($generation);
-            $attempt->update(['status' => 'completed', 'finished_at' => now()]);
+            $completed = DB::transaction(function () use ($generation, $path, $result, $contents, $response, $elapsed, $credits, $attempt, $circuitBreaker): bool {
+                $generation = Generation::query()->whereKey($generation->id)->lockForUpdate()->firstOrFail();
+                if ($generation->status !== 'processing' || $generation->processing_lease_expires_at?->isPast()) {
+                    return false;
+                }
+                $media = $generation->user->mediaAssets()->firstOrCreate(['path' => $path], ['disk' => config('ai.output_disk'), 'mime' => $result->mime, 'size' => strlen($contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
+                $generation->usageLogs()->firstOrCreate([], ['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
+                $generation->update(['status' => 'completed', 'provider' => $response['provider'], 'model' => $result->model, 'cost_usd' => $result->costUsd, 'processing_time_ms' => $elapsed, 'output_media_id' => $media->id, 'processing_lease_expires_at' => null]);
+                $credits->settle($generation);
+                $circuitBreaker?->settle($generation->id, $result->costUsd);
+                $attempt->update(['status' => 'completed', 'finished_at' => now()]);
+                return true;
+            });
+            if (! $completed) {
+                $disk->delete($path);
+                $circuitBreaker?->release($generation->id);
+                return;
+            }
             try {
                 $generation->user->notify(new GenerationStatusNotification($generation->fresh(), 'completed'));
             } catch (Throwable $notificationException) {
                 report($notificationException);
             }
         } catch (Throwable $exception) {
+            $circuitBreaker?->release($generation->id);
             $attempt->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'finished_at' => now()]);
             $attemptNumber = max(1, $this->attempts());
-            $generation->update(['status' => $attemptNumber >= $this->tries ? 'failed' : 'queued', 'error_message' => $exception->getMessage()]);
+            $generation->update(['status' => $attemptNumber >= $this->tries ? 'failed' : 'queued', 'error_message' => $exception->getMessage(), 'processing_lease_expires_at' => null]);
             throw $exception;
         }
     }
@@ -93,8 +121,15 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $generation->update(['status' => 'failed', 'error_message' => $exception->getMessage()]);
+        $generation->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'processing_lease_expires_at' => null]);
         app(CreditService::class)->refund($generation);
+        app(CircuitBreaker::class)->release($generation->id);
+        if ($generation->output_media_id === null) {
+            $disk = Storage::disk(config('ai.output_disk'));
+            foreach (['png', 'jpg', 'webp', 'mp4'] as $extension) {
+                $disk->delete("generations/{$generation->user_id}/{$generation->id}.{$extension}");
+            }
+        }
         $generation->user->notify(new GenerationStatusNotification($generation, 'failed'));
     }
 
@@ -120,6 +155,10 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
 
         if ($type === 'image' && ! in_array([$mime, $extension], $expected, true)) {
             throw new \RuntimeException('Provider خروجی تصویر با MIME و پسوند معتبر تولید نکرد.');
+        }
+
+        if ($type === 'image' && @getimagesizefromstring($contents) === false) {
+            throw new \RuntimeException('محتوای خروجی تصویر معتبر نیست.');
         }
     }
 }

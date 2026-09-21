@@ -1,0 +1,3 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>حریم خصوصی | Hale</title><link rel="stylesheet" href="{{ vite('resources/css/app.css') }}"></head>
+<body class="dashboard-page"><main class="builder-main"><p class="eyebrow">HALE / LEGAL</p><h1>حریم خصوصی</h1><p>Hale اطلاعات حساب، فایل‌های محصول و داده‌های لازم برای اجرای Generation را فقط برای ارائهٔ سرویس و امنیت آن پردازش می‌کند.</p><p>فایل‌های خروجی طبق سیاست نگه‌داری سرویس حذف می‌شوند. برای درخواست‌های حریم خصوصی یا گزارش سوءاستفاده، از کانال پشتیبانی اعلام‌شده در محصول استفاده کنید.</p><p><a class="text-button" href="/terms">شرایط استفاده</a></p></main></body></html>
