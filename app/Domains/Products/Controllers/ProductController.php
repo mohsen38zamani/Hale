@@ -52,6 +52,7 @@ class ProductController extends Controller
     {
         $this->ensureOwner($request, $product);
         $assets = $product->assets()->get();
+        $product->assets()->detach();
         $product->delete();
 
         foreach ($assets as $asset) {

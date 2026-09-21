@@ -21,10 +21,25 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
-Route::get('/user/profile', function (CreditService $credits) {
+Route::get('/user/profile', function (CreditService $credits, \App\Domains\Billing\Services\SubscriptionService $subscriptions) {
     $user = request()->user();
+    $subscriptions->syncExpired($user);
+    $user->refresh();
+    $activeSub = $subscriptions->active($user);
 
-    return response()->json(['success' => true, 'data' => [...$user->only(['id', 'name', 'email', 'phone', 'plan_key']), 'credits_balance' => $credits->account($user)->balance], 'error' => null]);
+    return response()->json([
+        'success' => true,
+        'data' => [
+            ...$user->only(['id', 'name', 'email', 'phone', 'plan_key']),
+            'credits_balance' => $credits->account($user)->balance,
+            'subscription' => $activeSub ? [
+                'plan_key' => $activeSub->plan_key,
+                'starts_at' => $activeSub->starts_at?->toIso8601String(),
+                'ends_at' => $activeSub->ends_at?->toIso8601String(),
+            ] : null,
+        ],
+        'error' => null,
+    ]);
 })->middleware('auth:sanctum');
 Route::get('/plans', [PlanController::class, 'index']);
 Route::post('/webhooks/payment', [PlanController::class, 'webhook'])->middleware('throttle:payment-webhook');

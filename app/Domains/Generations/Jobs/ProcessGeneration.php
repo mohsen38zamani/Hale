@@ -81,6 +81,7 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
             if (! $disk->put($path, $contents)) {
                 throw new \RuntimeException('ذخیره خروجی generation ناموفق بود.');
             }
+            $fileStored = true;
             $elapsed = (int) ((hrtime(true) - $startedAt) / 1_000_000);
             $completed = DB::transaction(function () use ($generation, $path, $result, $contents, $response, $elapsed, $credits, $attempt, $circuitBreaker): bool {
                 $generation = Generation::query()->whereKey($generation->id)->lockForUpdate()->firstOrFail();
@@ -106,6 +107,13 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
                 report($notificationException);
             }
         } catch (Throwable $exception) {
+            if (! empty($fileStored) && isset($disk, $path)) {
+                try {
+                    $disk->delete($path);
+                } catch (Throwable) {
+                    // Ignore storage cleanup error on failure
+                }
+            }
             $circuitBreaker?->release($generation->id);
             $attempt->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'finished_at' => now()]);
             $attemptNumber = max(1, $this->attempts());
@@ -130,7 +138,18 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
                 $disk->delete("generations/{$generation->user_id}/{$generation->id}.{$extension}");
             }
         }
-        $generation->user->notify(new GenerationStatusNotification($generation, 'failed'));
+        try {
+            $generation->user->notify(new GenerationStatusNotification($generation, 'failed'));
+        } catch (Throwable $notificationException) {
+            report($notificationException);
+        }
+
+        \Illuminate\Support\Facades\Log::error("Generation pipeline failed permanently: #{$generation->id}", [
+            'generation_id' => $generation->id,
+            'user_id' => $generation->user_id,
+            'attempts' => $this->attempts(),
+            'error' => $exception->getMessage(),
+        ]);
     }
 
     private function assertOutputContract(string $type, string $mime, string $extension, string $contents): void

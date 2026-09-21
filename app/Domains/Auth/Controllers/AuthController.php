@@ -121,6 +121,9 @@ class AuthController extends Controller
 
     private function userPayload(User $user, CreditService $credits): array
     {
+        app(\App\Domains\Billing\Services\SubscriptionService::class)->syncExpired($user);
+        $user->refresh();
+
         return [...$user->only(['id', 'name', 'email', 'phone', 'plan_key']), 'credits_balance' => $credits->account($user)->balance];
     }
 }

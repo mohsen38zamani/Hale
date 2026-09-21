@@ -35,6 +35,7 @@ class User extends Authenticatable implements CanResetPassword
         'email',
         'phone',
         'password',
+        'plan_key',
     ];
 
     /**

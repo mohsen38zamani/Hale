@@ -44,19 +44,33 @@ class SubscriptionService
             ->lockForUpdate()
             ->get();
 
-        if ($expired->isEmpty()) {
-            return 0;
+        $expiredCount = $expired->count();
+        if ($expiredCount > 0) {
+            $expired->each->update(['status' => 'expired']);
         }
 
-        $expired->each->update(['status' => 'expired']);
         $active = $user->subscriptions()
             ->where('status', 'active')
             ->where('ends_at', '>', now())
             ->latest('ends_at')
             ->first();
-        $user->update(['plan_key' => $active?->plan_key ?? 'free']);
 
-        return $expired->count();
+        $oldPlan = $user->plan_key;
+        $newPlan = $active?->plan_key ?? 'free';
+
+        if ($oldPlan !== $newPlan) {
+            $user->update(['plan_key' => $newPlan]);
+
+            if (! empty($oldPlan) && $oldPlan !== 'free' && $newPlan === 'free') {
+                try {
+                    $user->notify(new \App\Domains\Notifications\Notifications\SubscriptionExpiredNotification($oldPlan));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        }
+
+        return $expiredCount;
     }
 
     public function active(User $user): ?Subscription

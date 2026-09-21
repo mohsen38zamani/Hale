@@ -15,6 +15,15 @@ class Subscription extends Model
         return ['starts_at' => 'datetime', 'ends_at' => 'datetime'];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (Subscription $subscription) {
+            if ($subscription->status === 'active' && $subscription->ends_at !== null && $subscription->ends_at->isPast()) {
+                $subscription->status = 'expired';
+            }
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

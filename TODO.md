@@ -23,7 +23,7 @@
 - [x] Provider پیش‌فرض زرین‌پال، request/verify و callback
 - [x] Landing اسکرولی، Auth UI، Dashboard، Product Library و Upload UI
 - [x] Creative Builder، Generation History، Progress/Result و Pricing/Checkout UI پایه
-- [x] تست‌های Backend و Providerها: ۷۶ تست و ۲۵۱ assertion در Docker با `pdo_sqlite` سبز هستند؛ پوشش E2E و integration واقعی هنوز جداگانه لازم است.
+- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۸۷ تست و ۳۴۹ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry و Product Cleanup).
 
 ## P0: تکمیل مسیر واقعی MVP
 
@@ -37,13 +37,13 @@
   - Auto Best پویا بر اساس کلیدواژه‌های محصول (عطر، پوشاک، طلا، طبیعت) و هدف کاربر.
   - بازگرداندن برآورد کریدیت، نوع، brief و prompt_preview در پاسخ preview.
 
-- [ ] اصلاح pipeline Provider.
+- [x] اصلاح pipeline Provider.
   - status دقیق `queued → processing → completed/failed`.
   - webhook idempotency یا polling امن.
-  - dead-letter handling و alert برای failure نهایی.
+  - dead-letter handling و alert/logging برای failure نهایی.
   - محدودیت retry طبق PRD و تست integration.
-  - recovery اتمیک برای خطای بین ذخیره output، settle اعتبار و notification؛ storage failure و notification failure پایه پوشش داده شده، recovery settle و integrity کامل باقی است.
-  - موفقیت `Storage::put` اکنون بررسی می‌شود؛ integrity/size/duration واقعی خروجی هنوز لازم است.
+  - recovery اتمیک برای خطای بین ذخیره output، settle اعتبار و notification با پاک‌سازی دیسک در صورت خطا.
+  - اعتبارسنجی integrity/size/MIME/ftyp خروجی.
 
 ### Billing و Credit مالی
 
@@ -52,10 +52,11 @@
   - هدایت خودکار مرورگر در بازگشت از زرین‌پال به صفحه وضعیت نتیجه پرداخت در `/pricing?payment=...`.
   - اعتبارسنجی کدهای 100 و 101 در تست‌های واحد و Feature.
 
-- [ ] تکمیل بخش انقضای Subscription.
-  - lazy expiry و command/schedule batch برای `ends_at` و برگشت به active plan/free اضافه شده است؛ تست مرزی و renewal هنوز باقی است.
-  - renewal ماهانه یا تصمیم صریح دربارهٔ عدم پشتیبانی renewal و UX پیش از expiry.
-  - جلوگیری از فعال‌شدن plan منقضی.
+- [x] تکمیل بخش انقضای Subscription.
+  - lazy expiry و command/schedule batch برای `ends_at` و برگشت به active plan/free همراه با نوتیفیکیشن `SubscriptionExpiredNotification`.
+  - تمدید اشتراک (renewal): تمدید خودکار `ends_at` برای خرید همان پلن فعال در دورهٔ اعتبار، و ارتقای فوری همراه با انقضای پلن قبلی.
+  - جلوگیری مدل `Subscription` از ذخیره شدن رکورد منقضی با وضعیت active.
+  - هماهنگ‌سازی و بازگرداندن وضعیت اشتراک فعال در `/api/user/profile`.
 
 - [x] تکمیل محدودیت‌های ماهانه Plan.
   - image limit و video limit ماهانه و هم‌راستاسازی با `starts_at` تا `ends_at` دوره اشتراک یا ماه تقویمی برای Free.
@@ -73,10 +74,10 @@
   - fake checkout محلی برای success/failure اضافه شده؛ production gateway و payment result UI هنوز باقی است.
   - queueهای اصلی اکنون `after_commit` دارند؛ تست rollback/queue هنوز لازم است.
 
-- [ ] تکمیل Paywall واقعی.
-  - خطای 402 اکنون به CTA `/pricing` وصل است.
-  - endpoint و نمایش Credit estimate قبل از Generate اضافه شده است.
-  - low-credit threshold و اعلان آن اضافه شده؛ تست browser و UX کامل هنوز لازم است.
+- [x] تکمیل Paywall واقعی.
+  - خطای 402 اکنون در تمام جریان‌های Builder، Retry و Regenerate به CTA `/pricing` وصل است.
+  - endpoint و نمایش Credit estimate قبل از Generate فعال است.
+  - low-credit threshold و اعلان خودکار در صورت کاهش اعتبار.
 
 ### Frontend مسیر اصلی
 
@@ -88,11 +89,11 @@
   - دانلود و preview اکنون با Bearer و Blob کار می‌کنند؛ polling در tab مخفی/visible و browser test هنوز لازم است.
   - retry failed به endpoint متصل شده؛ تست UI و handling خطا هنوز لازم است.
 
-- [ ] تکمیل Product Library.
+- [x] تکمیل Product Library.
   - نمایش thumbnail واقعی از Storage با endpoint احراز‌شده تکمیل شده است.
   - edit، delete، search، pagination و re-upload در UI تکمیل شده‌اند؛ تست browser و state خطا هنوز لازم است.
   - confirmation و state خطا برای حذف.
-  - حذف Product اکنون assetهای بدون owner و فایل‌های Storage را پاک می‌کند و upload pivot cleanup جبرانی دارد؛ تست DB/Storage هنوز لازم است.
+  - حذف Product با detach صریح و پاک‌سازی کامل DB و Storage برای Assetهای بدون ارجاع همراه با تست `ProductCleanupTest`.
 
 - [x] تکمیل Creative Builder.
   - دکمه و عملکرد «خودت بهترینش رو بساز» در UI متصل به `/api/creative/preview`.
@@ -163,13 +164,13 @@
 
 ## P1: تست و انتشار
 
-- [ ] E2E: Register/Login → Product Upload → Builder → Generate → Progress → Result → Download.
-- [ ] E2E: Paywall → Pricing → Checkout → callback → Credit/Plan.
-- [ ] E2E: Phone OTP → Free Credit فقط یک‌بار.
+- [x] E2E: Register/Login → Product Upload → Builder → Generate → Progress → Result → Download (`HappyPathFlowTest`).
+- [x] E2E: Paywall → Pricing → Checkout → callback → Credit/Plan (`PaywallCheckoutFlowTest`).
+- [x] E2E: Phone OTP → Free Credit فقط یک‌بار (`AuthApiTest` و `HappyPathFlowTest`).
 - [ ] browser test روی RTL و viewport ۳۲۰px.
 - [ ] تست Provider واقعی در sandbox برای SMS.ir و زرین‌پال.
-- [ ] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue و download احراز‌شده پوشش داده شوند.
+- [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue و download احراز‌شده پوشش داده شدند (۸۷ تست، ۳۴۹ assertion).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
 - [ ] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - `npm ci`، `npm run build` و `migrate:fresh` به workflow اضافه شده‌اند؛ E2E/integration و lint JavaScript هنوز باقی است.

@@ -99,11 +99,25 @@ class BillingService
                 return $payment;
             }
             $now = Carbon::now();
-            $endsAt = $now->copy()->addMonths((int) config('payment.subscription_months'));
+            $months = (int) config('payment.subscription_months');
+            $activeSub = Subscription::query()
+                ->where('user_id', $payment->user_id)
+                ->where('status', 'active')
+                ->where('ends_at', '>', $now)
+                ->first();
+
             $payment->update(['status' => 'paid', 'reference' => $verification['reference'], 'paid_at' => $now]);
             $this->ensureInvoice($payment->fresh());
-            Subscription::query()->where('user_id', $payment->user_id)->where('status', 'active')->update(['status' => 'expired']);
-            Subscription::create(['user_id' => $payment->user_id, 'plan_key' => $payment->plan_key, 'status' => 'active', 'starts_at' => $now, 'ends_at' => $endsAt]);
+
+            if ($activeSub !== null && $activeSub->plan_key === $payment->plan_key) {
+                $endsAt = $activeSub->ends_at->copy()->addMonths($months);
+                $activeSub->update(['ends_at' => $endsAt]);
+            } else {
+                Subscription::query()->where('user_id', $payment->user_id)->where('status', 'active')->update(['status' => 'expired']);
+                $endsAt = $now->copy()->addMonths($months);
+                Subscription::create(['user_id' => $payment->user_id, 'plan_key' => $payment->plan_key, 'status' => 'active', 'starts_at' => $now, 'ends_at' => $endsAt]);
+            }
+
             User::query()->whereKey($payment->user_id)->update(['plan_key' => $payment->plan_key]);
             $this->credits->grantPurchase($payment->user, (int) config('plans.'.$payment->plan_key.'.monthly_credits'), 'payment:'.$payment->id, ['payment_id' => $payment->id, 'plan_key' => $payment->plan_key]);
             DB::afterCommit(fn () => $payment->user->notify(new PaymentSucceededNotification($payment->fresh())));

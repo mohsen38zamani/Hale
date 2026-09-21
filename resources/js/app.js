@@ -383,6 +383,29 @@ if (generationPage && token) {
 	document.querySelector('[data-feedback="positive"]')?.addEventListener('click', () => sendFeedback('positive'));
 	document.querySelector('[data-feedback="negative"]')?.addEventListener('click', () => sendFeedback('negative'));
 	async function sendFeedback(feedback) { await fetch(`/api/generations/${generationId}/feedback`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ feedback }) }); message.textContent = 'بازخوردت ثبت شد، ممنون.'; }
-	document.querySelector('[data-regenerate]')?.addEventListener('click', async () => { const response = await fetch(`/api/generations/${generationId}/regenerate`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); const result = await response.json(); if (response.ok) window.location.href = `/generations/${result.data.id}`; else message.textContent = result.error?.message || 'تولید مجدد انجام نشد.'; });
-	retryButton?.addEventListener('click', async () => { retryButton.disabled = true; const response = await fetch(`/api/generations/${generationId}/retry`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); if (response.ok) window.location.reload(); else { const result = await response.json(); message.textContent = result.error?.message || 'تلاش مجدد انجام نشد.'; retryButton.disabled = false; } });
+	document.querySelector('[data-regenerate]')?.addEventListener('click', async () => {
+		const response = await fetch(`/api/generations/${generationId}/regenerate`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const result = await response.json();
+		if (response.ok) {
+			window.location.href = `/generations/${result.data.id}`;
+		} else if (response.status === 402) {
+			message.innerHTML = `${result.error?.message || 'اعتبار کافی نیست.'} <a href="/pricing">مشاهده پلن‌ها</a>`;
+		} else {
+			message.textContent = result.error?.message || 'تولید مجدد انجام نشد.';
+		}
+	});
+	retryButton?.addEventListener('click', async () => {
+		retryButton.disabled = true;
+		const response = await fetch(`/api/generations/${generationId}/retry`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const result = await response.json();
+		if (response.ok) {
+			window.location.reload();
+		} else if (response.status === 402) {
+			message.innerHTML = `${result.error?.message || 'اعتبار کافی نیست.'} <a href="/pricing">مشاهده پلن‌ها</a>`;
+			retryButton.disabled = false;
+		} else {
+			message.textContent = result.error?.message || 'تلاش مجدد انجام نشد.';
+			retryButton.disabled = false;
+		}
+	});
 }
