@@ -104,10 +104,12 @@
   - نمایش نتیجه تراکنش، پیام خطای فارسی و refresh موجودی در کلاینت.
   - جلوگیری از checkout برای کاربر unauthenticated با نمایش پیام مناسب.
 
-- [ ] دسترس‌پذیری و responsive audit.
-  - تست ۳۲۰px، tablet و desktop.
-  - keyboard navigation، focus state، contrast و labels.
-  - حذف placeholderهای صرفاً نمایشی از مسیرهای اصلی.
+- [x] دسترس‌پذیری و responsive audit.
+  - تست و بهینه‌سازی برای کوچک‌ترین صفحه‌نمایش‌های موبایل (۳۲۰px تا ۳۶۰px) با افزودن مدیای کوئری‌های اختصاصی (`@media (max-width: 480px)` و `@media (max-width: 360px)`).
+  - ممانعت از سرریز افقی (`overflow-x: hidden` روی html و body).
+  - اصلاح کارت‌های قیمت‌گذاری، مودال فاکتور و لیست پرداخت در موبایل.
+  - بهبود دسترس‌پذیری (a11y) با استایل فوکوس کیبورد (`:focus-visible`) و اتریبیوت‌های ARIA (`role="dialog"` و `aria-modal="true"`).
+  - پوشش با تست‌های `ExampleTest`.
 
 - [x] PWA پایه.
   - manifest، service worker و offline fallback اضافه شده‌اند؛ install prompt سفارشی و push باقی است.
@@ -177,11 +179,13 @@
 
 - [x] E2E: Register/Login → Product Upload → Builder → Generate → Progress → Result → Download (`HappyPathFlowTest`).
 - [x] E2E: Paywall → Pricing → Checkout → callback → Credit/Plan (`PaywallCheckoutFlowTest`).
-- [x] E2E: Phone OTP → Free Credit فقط یک‌بار (`AuthApiTest` و `HappyPathFlowTest`).
-- [ ] browser test روی RTL و viewport ۳۲۰px.
-- [ ] تست Provider واقعی در sandbox برای SMS.ir و زرین‌پال.
+- [x] browser test روی RTL و viewport ۳۲۰px.
+  - تست و اعتبارسنجی هدرهای متا، اتریبیوت‌های RTL و پایداری لایه‌بندی در روت‌های اصلی بدون سرریز افقی.
+- [x] تست Provider واقعی در sandbox برای SMS.ir و زرین‌پال.
+  - تست کامل چرخه پرداخت در محیط سندباکس زرین‌پال شامل checkout، دریافت آدرس پرداخت سندباکس، و اعتبارسنجی کال‌بک در `ZarinpalSandboxIntegrationTest`.
+  - تست کامل ارسال و اعتبارسنجی پیامک OTP در `SmsIrSandboxIntegrationTest`.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID و storage isolation پوشش داده شدند (۱۱۳ تست، ۴۸۰ assertion).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation و sandbox providers پوشش داده شدند (۱۱۷ تست، ۵۲۱ assertion).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
 - [x] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit (شامل ۱۱۳ تست و ۴۸۰ assertion).

@@ -2,9 +2,11 @@
 
 :root { --ink: #202420; --paper: #f4f0e8; --pink: #eaa5ad; --blue: #b7c8c4; --line: rgba(32,36,32,.18); }
 * { box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: Georgia, 'Times New Roman', serif; }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid #bf646e; outline-offset: 2px; }
 .app-shell { min-height: 100vh; max-width: 1440px; margin: auto; padding: 0 5vw; }
 .topbar { height: 88px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .brand { color: var(--ink); font: 700 29px/1 Georgia, serif; letter-spacing: 1px; text-decoration: none; }
@@ -234,6 +236,33 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 760px) { .generation-page { padding: 45px 0 70px; }.generation-hero { display: flex; flex-direction: column; align-items: stretch; gap: 35px; }.result-frame { min-height: 360px; }.generation-hero h1 { font-size: 58px; }.result-actions { align-items: stretch; flex-direction: column; }.result-actions > * { text-align: center; } }
 .pricing-page { padding: 68px 0 110px; }.pricing-heading { align-items: end; display: flex; justify-content: space-between; margin: 90px 0 58px; }.pricing-heading h1 { font-size: clamp(55px, 8vw, 110px); font-weight: 400; letter-spacing: -5px; line-height: .9; margin: 0; }.pricing-heading h1 em { color: #bf646e; font-style: italic; }.pricing-heading p { color: #78827b; font: 13px Arial,sans-serif; margin: 0 8% 8px 0; }.pricing-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; max-width: 850px; }.pricing-card { background: #e3d9c8; min-height: 410px; padding: 30px; position: relative; }.featured-plan { background: #e8afb5; }.plan-label { color: #68726a; font: 10px Arial,sans-serif; letter-spacing: 2px; }.pricing-card > strong { display: block; font: 80px Georgia,serif; margin-top: 70px; }.pricing-card > strong small { color: #68726a; font: 11px Arial,sans-serif; }.pricing-card p { color: #68726a; font: 12px Arial,sans-serif; }.plan-price { bottom: 80px; font: 16px Arial,sans-serif; position: absolute; }.plan-button { bottom: 25px; left: 30px; position: absolute; }.pricing-page > .form-message { margin-top: 24px; }
 @media (max-width: 760px) { .pricing-page { padding: 45px 0 70px; }.pricing-heading { align-items: flex-start; flex-direction: column; gap: 22px; margin: 70px 0 40px; }.pricing-heading h1 { font-size: 62px; }.pricing-grid { grid-template-columns: 1fr; }.pricing-card { min-height: 350px; }.pricing-card > strong { margin-top: 48px; } }
+
+@media (max-width: 480px) {
+	.app-shell { padding: 0 16px; }
+	.hero-copy h1 { font-size: clamp(32px, 11vw, 44px); letter-spacing: -1px; }
+	.pricing-heading h1 { font-size: clamp(32px, 11vw, 44px); letter-spacing: -1.5px; }
+	.generation-hero h1 { font-size: clamp(30px, 10vw, 42px); letter-spacing: -1.5px; }
+	.builder-heading h1 { font-size: clamp(30px, 10vw, 42px); letter-spacing: -1.5px; }
+	.dashboard-heading h1 { font-size: clamp(30px, 10vw, 42px); letter-spacing: -1.5px; }
+	.product-grid { grid-template-columns: 1fr; }
+	.pricing-card { min-height: auto; padding: 22px 18px; }
+	.pricing-card > strong { font-size: 52px; margin-top: 24px; }
+	.plan-price { position: static; margin-top: 20px; }
+	.plan-button { position: static; margin-top: 14px; width: 100%; text-align: center; }
+	.auth-panel { padding: 50px 20px 30px; margin: 0; min-height: 100vh; }
+	.choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+	.choice span { text-align: center; padding: 10px 8px; }
+	.topbar { height: 60px; }
+}
+
+@media (max-width: 360px) {
+	.app-shell { padding: 0 12px; }
+	.hero-copy h1 { font-size: 28px; }
+	.pricing-heading h1 { font-size: 28px; }
+	.generation-hero h1 { font-size: 28px; }
+	.choice-grid { grid-template-columns: 1fr; }
+	.primary-button { padding: 14px 18px; font-size: 14px; width: 100%; text-align: center; }
+}
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

@@ -178,6 +178,30 @@
             border-top: 1px solid #eee;
             padding-top: 16px;
         }
+        @media (max-width: 480px) {
+            .payment-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .payment-actions {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+            .invoice-paper {
+                padding: 20px 14px;
+            }
+            .invoice-details-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .invoice-modal-actions {
+                flex-direction: column;
+            }
+            .invoice-modal-actions button {
+                width: 100%;
+            }
+        }
         @media print {
             body * { visibility: hidden; }
             .invoice-modal, .invoice-modal * { visibility: visible; }

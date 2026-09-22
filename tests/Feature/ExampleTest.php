@@ -21,4 +21,17 @@ class ExampleTest extends TestCase
         $this->get('/terms')->assertStatus(200);
         $this->get('/privacy')->assertStatus(200);
     }
+
+    public function test_pages_have_rtl_meta_and_a11y_attributes(): void
+    {
+        $routes = ['/', '/pricing', '/dashboard', '/create'];
+
+        foreach ($routes as $route) {
+            $response = $this->get($route);
+            $response->assertOk();
+            $response->assertSee('dir="rtl"', false);
+            $response->assertSee('lang="fa"', false);
+            $response->assertSee('name="viewport"', false);
+        }
+    }
 }
