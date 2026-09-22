@@ -2,6 +2,7 @@
 
 namespace App\Domains\Admin\Controllers;
 
+use App\Domains\Billing\Models\Payment;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use App\Http\Controllers\Controller;
@@ -9,6 +10,7 @@ use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -92,6 +94,90 @@ class AdminController extends Controller
             'user_id' => $user->id,
             'amount_refunded' => $granted,
             'new_balance' => $credits->account($user)->balance,
+        ]);
+    }
+
+    public function metrics(): JsonResponse
+    {
+        $totalUsers = User::count();
+
+        // 1. Activation & Second Generation (PRD: >60% activation, >30% second gen)
+        $usersWithCompletedGens = DB::table('generations')
+            ->where('status', 'completed')
+            ->select('user_id', DB::raw('count(*) as aggregate_count'))
+            ->groupBy('user_id')
+            ->get();
+
+        $activatedUsers = $usersWithCompletedGens->count();
+        $activationRate = $totalUsers > 0 ? round(($activatedUsers / $totalUsers) * 100, 2) : 0.0;
+
+        $secondGenUsers = $usersWithCompletedGens->where('aggregate_count', '>=', 2)->count();
+        $secondGenRate = $activatedUsers > 0 ? round(($secondGenUsers / $activatedUsers) * 100, 2) : 0.0;
+
+        // 2. Feedback Satisfaction Rate (PRD: 👍 Rate > 50%)
+        $thumbsUp = Generation::where('feedback', 'thumbs_up')->count();
+        $thumbsDown = Generation::where('feedback', 'thumbs_down')->count();
+        $totalFeedback = $thumbsUp + $thumbsDown;
+        $thumbsUpRate = $totalFeedback > 0 ? round(($thumbsUp / $totalFeedback) * 100, 2) : 0.0;
+
+        // 3. Free to Paid Conversion (PRD: > 5%)
+        $paidUsers = Payment::where('status', 'paid')->distinct('user_id')->count('user_id');
+        $freeToPaidRate = $totalUsers > 0 ? round(($paidUsers / $totalUsers) * 100, 2) : 0.0;
+
+        // 4. Financials & Gross Margin (PRD: Gross Margin > 50%)
+        $totalRevenueToman = (int) Payment::where('status', 'paid')->sum('amount');
+        $totalCostUsd = (float) Generation::where('status', 'completed')->sum('cost_usd');
+
+        $usdToTomanRate = 100000;
+        $totalCostToman = (int) round($totalCostUsd * $usdToTomanRate);
+        $grossProfitToman = $totalRevenueToman - $totalCostToman;
+        $grossMarginRate = $totalRevenueToman > 0
+            ? round(($grossProfitToman / $totalRevenueToman) * 100, 2)
+            : 0.0;
+
+        return $this->success([
+            'overview' => [
+                'total_users' => $totalUsers,
+                'total_generations' => Generation::count(),
+                'completed_generations' => Generation::where('status', 'completed')->count(),
+            ],
+            'kpis' => [
+                'activation' => [
+                    'activated_users' => $activatedUsers,
+                    'rate_percentage' => $activationRate,
+                    'target' => '> 60%',
+                    'status' => $activationRate >= 60 ? 'pass' : 'needs_attention',
+                ],
+                'second_generation' => [
+                    'second_gen_users' => $secondGenUsers,
+                    'rate_percentage' => $secondGenRate,
+                    'target' => '> 30%',
+                    'status' => $secondGenRate >= 30 ? 'pass' : 'needs_attention',
+                ],
+                'thumbs_up_rate' => [
+                    'thumbs_up' => $thumbsUp,
+                    'thumbs_down' => $thumbsDown,
+                    'total_feedback' => $totalFeedback,
+                    'rate_percentage' => $thumbsUpRate,
+                    'target' => '> 50%',
+                    'status' => $thumbsUpRate >= 50 ? 'pass' : 'needs_attention',
+                ],
+                'free_to_paid' => [
+                    'paid_users' => $paidUsers,
+                    'rate_percentage' => $freeToPaidRate,
+                    'target' => '> 5%',
+                    'status' => $freeToPaidRate >= 5 ? 'pass' : 'needs_attention',
+                ],
+                'gross_margin' => [
+                    'revenue_toman' => $totalRevenueToman,
+                    'cost_usd' => $totalCostUsd,
+                    'cost_toman_estimate' => $totalCostToman,
+                    'profit_toman_estimate' => $grossProfitToman,
+                    'margin_percentage' => $grossMarginRate,
+                    'target' => '> 50%',
+                    'status' => $grossMarginRate >= 50 ? 'pass' : 'needs_attention',
+                ],
+            ],
         ]);
     }
 }

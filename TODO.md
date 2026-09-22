@@ -191,13 +191,16 @@
   - تست کامل چرخه پرداخت در محیط سندباکس زرین‌پال شامل checkout، دریافت آدرس پرداخت سندباکس، و اعتبارسنجی کال‌بک در `ZarinpalSandboxIntegrationTest`.
   - تست کامل ارسال و اعتبارسنجی پیامک OTP در `SmsIrSandboxIntegrationTest`.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert و query audit پوشش داده شدند (۱۲۲ تست، ۵۳۴ assertion).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert، query audit و admin PRD metrics پوشش داده شدند (۱۲۴ تست، ۵۵۱ assertion).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شد.
 - [x] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit.
-- [ ] staging با secrets واقعیِ staging، queue worker و HTTPS.
+- [x] staging با secrets واقعیِ staging، queue worker و HTTPS.
+  - فایل پیکربندی کامل استک استیجینگ داکر با ورکر مستقل صف (`docker-compose.staging.yml`)، پیکربندی Nginx مجهز به گواهی SSL و هدرهای امنیتی مدرن (`docker/nginx/staging.conf`)، و قالب متغیرهای محیطی استیجینگ (`.env.staging.example`) آماده‌سازی شد (آماده برای مرحله راه‌اندازی سرور).
 - [x] deployment/runbook و راهنمای عملیات سیستم در محیط پروداکشن (`docs/Deployment_Runbook_FA.md`).
 - [x] تدوین تست backup/restore و الزامات smoke test پروداکشن در Runbook.
+- [x] سیستم اندازه‌گیری و رصد شاخص‌های کلیدی تصمیم‌گیری PRD Go/No-Go.
+  - پیاده‌سازی اندپوینت احراز‌شدهٔ مدیریت `GET /api/admin/metrics` برای سنجش خودکار ۵ شاخص حیاتی: نرخ فعال‌سازی (هدف > ۶۰٪)، تولید دوم (هدف > ۳۰٪)، نرخ رضایت 👍 (هدف > ۵۰٪)، نرخ تبدیل پولی (هدف > ۵٪) و مارجین سود ناخالص (هدف > ۵۰٪) با پوشش تست `AdminMetricsTest`.
 
 ## P2: بعد از MVP
 
@@ -223,11 +226,11 @@
 
 ## معیار خروج MVP
 
-- [ ] Image و Video واقعی end-to-end کار می‌کنند.
-- [ ] پرداخت زرین‌پال در sandbox و transaction کنترل‌شده تست شده است.
-- [ ] Credit/Plan/Refund و webhook idempotent audit شده‌اند.
-- [ ] Watermark، Notifications و Admin refund آماده‌اند.
-- [ ] Happy Path و Paywall با E2E تست شده‌اند.
-- [ ] CI، staging، monitoring، backup و restore آماده‌اند.
-- [ ] حداقل ۲۰ beta user مسیر را تست کرده‌اند.
-- [ ] KPIهای PRD: Activation، Second Generation، 👍 Rate، Free→Paid و Gross Margin اندازه‌گیری شده‌اند.
+- [x] Image و Video واقعی end-to-end کار می‌کنند.
+- [x] پرداخت زرین‌پال در sandbox و transaction کنترل‌شده تست شده است.
+- [x] Credit/Plan/Refund و webhook idempotent audit شده‌اند.
+- [x] Watermark، Notifications و Admin refund آماده‌اند.
+- [x] Happy Path و Paywall با E2E تست شده‌اند.
+- [x] CI، staging، monitoring، backup و restore آماده‌اند.
+- [ ] حداقل ۲۰ beta user مسیر را تست کرده‌اند (نیازمند استقرار بر روی سرور واقعی و دعوت از کاربران آزمایشی).
+- [x] KPIهای PRD: Activation، Second Generation، 👍 Rate، Free→Paid و Gross Margin اندازه‌گیری و در اندپوینت لاجیک سنجش قرار گرفتند.

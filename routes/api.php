@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class])->group(function (): void {
+    Route::get('/metrics', [AdminController::class, 'metrics']);
     Route::get('/users', [AdminController::class, 'users']);
     Route::get('/users/{user}', [AdminController::class, 'user']);
     Route::get('/generations', [AdminController::class, 'generations']);
