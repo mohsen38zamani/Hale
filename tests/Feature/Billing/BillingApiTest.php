@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Models\User;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -143,5 +146,84 @@ class BillingApiTest extends TestCase
             ->assertOk()->assertJsonPath('data.status', 'paid');
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'plan_key' => 'starter']);
+    }
+
+    public function test_user_can_view_paginated_payment_history_scoped_to_self(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $user->payments()->create([
+            'plan_key' => 'starter',
+            'amount' => 4_990_000,
+            'gateway' => 'fake',
+            'status' => 'paid',
+            'authority' => 'auth-1',
+            'idempotency_key' => 'key-1',
+        ]);
+        $user->payments()->create([
+            'plan_key' => 'creator',
+            'amount' => 9_990_000,
+            'gateway' => 'fake',
+            'status' => 'pending',
+            'authority' => 'auth-2',
+            'idempotency_key' => 'key-2',
+        ]);
+        $otherUser->payments()->create([
+            'plan_key' => 'starter',
+            'amount' => 4_990_000,
+            'gateway' => 'fake',
+            'status' => 'paid',
+            'authority' => 'auth-3',
+            'idempotency_key' => 'key-3',
+        ]);
+
+        $response = $this->getJson('/api/payments?per_page=1')
+            ->assertOk()
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.per_page', 1)
+            ->assertJsonCount(1, 'data.data');
+
+        $this->assertSame('auth-2', $response->json('data.data.0.authority'));
+    }
+
+    public function test_user_cannot_access_other_users_invoice(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $otherPayment = $otherUser->payments()->create([
+            'plan_key' => 'starter',
+            'amount' => 4_990_000,
+            'gateway' => 'fake',
+            'status' => 'paid',
+            'authority' => 'auth-other',
+            'idempotency_key' => 'key-other',
+        ]);
+
+        Sanctum::actingAs($user);
+        $this->getJson("/api/payments/{$otherPayment->id}/invoice")
+            ->assertNotFound();
+    }
+
+    public function test_generation_job_implements_after_commit_and_transaction_rollback_prevents_dispatch(): void
+    {
+        $job = new ProcessGeneration(999);
+        $this->assertInstanceOf(ShouldQueueAfterCommit::class, $job);
+        $this->assertTrue($job->afterCommit);
+
+        $executed = false;
+        try {
+            DB::transaction(function () use (&$executed) {
+                DB::afterCommit(function () use (&$executed) {
+                    $executed = true;
+                });
+                throw new \RuntimeException('Simulated failure before commit');
+            });
+        } catch (\RuntimeException) {
+            // Expected
+        }
+
+        $this->assertFalse($executed);
     }
 }

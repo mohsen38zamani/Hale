@@ -23,7 +23,7 @@
 - [x] Provider پیش‌فرض زرین‌پال، request/verify و callback
 - [x] Landing اسکرولی، Auth UI، Dashboard، Product Library و Upload UI
 - [x] Creative Builder، Generation History، Progress/Result و Pricing/Checkout UI پایه
-- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۸۷ تست و ۳۴۹ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry و Product Cleanup).
+- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۹۶ تست و ۳۸۷ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry، Product Cleanup، Watermark Plans و Billing/Invoice).
 
 ## P0: تکمیل مسیر واقعی MVP
 
@@ -67,12 +67,11 @@
   - `users.credits_balance` با migration حذف شد.
   - login، profile و dashboard اکنون balance ledger را می‌خوانند؛ تست consistency همه endpointها در suite سبز است.
 
-- [ ] تکمیل Invoice و Payment History.
+- [x] تکمیل Invoice و Payment History.
   - endpoint تاریخچه پرداخت، receipt متنی و Invoice پایدار با شماره یکتا تکمیل شده‌اند.
-  - Pricing اکنون نتیجه paid/failed، تاریخچه pending/paid/failed و receipt احراز‌شده را نمایش می‌دهد؛ pagination history و صفحه نتیجه کامل هنوز لازم است.
-  - checkout با `Idempotency-Key` کلاینت idempotent شده است؛ Invoice و UI وضعیت پرداخت هنوز لازم است.
-  - fake checkout محلی برای success/failure اضافه شده؛ production gateway و payment result UI هنوز باقی است.
-  - queueهای اصلی اکنون `after_commit` دارند؛ تست rollback/queue هنوز لازم است.
+  - Pricing اکنون کارت اختصاصی نتیجه پرداخت (paid/failed)، تاریخچه pending/paid/failed همراه با pagination کامل و دکمه‌های رسید و فاکتور رسمی با قابلیت نمایش مودال و پرینت را دارد.
+  - checkout با `Idempotency-Key` کلاینت idempotent شده و تست‌های ایزولاسیون کاربر و امنیت دسترسی به فاکتور پوشش داده شدند.
+  - جاب‌های صف (`ProcessGeneration`) قرارداد `ShouldQueueAfterCommit` را پیاده‌سازی کرده و تست عدم ارسال جاب در صورت Rollback تراکنش سبز است.
 
 - [x] تکمیل Paywall واقعی.
   - خطای 402 اکنون در تمام جریان‌های Builder، Retry و Regenerate به CTA `/pricing` وصل است.
@@ -125,13 +124,13 @@
 - [x] اعلان Credit کم و Welcome در channel database.
 - [ ] کانال In-app و Email؛ SMS فقط برای OTP باقی بماند.
   - مرکز In-app در Dashboard و Email برای اعلان‌های اصلی آماده است؛ push هنوز لازم است.
-- [ ] تست event، queue، unread/read و failure ارسال.
-  - تست unread/read/read-all و انتخاب کانال Email اضافه شده؛ event failure و Email queue integration هنوز لازم است.
+- [x] تست event، queue، unread/read و failure ارسال.
+  - تست unread/read/read-all، انتخاب کانال Email، دریافت و اعتبارسنجی جاب اعلان موفقیت پرداخت و وضعیت جنریشن اضافه شده و در تست‌ها سبز است.
 
 ### Watermark و Media
 
 - [x] اعمال Watermark واقعی برای تصویر پلن Free در output.
-- [ ] عدم Watermark برای Starter/Creator با تست integration.
+- [x] عدم Watermark برای Starter/Creator با تست integration (`WatermarkPlanTest` اعمال واترمارک برای Free و حفظ دست‌نخورده تصویر بایت‌به‌بایت برای Starter و Creator را تضمین می‌کند).
 - [x] metadata و MIME صحیح برای هر خروجی؛ خروجی نامعتبر اکنون fail/refund می‌شود.
 - [x] retention ۹۰ روزه و cleanup فایل‌های Storage.
 - [x] command و schedule روزانه برای پاک‌سازی generation/media قدیمی.
@@ -146,8 +145,8 @@
 
 ### امنیت و پایداری
 
-- [ ] rate limit per user/plan برای Auth، Generate، SMS و Payment.
-  - limiterهای Generate، Checkout و Payment history اضافه شده‌اند؛ plan-aware و endpointهای Auth/SMS هنوز باقی است.
+- [x] rate limit per user/plan برای Auth، Generate، SMS و Payment.
+  - محدودکننده `generation` بر اساس پلن کاربر تنظیم شد (Creator: ۳۰، Starter: ۱۵، Free: ۵ در دقیقه) و محدودکننده‌های اختصاصی `auth-attempt`، `sms-send`، `sms-verify`، `checkout` و `payment-history` پیاده‌سازی شدند.
 - [ ] anti-fraud پایه: phone/IP/device limits و جلوگیری از چند bonus.
 - [ ] request ID، structured logging و حذف secret از log.
   - `X-Request-ID` و context لاگ اضافه شده؛ structured logging و audit کامل هنوز باقی است.
@@ -170,7 +169,7 @@
 - [ ] browser test روی RTL و viewport ۳۲۰px.
 - [ ] تست Provider واقعی در sandbox برای SMS.ir و زرین‌پال.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue و download احراز‌شده پوشش داده شدند (۸۷ تست، ۳۴۹ assertion).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue و download احراز‌شده پوشش داده شدند (۹۶ تست، ۳۸۷ assertion).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
 - [ ] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - `npm ci`، `npm run build` و `migrate:fresh` به workflow اضافه شده‌اند؛ E2E/integration و lint JavaScript هنوز باقی است.

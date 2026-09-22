@@ -2,13 +2,13 @@
 
 namespace App\Domains\Billing\Controllers;
 
+use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Requests\CheckoutRequest;
 use App\Domains\Billing\Services\BillingService;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Domains\Billing\Models\Payment;
 
 class PlanController extends Controller
 {
@@ -21,14 +21,22 @@ class PlanController extends Controller
 
     public function checkout(CheckoutRequest $request, BillingService $billing): JsonResponse
     {
-        return $this->success($billing->checkout($request->user(), $request->string('plan_key')->value(), $request->header('Idempotency-Key')), 201);
+        return $this->success(
+            $billing->checkout(
+                $request->user(),
+                $request->string('plan_key')->value(),
+                $request->header('Idempotency-Key'),
+            ),
+            201,
+        );
     }
 
     public function payments(Request $request): JsonResponse
     {
+        $perPage = max(1, min($request->integer('per_page', 15), 50));
         $payments = $request->user()->payments()
-            ->latest()
-            ->paginate(min($request->integer('per_page', 15), 50));
+            ->latest('id')
+            ->paginate($perPage);
 
         return $this->success($payments);
     }
@@ -56,7 +64,10 @@ class PlanController extends Controller
     {
         abort_unless($payment->user_id === $request->user()->id, 404);
 
-        return $this->success($payment->invoice);
+        $invoice = $payment->invoice;
+        abort_if($invoice === null, 404);
+
+        return $this->success($invoice);
     }
 
     public function webhook(Request $request, BillingService $billing): JsonResponse

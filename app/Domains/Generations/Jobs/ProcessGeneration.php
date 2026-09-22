@@ -7,19 +7,20 @@ use App\Domains\AI\Gateway\AiGateway;
 use App\Domains\AI\Services\CircuitBreaker;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
-use App\Domains\Notifications\Notifications\GenerationStatusNotification;
 use App\Domains\Media\Services\WatermarkService;
+use App\Domains\Notifications\Notifications\GenerationStatusNotification;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
-class ProcessGeneration implements ShouldQueue, ShouldBeUnique
+class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -30,7 +31,10 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
 
     public int $uniqueFor = 300;
 
-    public function __construct(public readonly int $generationId) {}
+    public function __construct(public readonly int $generationId)
+    {
+        $this->afterCommit = true;
+    }
 
     public function uniqueId(): string
     {
@@ -94,11 +98,13 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
                 $credits->settle($generation);
                 $circuitBreaker?->settle($generation->id, $result->costUsd);
                 $attempt->update(['status' => 'completed', 'finished_at' => now()]);
+
                 return true;
             });
             if (! $completed) {
                 $disk->delete($path);
                 $circuitBreaker?->release($generation->id);
+
                 return;
             }
             try {
@@ -144,7 +150,7 @@ class ProcessGeneration implements ShouldQueue, ShouldBeUnique
             report($notificationException);
         }
 
-        \Illuminate\Support\Facades\Log::error("Generation pipeline failed permanently: #{$generation->id}", [
+        Log::error("Generation pipeline failed permanently: #{$generation->id}", [
             'generation_id' => $generation->id,
             'user_id' => $generation->user_id,
             'attempts' => $this->attempts(),

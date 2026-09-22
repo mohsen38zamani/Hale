@@ -1,3 +1,3 @@
 <!doctype html>
-<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>شرایط استفاده | Hale</title><link rel="stylesheet" href="{{ vite('resources/css/app.css') }}"></head>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>شرایط استفاده | Hale</title>@vite(['resources/css/app.css', 'resources/js/app.js'])</head>
 <body class="dashboard-page"><main class="builder-main"><p class="eyebrow">HALE / LEGAL</p><h1>شرایط استفاده</h1><p>با استفاده از Hale، مسئولیت قانونی تصاویر محصول، صحت اطلاعات و مجوز استفاده از محتوای ارسالی بر عهدهٔ کاربر است.</p><p>تولید محتوای غیرقانونی، ناقض حقوق دیگران یا مغایر با سیاست محتوایی مجاز نیست. اعتبار مصرف‌شده برای خروجی موفق مطابق پلن کسر می‌شود و در شکست نهایی Generation بازگردانده می‌شود.</p><p><a class="text-button" href="/privacy">حریم خصوصی</a></p></main></body></html>

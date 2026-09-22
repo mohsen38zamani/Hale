@@ -12,8 +12,13 @@ class ExampleTest extends TestCase
      */
     public function test_the_application_returns_a_successful_response(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        $this->get('/')->assertStatus(200);
+        $this->get('/dashboard')->assertStatus(200);
+        $this->get('/create')->assertStatus(200);
+        $this->get('/pricing')->assertStatus(200);
+        $this->get('/pricing?payment=paid')->assertStatus(200);
+        $this->get('/pricing?payment=failed')->assertStatus(200);
+        $this->get('/terms')->assertStatus(200);
+        $this->get('/privacy')->assertStatus(200);
     }
 }

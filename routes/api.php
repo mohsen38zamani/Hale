@@ -1,7 +1,9 @@
 <?php
 
+use App\Domains\Admin\Controllers\AdminController;
 use App\Domains\Auth\Controllers\AuthController;
 use App\Domains\Billing\Controllers\PlanController;
+use App\Domains\Billing\Services\SubscriptionService;
 use App\Domains\Creative\Controllers\CreativeController;
 use App\Domains\Credits\Controllers\CreditController;
 use App\Domains\Credits\Services\CreditService;
@@ -9,19 +11,20 @@ use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
 use App\Domains\Notifications\Controllers\NotificationController;
 use App\Domains\Products\Controllers\ProductController;
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:30,1');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:30,1');
-    Route::post('/phone/send-code', [AuthController::class, 'sendPhoneVerification'])->middleware(['auth:sanctum', 'throttle:3,10']);
-    Route::post('/verify-phone', [AuthController::class, 'verifyPhone'])->middleware(['auth:sanctum', 'throttle:10,10']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-attempt');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-attempt');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-attempt');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-attempt');
+    Route::post('/phone/send-code', [AuthController::class, 'sendPhoneVerification'])->middleware(['auth:sanctum', 'throttle:sms-send']);
+    Route::post('/verify-phone', [AuthController::class, 'verifyPhone'])->middleware(['auth:sanctum', 'throttle:sms-verify']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
-Route::get('/user/profile', function (CreditService $credits, \App\Domains\Billing\Services\SubscriptionService $subscriptions) {
+Route::get('/user/profile', function (CreditService $credits, SubscriptionService $subscriptions) {
     $user = request()->user();
     $subscriptions->syncExpired($user);
     $user->refresh();
@@ -73,9 +76,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/subscriptions/checkout', [PlanController::class, 'checkout'])->middleware('throttle:checkout');
 });
 
-Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])->group(function (): void {
-    Route::get('/users', [\App\Domains\Admin\Controllers\AdminController::class, 'users']);
-    Route::get('/users/{user}', [\App\Domains\Admin\Controllers\AdminController::class, 'user']);
-    Route::get('/generations', [\App\Domains\Admin\Controllers\AdminController::class, 'generations']);
-    Route::post('/users/{user}/refund', [\App\Domains\Admin\Controllers\AdminController::class, 'refund']);
+Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class])->group(function (): void {
+    Route::get('/users', [AdminController::class, 'users']);
+    Route::get('/users/{user}', [AdminController::class, 'user']);
+    Route::get('/generations', [AdminController::class, 'generations']);
+    Route::post('/users/{user}/refund', [AdminController::class, 'refund']);
 });
