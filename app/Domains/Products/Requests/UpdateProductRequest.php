@@ -19,4 +19,14 @@ class UpdateProductRequest extends FormRequest
             'status' => ['sometimes', 'in:active,archived'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'نام محصول نمی‌تواند خالی باشد.',
+            'name.max' => 'نام محصول نمی‌تواند بیش از ۱۵۰ کاراکتر باشد.',
+            'description.max' => 'توضیحات محصول نمی‌تواند بیش از ۵۰۰۰ کاراکتر باشد.',
+            'status.in' => 'وضعیت محصول باید یکی از موارد active یا archived باشد.',
+        ];
+    }
 }

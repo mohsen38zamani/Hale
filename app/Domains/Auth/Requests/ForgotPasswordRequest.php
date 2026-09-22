@@ -17,4 +17,13 @@ class ForgotPasswordRequest extends FormRequest
             'email' => ['required', 'email', 'max:255'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'وارد کردن ایمیل الزامی است.',
+            'email.email' => 'فرمت ایمیل واردشده نامعتبر است.',
+            'email.max' => 'ایمیل نمی‌تواند بیش از ۲۵۵ کاراکتر باشد.',
+        ];
+    }
 }

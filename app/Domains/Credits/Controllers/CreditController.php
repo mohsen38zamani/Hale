@@ -28,6 +28,10 @@ class CreditController extends Controller
         $data = $request->validate([
             'type' => ['required', 'string', 'in:image,video'],
             'video_duration_seconds' => ['nullable', 'integer', 'in:5,8,10'],
+        ], [
+            'type.required' => 'انتخاب نوع خروجی الزامی است.',
+            'type.in' => 'نوع خروجی باید تصویر (image) یا ویدیو (video) باشد.',
+            'video_duration_seconds.in' => 'مدت زمان ویدیو باید یکی از مقادیر ۵، ۸ یا ۱۰ ثانیه باشد.',
         ]);
         $cost = $estimator->estimate($data['type'], $data['video_duration_seconds'] ?? null);
         $balance = $credits->account($request->user())->balance;

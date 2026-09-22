@@ -27,4 +27,13 @@ class SendPhoneVerificationRequest extends FormRequest
             'phone' => ['required', 'string', 'regex:/^\+?[0-9]{10,15}$/', 'unique:users,phone,'.$this->user()->id],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'phone.required' => 'وارد کردن شماره موبایل الزامی است.',
+            'phone.regex' => 'شماره موبایل واردشده نامعتبر است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).',
+            'phone.unique' => 'این شماره موبایل متعلق به حساب کاربری دیگری است.',
+        ];
+    }
 }

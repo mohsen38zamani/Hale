@@ -81,6 +81,12 @@ class AdminController extends Controller
         $validated = $request->validate([
             'amount' => ['required', 'integer', 'min:1'],
             'reason' => ['required', 'string', 'max:255'],
+        ], [
+            'amount.required' => 'وارد کردن میزان اعتبار الزامی است.',
+            'amount.integer' => 'میزان اعتبار باید عدد صحیح باشد.',
+            'amount.min' => 'میزان اعتبار باید حداقل ۱ باشد.',
+            'reason.required' => 'ثبت دلیل بازگشت اعتبار الزامی است.',
+            'reason.max' => 'دلیل بازگشت اعتبار نمی‌تواند بیش از ۲۵۵ کاراکتر باشد.',
         ]);
 
         $granted = $credits->manualRefund(

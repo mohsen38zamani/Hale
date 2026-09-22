@@ -18,4 +18,13 @@ class CheckoutRequest extends FormRequest
             'plan_key' => ['required', 'string', Rule::in(array_keys(config('plans'))), Rule::notIn(['free'])],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'plan_key.required' => 'انتخاب پلن اشتراک الزامی است.',
+            'plan_key.in' => 'پلن اشتراک انتخاب‌شده معتبر نیست.',
+            'plan_key.not_in' => 'امکان خرید پلن رایگان وجود ندارد. لطفاً یکی از پلن‌های اشتراکی را انتخاب کنید.',
+        ];
+    }
 }

@@ -19,4 +19,14 @@ class StoreProductRequest extends FormRequest
             'status' => ['sometimes', 'in:active,archived'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'وارد کردن نام محصول الزامی است.',
+            'name.max' => 'نام محصول نمی‌تواند بیش از ۱۵۰ کاراکتر باشد.',
+            'description.max' => 'توضیحات محصول نمی‌تواند بیش از ۵۰۰۰ کاراکتر باشد.',
+            'status.in' => 'وضعیت محصول باید یکی از موارد active یا archived باشد.',
+        ];
+    }
 }

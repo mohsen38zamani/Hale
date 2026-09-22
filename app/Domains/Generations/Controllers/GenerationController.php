@@ -33,6 +33,14 @@ class GenerationController extends Controller
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ], [
+            'type.in' => 'نوع خروجی باید تصویر یا ویدیو باشد.',
+            'from.date' => 'تاریخ شروع فیلتر نامعتبر است.',
+            'to.date' => 'تاریخ پایان فیلتر نامعتبر است.',
+            'to.after_or_equal' => 'تاریخ پایان باید بعد یا مساوی تاریخ شروع باشد.',
+            'per_page.integer' => 'تعداد در صفحه باید یک عدد باشد.',
+            'per_page.min' => 'حداقل تعداد در صفحه ۱ است.',
+            'per_page.max' => 'حداکثر تعداد در صفحه ۵۰ است.',
         ]);
 
         return $this->success($request->user()->generations()
@@ -143,7 +151,12 @@ class GenerationController extends Controller
         abort_unless($generation->user_id === $request->user()->id, 404);
         abort_unless($generation->status === 'completed', 409, 'فقط تولید تکمیل‌شده قابل ارزیابی است.');
 
-        $data = $request->validate(['feedback' => ['required', 'string', 'in:positive,negative']]);
+        $data = $request->validate([
+            'feedback' => ['required', 'string', 'in:positive,negative'],
+        ], [
+            'feedback.required' => 'ارسال مقدار بازخورد الزامی است.',
+            'feedback.in' => 'بازخورد باید یکی از مقادیر مثبت (positive) یا منفی (negative) باشد.',
+        ]);
         $generation->update(['feedback' => $data['feedback']]);
 
         return $this->success($generation->fresh());

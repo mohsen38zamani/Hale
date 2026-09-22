@@ -17,4 +17,12 @@ class VerifyPhoneRequest extends FormRequest
             'code' => ['required', 'digits:6'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'code.required' => 'وارد کردن کد تأیید الزامی است.',
+            'code.digits' => 'کد تأیید باید یک عدد ۶ رقمی باشد.',
+        ];
+    }
 }
