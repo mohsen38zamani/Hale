@@ -80,13 +80,12 @@
 
 ### Frontend مسیر اصلی
 
-- [ ] اتصال Progress/Result به Queue واقعی و تست مرورگر.
-  - polling در tab فعال/غیرفعال.
-  - loading/empty/error state.
-  - retry failed و regenerate completed.
-  - نمایش Credit مصرف‌شده/رزروشده و وضعیت دقیق تکمیل شده؛ browser test و polling lifecycle هنوز لازم است.
-  - دانلود و preview اکنون با Bearer و Blob کار می‌کنند؛ polling در tab مخفی/visible و browser test هنوز لازم است.
-  - retry failed به endpoint متصل شده؛ تست UI و handling خطا هنوز لازم است.
+- [x] اتصال Progress/Result به Queue واقعی و تست مرورگر.
+  - polling در tab فعال/غیرفعال با قطع هوشمند تایمر در پس‌زمینه و شروع مجدد پس از فوکوس.
+  - هدایت خودکار کاربر بدون توکن در ورود مستقیم به صفحه خروجی.
+  - retry failed و regenerate completed با بررسی موجودی کریدیت و اتصال به صف.
+  - نمایش Credit مصرف‌شده/رزروشده و وضعیت دقیق خروجی با بارگذاری ایمن Blob.
+  - پاک‌سازی خودکار حافظه URL در خروج از صفحه (`beforeunload`).
 
 - [x] تکمیل Product Library.
   - نمایش thumbnail واقعی از Storage با endpoint احراز‌شده تکمیل شده است.
@@ -122,8 +121,10 @@
 - [x] endpoint لیست/خواندن اعلان‌ها.
 - [x] اعلان Generation completed/failed و Payment موفق.
 - [x] اعلان Credit کم و Welcome در channel database.
-- [ ] کانال In-app و Email؛ SMS فقط برای OTP باقی بماند.
-  - مرکز In-app در Dashboard و Email برای اعلان‌های اصلی آماده است؛ push هنوز لازم است.
+- [x] کانال In-app و Email؛ SMS فقط برای OTP باقی بماند.
+  - مرکز In-app در Dashboard و Database channel برای ۵ نوتیفیکیشن اصلی (Welcome، Payment، Generation Status، Credits Low، Subscription Expired).
+  - ارسال ایمیل فقط در صورت داشتن ایمیل توسط کاربر؛ هیچ‌یک از نوتیفیکیشن‌های عمومی به کانال SMS فرستاده نمی‌شوند و SMS منحصراً برای تأیید شماره در PhoneVerificationService اختصاص دارد.
+  - تست تایید کانال‌ها در `NotificationApiTest`.
 - [x] تست event، queue، unread/read و failure ارسال.
   - تست unread/read/read-all، انتخاب کانال Email، دریافت و اعتبارسنجی جاب اعلان موفقیت پرداخت و وضعیت جنریشن اضافه شده و در تست‌ها سبز است.
 
@@ -153,14 +154,18 @@
   - قفل ضدتقلب پاداش پیامک به صورت سراسری (`phone_bonus:+98...`) جهت جلوگیری از دریافت اعتبار رایگان مکرر برای یک شماره.
   - محدودکننده دولایه `sms-send` (محدودیت کاربر/IP + محدودیت روی شماره مقصد).
   - پوشش کامل با تست‌های `PhoneVerificationAntiFraudTest`.
-- [ ] request ID، structured logging و حذف secret از log.
-  - `X-Request-ID` و context لاگ اضافه شده؛ structured logging و audit کامل هنوز باقی است.
+- [x] request ID، structured logging و حذف secret از log.
+  - میدلور `RequestId` شناسه یکتای UUID کلاینت را اعتبارسنجی/تولید کرده و در لاگ و هدر `X-Request-ID` تنظیم می‌کند.
+  - متدهای لاگ‌گیری فاقد هرگونه لاگ خام OTP، رمز عبور یا کلیدهای امنیتی هستند (فقط پسوند شماره موبایل لاگ می‌شود).
+  - پوشش کامل با تست‌های `RequestIdAndLoggingTest`.
 - [ ] Sentry یا جایگزین error tracking.
 - [ ] Horizon/worker production configuration و failed-job alert.
 - [ ] backup روزانه MySQL و restore drill.
-- [ ] security review برای upload، webhook، authorization و Storage paths.
-  - OTP خام از log حذف شده و تغییر phone در failure Provider rollback می‌شود؛ تست امنیتی آن لازم است.
-  - نتیجه Storage بررسی می‌شود؛ integrity و failure integration test هنوز لازم است.
+- [x] security review برای upload، webhook، authorization و Storage paths.
+  - جلوگیری ۱۰۰٪ از دانلود رسانه و خروجی جنریشن توسط سایر کاربران (پاسخ ۴۰۴ به جای ۴۰۳ جهت جلوگیری از حدس شناسه).
+  - ممانعت از اجرای رفتارهای Feedback، Retry و Regenerate روی جنریشن سایر کاربران.
+  - اعتبارسنجی نوع MIME و جلوگیری از آپلود اسکریپت‌های PHP، Shell و فایل‌های مخرب در رسانه‌های محصول.
+  - پوشش با تست‌های `StorageSecurityAndPathTraversalTest`.
 - [x] جلوگیری از سوءاستفاده و replay در عملیات مالی و generation.
   - تسویه مالی (`settle`) با `lockForUpdate` و بررسی اتمیک وضعیت `paid` از Replay وبهوک و کال‌بک جلوگیری کرده و اعتبار دوبل یا فاکتور تکراری صادر نمی‌کند.
   - اعتباردهی خرید با `idempotency_key` یکتای `payment:{id}` در لجر تراکنش‌ها تضمین شده است.
@@ -176,7 +181,7 @@
 - [ ] browser test روی RTL و viewport ۳۲۰px.
 - [ ] تست Provider واقعی در sandbox برای SMS.ir و زرین‌پال.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud و payment replay پوشش داده شدند (۱۰۵ تست، ۴۴۱ assertion).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID و storage isolation پوشش داده شدند (۱۱۳ تست، ۴۸۰ assertion).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
 - [ ] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - `npm ci`، `npm run build` و `migrate:fresh` به workflow اضافه شده‌اند؛ E2E/integration و lint JavaScript هنوز باقی است.

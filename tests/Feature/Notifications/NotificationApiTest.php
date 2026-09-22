@@ -110,4 +110,26 @@ class NotificationApiTest extends TestCase
         $failMail = $failedNotif->toMail($user);
         $this->assertStringContainsString('ناموفق', $failMail->subject);
     }
+
+    public function test_notifications_never_route_to_sms_channel(): void
+    {
+        $userWithEmailAndPhone = User::factory()->create(['email' => 'user@example.com', 'phone' => '+989121112233']);
+        $userWithPhoneOnly = User::factory()->create(['email' => null, 'phone' => '+989124445566']);
+
+        $notifications = [
+            new WelcomeNotification,
+            new \App\Domains\Notifications\Notifications\CreditsLowNotification(5),
+            new \App\Domains\Notifications\Notifications\SubscriptionExpiredNotification('starter'),
+        ];
+
+        foreach ($notifications as $notification) {
+            $channelsWithEmail = $notification->via($userWithEmailAndPhone);
+            $channelsPhoneOnly = $notification->via($userWithPhoneOnly);
+
+            $this->assertNotContains('sms', $channelsWithEmail);
+            $this->assertNotContains('sms', $channelsPhoneOnly);
+            $this->assertSame(['database', 'mail'], $channelsWithEmail);
+            $this->assertSame(['database'], $channelsPhoneOnly);
+        }
+    }
 }
