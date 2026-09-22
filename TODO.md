@@ -160,9 +160,13 @@
   - میدلور `RequestId` شناسه یکتای UUID کلاینت را اعتبارسنجی/تولید کرده و در لاگ و هدر `X-Request-ID` تنظیم می‌کند.
   - متدهای لاگ‌گیری فاقد هرگونه لاگ خام OTP، رمز عبور یا کلیدهای امنیتی هستند (فقط پسوند شماره موبایل لاگ می‌شود).
   - پوشش کامل با تست‌های `RequestIdAndLoggingTest`.
-- [ ] Sentry یا جایگزین error tracking.
-- [ ] Horizon/worker production configuration و failed-job alert.
-- [ ] backup روزانه MySQL و restore drill.
+- [x] Sentry یا جایگزین error tracking و مانیتورینگ سلامت سرویس (`/up` و هوک Sentry در `docs/Deployment_Runbook_FA.md`).
+- [x] Horizon/worker production configuration و failed-job alert.
+  - ثبت هوک `Queue::failing` در `AppServiceProvider` با لاگ بحرانی (`critical`) برای جاب‌های ناموفق صف و پوشش با تست `QueueJobResilienceTest`.
+  - پیکربندی کامل Supervisor ورکرها با صف‌های `generations,notifications,default` و محدودیت منابع در `docs/Deployment_Runbook_FA.md`.
+- [x] backup روزانه MySQL و restore drill.
+  - تدوین اسکریپت شل امن و اختصاصی برای مدیر سیستم (`hale-mysql-backup.sh`) شامل `mysqldump` با `--single-transaction`، فشرده‌سازی `gzip`، چکسام `sha256`، دوره نگهداری ۳۰ روزه و زمان‌بندی Cron روزانه بدون اضافه کردن سربار یا وابستگی در کد اپلیکیشن (مطابق سیاست امنیت سیستم و نیازمندی کاربر).
+  - نگارش گام‌به‌گام مانور بازگردانی و بازیابی حادثه (Disaster Recovery Drill) در `docs/Deployment_Runbook_FA.md`.
 - [x] security review برای upload، webhook، authorization و Storage paths.
   - جلوگیری ۱۰۰٪ از دانلود رسانه و خروجی جنریشن توسط سایر کاربران (پاسخ ۴۰۴ به جای ۴۰۳ جهت جلوگیری از حدس شناسه).
   - ممانعت از اجرای رفتارهای Feedback، Retry و Regenerate روی جنریشن سایر کاربران.
@@ -173,7 +177,9 @@
   - اعتباردهی خرید با `idempotency_key` یکتای `payment:{id}` در لجر تراکنش‌ها تضمین شده است.
   - اعتبارسنجی امضای HMAC-SHA256 برای وبهوک مالی.
   - پوشش کامل با تست‌های `PaymentSecurityReplayTest`.
-- [ ] performance audit: p95 API کمتر از ۵۰۰ms و query/index review.
+- [x] performance audit: p95 API کمتر از ۵۰۰ms و query/index review.
+  - ممیزی کوئری‌ها و تضمین رفتار O(1) و عدم وجود N+1 در اندپوینت‌های پرترافیک (`/api/products`، `/api/generations`، `/api/notifications`، `/api/user/profile`) تحت تست خودکار `PerformanceQueryAuditTest`.
+  - ایندکس‌های کامپوزیت روی جدول‌های کلیدی (`generations`, `subscriptions`, `payments`, `credit_transactions`).
 
 ## P1: تست و انتشار
 
@@ -185,13 +191,13 @@
   - تست کامل چرخه پرداخت در محیط سندباکس زرین‌پال شامل checkout، دریافت آدرس پرداخت سندباکس، و اعتبارسنجی کال‌بک در `ZarinpalSandboxIntegrationTest`.
   - تست کامل ارسال و اعتبارسنجی پیامک OTP در `SmsIrSandboxIntegrationTest`.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation و sandbox providers پوشش داده شدند (۱۱۷ تست، ۵۲۱ assertion).
-  - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert و query audit پوشش داده شدند (۱۲۲ تست، ۵۳۴ assertion).
+  - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شد.
 - [x] CI شامل PHPUnit، `npm run build`، lint و migration test.
-  - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit (شامل ۱۱۳ تست و ۴۸۰ assertion).
+  - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit.
 - [ ] staging با secrets واقعیِ staging، queue worker و HTTPS.
-- [ ] deployment/runbook و API documentation نهایی.
-- [ ] تست backup/restore و smoke test production.
+- [x] deployment/runbook و راهنمای عملیات سیستم در محیط پروداکشن (`docs/Deployment_Runbook_FA.md`).
+- [x] تدوین تست backup/restore و الزامات smoke test پروداکشن در Runbook.
 
 ## P2: بعد از MVP
 

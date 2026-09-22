@@ -15,6 +15,9 @@ use App\Domains\Billing\Providers\ZarinpalPaymentGateway;
 use App\Support\PhoneNormalizer;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -85,5 +88,14 @@ class AppServiceProvider extends ServiceProvider
             return $limits;
         });
         RateLimiter::for('sms-verify', fn (Request $request) => Limit::perMinutes(10, 10)->by((string) ($request->user()?->id ?? $request->ip())));
+
+        Queue::failing(function (JobFailed $event): void {
+            Log::critical('Queue job failed permanently', [
+                'connection' => $event->connectionName,
+                'queue' => $event->job->getQueue(),
+                'job' => $event->job->resolveName(),
+                'exception' => $event->exception->getMessage(),
+            ]);
+        });
     }
 }
