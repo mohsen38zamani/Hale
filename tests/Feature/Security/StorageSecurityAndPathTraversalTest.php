@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Security;
 
-use App\Domains\Generations\Models\Generation;
-use App\Domains\Media\Models\MediaAsset;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;

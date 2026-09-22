@@ -2,8 +2,8 @@
 
 namespace App\Domains\Credits\Controllers;
 
-use App\Domains\Credits\Services\CreditService;
 use App\Domains\Credits\Services\CreditEstimator;
+use App\Domains\Credits\Services\CreditService;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;

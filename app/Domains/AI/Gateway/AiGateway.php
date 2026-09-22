@@ -27,12 +27,14 @@ class AiGateway
 
         try {
             $result = $provider->generate($input);
+
             return ['provider' => $provider->key(), 'result' => $result];
         } catch (Throwable $e) {
             $fallback = $this->router->fallback($input->type, $input->durationSeconds, $provider);
             if ($fallback !== null) {
                 try {
                     $result = $fallback->generate($input);
+
                     return ['provider' => $fallback->key(), 'result' => $result];
                 } catch (Throwable $fallbackException) {
                     if ($input->generationId !== null) {

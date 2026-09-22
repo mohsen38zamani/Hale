@@ -1,13 +1,13 @@
 <?php
 
+use App\Http\Middleware\RequestId;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use App\Http\Middleware\RequestId;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(

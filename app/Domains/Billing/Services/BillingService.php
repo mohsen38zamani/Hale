@@ -3,15 +3,15 @@
 namespace App\Domains\Billing\Services;
 
 use App\Domains\Billing\Contracts\PaymentGateway;
-use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\Invoice;
+use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\Subscription;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Notifications\Notifications\PaymentSucceededNotification;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\QueryException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class BillingService

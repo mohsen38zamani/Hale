@@ -11,6 +11,7 @@ use App\Domains\Auth\Requests\SendPhoneVerificationRequest;
 use App\Domains\Auth\Requests\UpdateProfileRequest;
 use App\Domains\Auth\Requests\VerifyPhoneRequest;
 use App\Domains\Auth\Services\PhoneVerificationService;
+use App\Domains\Billing\Services\SubscriptionService;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Notifications\Notifications\WelcomeNotification;
 use App\Http\Controllers\Controller;
@@ -29,7 +30,7 @@ class AuthController extends Controller
     {
         $user = User::create($request->safe()->only(['name', 'email', 'phone', 'password']));
         $credits->initialize($user);
-        $user->notify(new WelcomeNotification());
+        $user->notify(new WelcomeNotification);
 
         return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits), 201);
     }
@@ -121,7 +122,7 @@ class AuthController extends Controller
 
     private function userPayload(User $user, CreditService $credits): array
     {
-        app(\App\Domains\Billing\Services\SubscriptionService::class)->syncExpired($user);
+        app(SubscriptionService::class)->syncExpired($user);
         $user->refresh();
 
         return [...$user->only(['id', 'name', 'email', 'phone', 'plan_key']), 'credits_balance' => $credits->account($user)->balance];

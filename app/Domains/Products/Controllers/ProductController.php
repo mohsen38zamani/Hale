@@ -2,10 +2,10 @@
 
 namespace App\Domains\Products\Controllers;
 
+use App\Domains\Media\Services\MediaUploadService;
 use App\Domains\Products\Models\Product;
 use App\Domains\Products\Requests\StoreProductRequest;
 use App\Domains\Products\Requests\UpdateProductRequest;
-use App\Domains\Media\Services\MediaUploadService;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;

@@ -2,14 +2,10 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Domains\Auth\Contracts\SmsProvider;
-use App\Domains\Auth\Models\PhoneVerificationCode;
-use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Credits\Services\CreditService;
 use App\Models\User;
 use App\Support\PhoneNormalizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class PhoneVerificationAntiFraudTest extends TestCase

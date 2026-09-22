@@ -2,8 +2,8 @@
 
 namespace App\Domains\Credits\Services;
 
-use App\Domains\Credits\Exceptions\PlanLimitReached;
 use App\Domains\Billing\Services\SubscriptionService;
+use App\Domains\Credits\Exceptions\PlanLimitReached;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
@@ -27,8 +27,8 @@ class PlanLimitService
 
     private function assertCanGenerate(User $user, string $type): void
     {
-        $plan = config('plans.' . ($user->plan_key ?: 'free'));
-        $limit = (int) ($plan[$type . '_limit'] ?? 0);
+        $plan = config('plans.'.($user->plan_key ?: 'free'));
+        $limit = (int) ($plan[$type.'_limit'] ?? 0);
 
         $activeSubscription = $user->subscriptions()
             ->where('status', 'active')

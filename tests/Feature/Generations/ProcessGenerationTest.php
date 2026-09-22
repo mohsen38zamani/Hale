@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use RuntimeException;
-use Throwable;
 use Tests\TestCase;
+use Throwable;
 
 class ProcessGenerationTest extends TestCase
 {

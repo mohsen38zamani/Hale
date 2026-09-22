@@ -12,8 +12,11 @@ use RuntimeException;
 class GoogleImagenProvider implements GenerationProvider
 {
     private string $apiKey;
+
     private string $baseUrl;
+
     private string $model;
+
     private int $timeout;
 
     public function __construct(
@@ -55,7 +58,7 @@ class GoogleImagenProvider implements GenerationProvider
             ];
         }
 
-        $url = rtrim($this->baseUrl, '/') . "/models/{$this->model}:predict?key={$this->apiKey}";
+        $url = rtrim($this->baseUrl, '/')."/models/{$this->model}:predict?key={$this->apiKey}";
 
         $response = Http::timeout($this->timeout)
             ->withHeaders(['Content-Type' => 'application/json'])

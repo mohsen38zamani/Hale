@@ -3,6 +3,7 @@
 namespace App\Domains\Billing\Services;
 
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Notifications\Notifications\SubscriptionExpiredNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -63,7 +64,7 @@ class SubscriptionService
 
             if (! empty($oldPlan) && $oldPlan !== 'free' && $newPlan === 'free') {
                 try {
-                    $user->notify(new \App\Domains\Notifications\Notifications\SubscriptionExpiredNotification($oldPlan));
+                    $user->notify(new SubscriptionExpiredNotification($oldPlan));
                 } catch (\Throwable $e) {
                     report($e);
                 }

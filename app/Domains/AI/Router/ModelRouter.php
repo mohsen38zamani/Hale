@@ -27,6 +27,7 @@ class ModelRouter
         foreach ($this->providers as $provider) {
             if ($provider === $failedProvider || $provider->key() === $failedProvider->key()) {
                 $foundFailed = true;
+
                 continue;
             }
 

@@ -24,7 +24,7 @@ class SendPhoneVerificationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'regex:/^\+?[0-9]{10,15}$/', 'unique:users,phone,' . $this->user()->id],
+            'phone' => ['required', 'string', 'regex:/^\+?[0-9]{10,15}$/', 'unique:users,phone,'.$this->user()->id],
         ];
     }
 }

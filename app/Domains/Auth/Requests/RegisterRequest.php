@@ -29,7 +29,7 @@ class RegisterRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255', 'required_without:phone', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'regex:/^\+?[0-9]{10,15}$/', 'required_without:email', 'unique:users,phone'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-            'device_name' => ['nullable', 'string', 'max:100']
+            'device_name' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

@@ -9,9 +9,9 @@ use App\Domains\Credits\Services\CreditService;
 use App\Models\User;
 use App\Support\PhoneNormalizer;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class PhoneVerificationService

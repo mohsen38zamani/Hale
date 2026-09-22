@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Notifications;
 
+use App\Domains\Notifications\Notifications\CreditsLowNotification;
 use App\Domains\Notifications\Notifications\GenerationStatusNotification;
 use App\Domains\Notifications\Notifications\PaymentSucceededNotification;
+use App\Domains\Notifications\Notifications\SubscriptionExpiredNotification;
 use App\Domains\Notifications\Notifications\WelcomeNotification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -118,8 +120,8 @@ class NotificationApiTest extends TestCase
 
         $notifications = [
             new WelcomeNotification,
-            new \App\Domains\Notifications\Notifications\CreditsLowNotification(5),
-            new \App\Domains\Notifications\Notifications\SubscriptionExpiredNotification('starter'),
+            new CreditsLowNotification(5),
+            new SubscriptionExpiredNotification('starter'),
         ];
 
         foreach ($notifications as $notification) {

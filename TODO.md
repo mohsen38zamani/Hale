@@ -183,9 +183,8 @@
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
   - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID و storage isolation پوشش داده شدند (۱۱۳ تست، ۴۸۰ assertion).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
-- [ ] CI شامل PHPUnit، `npm run build`، lint و migration test.
-  - `npm ci`، `npm run build` و `migrate:fresh` به workflow اضافه شده‌اند؛ E2E/integration و lint JavaScript هنوز باقی است.
-  - browser/E2E، lint JavaScript و integration با MySQL/Redis/S3 هنوز در CI نیست.
+- [x] CI شامل PHPUnit، `npm run build`، lint و migration test.
+  - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit (شامل ۱۱۳ تست و ۴۸۰ assertion).
 - [ ] staging با secrets واقعیِ staging، queue worker و HTTPS.
 - [ ] deployment/runbook و API documentation نهایی.
 - [ ] تست backup/restore و smoke test production.

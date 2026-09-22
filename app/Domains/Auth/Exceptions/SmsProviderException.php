@@ -4,6 +4,4 @@ namespace App\Domains\Auth\Exceptions;
 
 use RuntimeException;
 
-class SmsProviderException extends RuntimeException
-{
-}
+class SmsProviderException extends RuntimeException {}

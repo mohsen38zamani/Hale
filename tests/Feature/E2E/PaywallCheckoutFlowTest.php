@@ -3,6 +3,7 @@
 namespace Tests\Feature\E2E;
 
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +24,7 @@ class PaywallCheckoutFlowTest extends TestCase
 
         // 1. User registers and has 0 balance
         $user = User::factory()->create(['plan_key' => 'free']);
-        app(\App\Domains\Credits\Services\CreditService::class)->initialize($user, 0);
+        app(CreditService::class)->initialize($user, 0);
         $product = $user->products()->create(['name' => 'تیشرت']);
         Sanctum::actingAs($user);
 
@@ -34,7 +35,7 @@ class PaywallCheckoutFlowTest extends TestCase
             'format' => 'instagram_post',
             'style' => 'luxury',
         ])->assertStatus(402)
-          ->assertJsonPath('error.code', 'INSUFFICIENT_CREDITS');
+            ->assertJsonPath('error.code', 'INSUFFICIENT_CREDITS');
 
         // 3. User views available plans
         $plansRes = $this->getJson('/api/plans')->assertOk();

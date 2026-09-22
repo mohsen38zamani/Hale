@@ -3,15 +3,15 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Domains\Creative\Models\CreativeProject;
-use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Creative\Models\CreativeProject;
+use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Products\Models\Product;
-use Database\Factories\UserFactory;
 use App\Support\PhoneNormalizer;
+use Database\Factories\UserFactory;
 use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Database\Eloquent\Casts\Attribute;

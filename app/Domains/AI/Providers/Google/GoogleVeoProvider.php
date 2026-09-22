@@ -12,8 +12,11 @@ use RuntimeException;
 class GoogleVeoProvider implements GenerationProvider
 {
     private string $apiKey;
+
     private string $baseUrl;
+
     private string $model;
+
     private int $timeout;
 
     public function __construct(
@@ -61,7 +64,7 @@ class GoogleVeoProvider implements GenerationProvider
             ];
         }
 
-        $url = rtrim($this->baseUrl, '/') . "/models/{$this->model}:predictVideo?key={$this->apiKey}";
+        $url = rtrim($this->baseUrl, '/')."/models/{$this->model}:predictVideo?key={$this->apiKey}";
 
         $response = Http::timeout($this->timeout)
             ->withHeaders(['Content-Type' => 'application/json'])

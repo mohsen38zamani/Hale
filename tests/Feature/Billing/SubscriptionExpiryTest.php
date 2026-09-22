@@ -3,8 +3,6 @@
 namespace Tests\Feature\Billing;
 
 use App\Domains\Billing\Models\Subscription;
-use App\Domains\Billing\Services\BillingService;
-use App\Domains\Billing\Services\SubscriptionService;
 use App\Domains\Notifications\Notifications\SubscriptionExpiredNotification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

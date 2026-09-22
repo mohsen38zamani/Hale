@@ -2,14 +2,15 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Support\Facades\Notification;
 use App\Domains\Auth\Contracts\SmsProvider;
+use App\Domains\Auth\Exceptions\SmsProviderException;
+use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
-use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AuthApiTest extends TestCase
@@ -178,7 +179,8 @@ class AuthApiTest extends TestCase
     public function test_phone_verification_uses_the_bound_sms_provider(): void
     {
         config(['verification.phone.testing_code' => '123456']);
-        $provider = new class implements SmsProvider {
+        $provider = new class implements SmsProvider
+        {
             public bool $sent = false;
 
             public function sendVerification(string $mobile, string $code): array
@@ -199,10 +201,11 @@ class AuthApiTest extends TestCase
     public function test_sms_provider_failure_uses_a_standard_api_error(): void
     {
         app()->bind(SmsProvider::class, function (): SmsProvider {
-            return new class implements SmsProvider {
+            return new class implements SmsProvider
+            {
                 public function sendVerification(string $mobile, string $code): array
                 {
-                    throw new \App\Domains\Auth\Exceptions\SmsProviderException('provider unavailable');
+                    throw new SmsProviderException('provider unavailable');
                 }
             };
         });

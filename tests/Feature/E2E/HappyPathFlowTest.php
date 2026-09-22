@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\E2E;
 
+use App\Domains\AI\Gateway\AiGateway;
+use App\Domains\AI\Services\CircuitBreaker;
+use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
+use App\Domains\Media\Services\WatermarkService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -102,10 +105,10 @@ class HappyPathFlowTest extends TestCase
         // 6. Process Generation Job
         $job = new ProcessGeneration($generationId);
         $job->handle(
-            app(\App\Domains\AI\Gateway\AiGateway::class),
-            app(\App\Domains\Credits\Services\CreditService::class),
-            app(\App\Domains\Media\Services\WatermarkService::class),
-            app(\App\Domains\AI\Services\CircuitBreaker::class)
+            app(AiGateway::class),
+            app(CreditService::class),
+            app(WatermarkService::class),
+            app(CircuitBreaker::class)
         );
 
         // 7. Check Generation Result

@@ -34,6 +34,7 @@ class CreditService
             $attempt = $account->transactions()->where('generation_id', $generation->id)->where('type', 'reserve')->count() + 1;
             $this->record($account->fresh(), $generation, 'reserve', -$amount, "generation:{$generation->id}:reserve:{$attempt}");
             $generation->update(['credits_reserved' => $amount]);
+
             return (int) $account->fresh()->balance;
         });
 
@@ -100,7 +101,7 @@ class CreditService
 
     public function manualRefund(User $user, int $amount, string $reason, ?int $adminId = null): int
     {
-        $key = 'admin:refund:' . $user->id . ':' . uniqid('', true);
+        $key = 'admin:refund:'.$user->id.':'.uniqid('', true);
 
         return $this->grant($user, $amount, $key, 'refund', [
             'reason' => $reason,
