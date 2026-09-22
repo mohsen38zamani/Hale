@@ -26,6 +26,7 @@ Route::get('/pricing', function () {
 
 Route::view('/terms', 'terms');
 Route::view('/privacy', 'privacy');
+Route::view('/admin', 'admin');
 
 Route::get('/fake-checkout/{authority}', function (string $authority) {
     abort_unless(config('payment.driver') === 'fake', 404);

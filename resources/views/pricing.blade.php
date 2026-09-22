@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .payment-result-card {
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 24px;
             margin-bottom: 32px;
             display: flex;
@@ -18,14 +18,14 @@
             animation: fadeIn 0.3s ease;
         }
         .payment-result-card.success {
-            background: #e8f5e9;
-            border: 1px solid #a5d6a7;
-            color: #1b5e20;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34D399;
         }
         .payment-result-card.failed {
-            background: #ffebee;
-            border: 1px solid #ef9a9a;
-            color: #b71c1c;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #F87171;
         }
         .payment-result-details h3 {
             margin: 0 0 6px 0;
@@ -43,54 +43,68 @@
             flex-shrink: 0;
         }
         .btn-action {
-            background: #202420;
-            color: #f4f0e8;
+            background: var(--aurora-gradient);
+            color: #FFFFFF;
             border: none;
-            padding: 10px 18px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 9999px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
+            font-weight: 600;
             text-decoration: none;
             display: inline-block;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
         }
         .btn-action:hover {
-            opacity: 0.85;
+            transform: translateY(-2px);
         }
         .payment-history {
             margin-top: 56px;
-            border-top: 1px solid var(--line);
+            border-top: 1px solid var(--border-subtle);
             padding-top: 36px;
         }
         .payment-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(32, 36, 32, 0.08);
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            margin-bottom: 10px;
             font-size: 13px;
+            transition: all 0.2s;
+        }
+        .payment-row:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-highlight);
         }
         .payment-row strong {
-            font-size: 14px;
+            font-size: 15px;
             min-width: 90px;
+            color: #FFFFFF;
         }
         .payment-status {
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
         }
         .payment-status.paid {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34D399;
         }
         .payment-status.pending {
-            background: #fff3cd;
-            color: #856404;
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #FBBF24;
         }
         .payment-status.failed {
-            background: #f8d7da;
-            color: #721c24;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #F87171;
         }
         .payment-actions {
             display: flex;
@@ -102,28 +116,31 @@
             justify-content: space-between;
             margin-top: 20px;
             font-size: 12px;
-            color: #68726a;
+            color: var(--text-muted);
         }
         .pagination-bar button {
-            background: transparent;
-            border: 1px solid var(--line);
-            padding: 6px 14px;
-            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 12px;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
         .pagination-bar button:disabled {
-            opacity: 0.4;
+            opacity: 0.3;
             cursor: not-allowed;
         }
         .pagination-bar button:hover:not(:disabled) {
-            background: rgba(32, 36, 32, 0.06);
+            background: rgba(255, 255, 255, 0.1);
+            color: #FFFFFF;
         }
         .invoice-modal {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.55);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -134,13 +151,13 @@
             display: none;
         }
         .invoice-paper {
-            background: #fff;
-            color: #202420;
+            background: #FFFFFF;
+            color: #0F172A;
             width: 100%;
-            max-width: 540px;
-            border-radius: 10px;
-            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
-            padding: 32px;
+            max-width: 560px;
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            padding: 36px;
             position: relative;
             max-height: 90vh;
             overflow-y: auto;
