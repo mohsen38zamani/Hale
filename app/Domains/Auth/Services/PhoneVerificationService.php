@@ -4,8 +4,10 @@ namespace App\Domains\Auth\Services;
 
 use App\Domains\Auth\Contracts\SmsProvider;
 use App\Domains\Auth\Models\PhoneVerificationCode;
+use App\Domains\Credits\Models\CreditTransaction;
 use App\Domains\Credits\Services\CreditService;
 use App\Models\User;
+use App\Support\PhoneNormalizer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +23,12 @@ class PhoneVerificationService
 
     public function send(User $user, string $phone): array
     {
+        $phone = PhoneNormalizer::normalize($phone);
+
+        if (User::query()->where('phone', $phone)->where('id', '!=', $user->id)->exists()) {
+            throw new RuntimeException('این شماره موبایل قبلاً توسط کاربر دیگری ثبت شده است.');
+        }
+
         $code = config('verification.phone.testing_code') ?: str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expiresAt = Carbon::now()->addMinutes((int) config('verification.phone.expires_minutes'));
 
@@ -66,9 +74,24 @@ class PhoneVerificationService
             throw new RuntimeException('کد تأیید نادرست است.');
         }
 
-        $verification->update(['verified_at' => now()]);
-        $user->forceFill(['phone' => $verification->phone, 'phone_verified_at' => now()])->save();
+        $phone = PhoneNormalizer::normalize($verification->phone);
 
-        return $this->credits->grantBonus($user, (int) config('verification.phone.free_credits'), 'phone_verification_bonus');
+        if (User::query()->where('phone', $phone)->where('id', '!=', $user->id)->exists()) {
+            throw new RuntimeException('این شماره موبایل قبلاً توسط کاربر دیگری ثبت شده است.');
+        }
+
+        $verification->update(['verified_at' => now()]);
+        $user->forceFill(['phone' => $phone, 'phone_verified_at' => now()])->save();
+
+        $alreadyClaimed = CreditTransaction::query()
+            ->where('type', 'bonus')
+            ->where('idempotency_key', 'phone_bonus:'.$phone)
+            ->exists();
+
+        if ($alreadyClaimed) {
+            return 0;
+        }
+
+        return $this->credits->grantBonus($user, (int) config('verification.phone.free_credits'), 'phone_bonus:'.$phone);
     }
 }

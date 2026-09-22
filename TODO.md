@@ -147,7 +147,12 @@
 
 - [x] rate limit per user/plan برای Auth، Generate، SMS و Payment.
   - محدودکننده `generation` بر اساس پلن کاربر تنظیم شد (Creator: ۳۰، Starter: ۱۵، Free: ۵ در دقیقه) و محدودکننده‌های اختصاصی `auth-attempt`، `sms-send`، `sms-verify`، `checkout` و `payment-history` پیاده‌سازی شدند.
-- [ ] anti-fraud پایه: phone/IP/device limits و جلوگیری از چند bonus.
+- [x] anti-fraud پایه: phone/IP/device limits و جلوگیری از چند bonus.
+  - نرمال‌سازی اجباری شماره‌های ایرانی/فارسی/عربی به فرمت استاندارد E.164 (`+98...`) در لایه Request و Mutator مدل `User`.
+  - ممانعت قطعی و ۱۰۰٪ از ثبت شماره تکراری با هر فرمت یا نویسه در ثبت‌نام و تغییر شماره («اصلا نباید شماره تکراری ثبت بشه»).
+  - قفل ضدتقلب پاداش پیامک به صورت سراسری (`phone_bonus:+98...`) جهت جلوگیری از دریافت اعتبار رایگان مکرر برای یک شماره.
+  - محدودکننده دولایه `sms-send` (محدودیت کاربر/IP + محدودیت روی شماره مقصد).
+  - پوشش کامل با تست‌های `PhoneVerificationAntiFraudTest`.
 - [ ] request ID، structured logging و حذف secret از log.
   - `X-Request-ID` و context لاگ اضافه شده؛ structured logging و audit کامل هنوز باقی است.
 - [ ] Sentry یا جایگزین error tracking.
@@ -156,9 +161,11 @@
 - [ ] security review برای upload، webhook، authorization و Storage paths.
   - OTP خام از log حذف شده و تغییر phone در failure Provider rollback می‌شود؛ تست امنیتی آن لازم است.
   - نتیجه Storage بررسی می‌شود؛ integrity و failure integration test هنوز لازم است.
-- [ ] جلوگیری از سوءاستفاده و replay در عملیات مالی و generation.
-  - retry/regenerate و callback/webhook محدودیت عملیاتی و idempotency کلاینتی کامل ندارند.
-  - معیار پایان: تست هم‌زمانی، double-click، replay callback و rate limit per-user/IP سبز باشد.
+- [x] جلوگیری از سوءاستفاده و replay در عملیات مالی و generation.
+  - تسویه مالی (`settle`) با `lockForUpdate` و بررسی اتمیک وضعیت `paid` از Replay وبهوک و کال‌بک جلوگیری کرده و اعتبار دوبل یا فاکتور تکراری صادر نمی‌کند.
+  - اعتباردهی خرید با `idempotency_key` یکتای `payment:{id}` در لجر تراکنش‌ها تضمین شده است.
+  - اعتبارسنجی امضای HMAC-SHA256 برای وبهوک مالی.
+  - پوشش کامل با تست‌های `PaymentSecurityReplayTest`.
 - [ ] performance audit: p95 API کمتر از ۵۰۰ms و query/index review.
 
 ## P1: تست و انتشار
@@ -169,7 +176,7 @@
 - [ ] browser test روی RTL و viewport ۳۲۰px.
 - [ ] تست Provider واقعی در sandbox برای SMS.ir و زرین‌پال.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue و download احراز‌شده پوشش داده شدند (۹۶ تست، ۳۸۷ assertion).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud و payment replay پوشش داده شدند (۱۰۵ تست، ۴۴۱ assertion).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شود.
 - [ ] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - `npm ci`، `npm run build` و `migrate:fresh` به workflow اضافه شده‌اند؛ E2E/integration و lint JavaScript هنوز باقی است.

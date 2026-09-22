@@ -12,6 +12,7 @@ use App\Domains\Auth\Providers\SmsIrProvider;
 use App\Domains\Billing\Contracts\PaymentGateway;
 use App\Domains\Billing\Providers\FakePaymentGateway;
 use App\Domains\Billing\Providers\ZarinpalPaymentGateway;
+use App\Support\PhoneNormalizer;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -69,7 +70,20 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('payment-webhook', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
 
         RateLimiter::for('auth-attempt', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->input('email') ?? $request->input('phone') ?? $request->ip())));
-        RateLimiter::for('sms-send', fn (Request $request) => Limit::perMinutes(10, 3)->by((string) ($request->user()?->id ?? $request->ip())));
+        RateLimiter::for('sms-send', function (Request $request) {
+            $userKey = (string) ($request->user()?->id ?? $request->ip());
+            $phone = PhoneNormalizer::normalize($request->input('phone'));
+
+            $limits = [
+                Limit::perMinutes(10, 3)->by('user:'.$userKey),
+            ];
+
+            if (! empty($phone)) {
+                $limits[] = Limit::perMinutes(10, 3)->by('phone:'.$phone);
+            }
+
+            return $limits;
+        });
         RateLimiter::for('sms-verify', fn (Request $request) => Limit::perMinutes(10, 10)->by((string) ($request->user()?->id ?? $request->ip())));
     }
 }

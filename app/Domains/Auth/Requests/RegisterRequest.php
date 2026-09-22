@@ -2,6 +2,7 @@
 
 namespace App\Domains\Auth\Requests;
 
+use App\Support\PhoneNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -10,6 +11,15 @@ class RegisterRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone') && $this->phone !== null) {
+            $this->merge([
+                'phone' => PhoneNormalizer::normalize($this->phone),
+            ]);
+        }
     }
 
     public function rules(): array

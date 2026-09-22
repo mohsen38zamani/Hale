@@ -11,8 +11,10 @@ use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Products\Models\Product;
 use Database\Factories\UserFactory;
+use App\Support\PhoneNormalizer;
 use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
 use Illuminate\Contracts\Auth\CanResetPassword;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -60,6 +62,13 @@ class User extends Authenticatable implements CanResetPassword
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    protected function phone(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => PhoneNormalizer::normalize($value),
+        );
     }
 
     public function products(): HasMany

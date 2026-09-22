@@ -329,7 +329,9 @@ if (document.body.classList.contains('landing-page') && matchMedia('(hover: hove
 }
 
 const generationPage = document.querySelector('[data-generation-id]');
-if (generationPage && token) {
+if (generationPage && !token) {
+	window.location.href = '/';
+} else if (generationPage && token) {
 	const generationId = generationPage.dataset.generationId;
 	const title = document.querySelector('[data-generation-title]');
 	const copy = document.querySelector('[data-generation-copy]');
@@ -343,6 +345,9 @@ if (generationPage && token) {
 	const regenerateButton = document.querySelector('[data-regenerate]');
 	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.' };
 	let outputUrl;
+	let pollTimeoutId = null;
+	let isFinished = false;
+
 	const loadOutput = async () => {
 		const response = await fetch(`/api/generations/${generationId}/download`, { headers: { Accept: 'application/octet-stream', Authorization: `Bearer ${token}` } });
 		if (!response.ok) throw new Error('دریافت خروجی ممکن نیست.');
@@ -350,7 +355,16 @@ if (generationPage && token) {
 		outputUrl = URL.createObjectURL(await response.blob());
 		return outputUrl;
 	};
+
+	const scheduleNextPoll = () => {
+		if (pollTimeoutId) clearTimeout(pollTimeoutId);
+		if (!isFinished && document.visibilityState === 'visible') {
+			pollTimeoutId = setTimeout(poll, 2500);
+		}
+	};
+
 	const poll = async () => {
+		if (isFinished) return;
 		const response = await fetch(`/api/generations/${generationId}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
 		const result = await response.json();
 		if (!response.ok) throw new Error(result.error?.message || 'دریافت وضعیت ممکن نیست.');
@@ -363,6 +377,8 @@ if (generationPage && token) {
 		status.textContent = statusLabels[generation.status] || generation.status;
 		progress.style.width = generation.status === 'completed' ? '100%' : generation.status === 'processing' ? '65%' : generation.status === 'failed' ? '0%' : '25%';
 		if (generation.status === 'completed') {
+			isFinished = true;
+			if (pollTimeoutId) clearTimeout(pollTimeoutId);
 			title.innerHTML = 'محتوا<br><em>آماده است.</em>';
 			copy.textContent = 'حالا می‌توانی خروجی را دانلود کنی، بازخورد بدهی یا یک نسخه تازه بسازی.';
 			const media = generation.output_media;
@@ -375,11 +391,35 @@ if (generationPage && token) {
 			regenerateButton.hidden = false;
 			return;
 		}
-		if (generation.status === 'failed') { title.innerHTML = 'ساخت محتوا<br><em>متوقف شد.</em>'; message.textContent = generation.error_message || 'دوباره تلاش کن.'; actions.hidden = false; retryButton.hidden = false; regenerateButton.hidden = true; return; }
-		if (document.visibilityState === 'visible') setTimeout(poll, 2500);
+		if (generation.status === 'failed') {
+			isFinished = true;
+			if (pollTimeoutId) clearTimeout(pollTimeoutId);
+			title.innerHTML = 'ساخت محتوا<br><em>متوقف شد.</em>';
+			message.textContent = generation.error_message || 'دوباره تلاش کن.';
+			actions.hidden = false;
+			retryButton.hidden = false;
+			regenerateButton.hidden = true;
+			return;
+		}
+		scheduleNextPoll();
 	};
+
 	poll().catch((error) => { message.textContent = error.message; });
-	document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !actions.hidden) return; if (document.visibilityState === 'visible') poll().catch((error) => { message.textContent = error.message; }); });
+
+	document.addEventListener('visibilitychange', () => {
+		if (isFinished) return;
+		if (document.visibilityState === 'visible') {
+			if (pollTimeoutId) clearTimeout(pollTimeoutId);
+			poll().catch((error) => { message.textContent = error.message; });
+		} else {
+			if (pollTimeoutId) clearTimeout(pollTimeoutId);
+		}
+	});
+
+	window.addEventListener('beforeunload', () => {
+		if (pollTimeoutId) clearTimeout(pollTimeoutId);
+		if (outputUrl) URL.revokeObjectURL(outputUrl);
+	});
 	document.querySelector('[data-feedback="positive"]')?.addEventListener('click', () => sendFeedback('positive'));
 	document.querySelector('[data-feedback="negative"]')?.addEventListener('click', () => sendFeedback('negative'));
 	async function sendFeedback(feedback) { await fetch(`/api/generations/${generationId}/feedback`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ feedback }) }); message.textContent = 'بازخوردت ثبت شد، ممنون.'; }
