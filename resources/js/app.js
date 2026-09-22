@@ -11,38 +11,71 @@ let authMode = 'login';
 const setAuthMode = (mode) => {
 	authMode = mode;
 	modal?.removeAttribute('hidden');
-	nameField.hidden = mode !== 'register';
-	confirmField.hidden = mode !== 'register';
-	document.querySelector('#auth-title').textContent = mode === 'register' ? 'حساب بساز' : 'خوش آمدی';
-	submit.innerHTML = mode === 'register' ? 'ساخت حساب رایگان <span>←</span>' : 'ورود به Hale <span>←</span>';
+	if (nameField) {
+		nameField.hidden = mode !== 'register';
+		const nameInput = nameField.querySelector('input');
+		if (nameInput) nameInput.required = mode === 'register';
+	}
+	if (confirmField) {
+		confirmField.hidden = mode !== 'register';
+		const confirmInput = confirmField.querySelector('input');
+		if (confirmInput) confirmInput.required = mode === 'register';
+	}
+	const authTitle = document.querySelector('#auth-title');
+	if (authTitle) authTitle.textContent = mode === 'register' ? 'حساب بساز' : 'خوش آمدی';
+	if (submit) submit.innerHTML = mode === 'register' ? 'ساخت حساب رایگان <span>←</span>' : 'ورود به Hale <span>←</span>';
 	document.querySelectorAll('[data-auth-tab]').forEach((tab) => tab.classList.toggle('active', tab.dataset.authTab === mode));
-	message.textContent = '';
+	if (message) {
+		message.textContent = '';
+		message.className = 'form-message';
+	}
 };
 
 document.querySelectorAll('[data-open-auth]').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.openAuth)));
-document.querySelectorAll('[data-close-auth]').forEach((button) => button.addEventListener('click', () => modal.setAttribute('hidden', '')));
+document.querySelectorAll('[data-close-auth]').forEach((button) => button.addEventListener('click', () => modal?.setAttribute('hidden', '')));
 document.querySelectorAll('[data-auth-tab]').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.authTab)));
 
 form?.addEventListener('submit', async (event) => {
 	event.preventDefault();
 	const values = Object.fromEntries(new FormData(form));
+	const rawIdentifier = (values.identifier || '').trim();
 	const payload = { password: values.password, device_name: 'web' };
+
 	if (authMode === 'register') {
-		payload.name = values.name;
+		payload.name = (values.name || '').trim();
 		payload.password_confirmation = values.password_confirmation;
-		if (values.identifier.includes('@')) payload.email = values.identifier;
-		else payload.phone = values.identifier;
-	} else payload.identifier = values.identifier;
+		if (rawIdentifier.includes('@')) {
+			payload.email = rawIdentifier;
+		} else {
+			payload.phone = rawIdentifier;
+		}
+	} else {
+		payload.identifier = rawIdentifier;
+	}
 
 	submit.disabled = true;
-	message.textContent = 'در حال اتصال...';
+	message.className = 'form-message';
+	message.textContent = 'در حال ارسال اطلاعات...';
 	try {
-		const response = await fetch(`/api/auth/${authMode}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) });
+		const response = await fetch(`/api/auth/${authMode}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+			body: JSON.stringify(payload)
+		});
 		const result = await response.json();
-		if (!response.ok) throw new Error(result.error?.message || 'اطلاعات واردشده صحیح نیست.');
+		if (!response.ok) {
+			let errorMsg = result.error?.message || result.message;
+			if (result.errors) {
+				const firstKey = Object.keys(result.errors)[0];
+				if (firstKey && Array.isArray(result.errors[firstKey]) && result.errors[firstKey][0]) {
+					errorMsg = result.errors[firstKey][0];
+				}
+			}
+			throw new Error(errorMsg || 'اطلاعات واردشده صحیح نیست.');
+		}
 		localStorage.setItem('hale_token', result.data.token);
 		message.className = 'form-message success-message';
-		message.textContent = authMode === 'register' ? 'حساب ساخته شد. در حال ورود...' : 'ورود موفق بود.';
+		message.textContent = authMode === 'register' ? 'حساب کاربری با موفقیت ساخته شد. در حال انتقال...' : 'ورود موفق بود. در حال انتقال...';
 		setTimeout(() => { window.location.href = '/dashboard'; }, 450);
 	} catch (error) {
 		message.className = 'form-message error-message';

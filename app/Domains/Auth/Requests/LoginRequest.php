@@ -29,4 +29,12 @@ class LoginRequest extends FormRequest
             'device_name' => ['nullable', 'string', 'max:100'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'identifier.required' => 'وارد کردن ایمیل یا شماره موبایل الزامی است.',
+            'password.required' => 'وارد کردن رمز عبور الزامی است.',
+        ];
+    }
 }
