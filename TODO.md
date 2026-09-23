@@ -2,7 +2,7 @@
 
 # Hale TODO
 
-**آخرین ممیزی:** ۱۴۰۵/۰۷/۰۲
+**آخرین ممیزی:** ۱۴۰۵/۰۷/۰۱
 **مرجع:** وضعیت واقعی کد، `docs/MVP_Specification_FA.md` و `docs/Development_Roadmap_FA.md`
 
 این فایل مرجع ادامهٔ توسعه است. هر آیتم باید با تست/مدرک پایان و یک commit مستقل بسته شود.
@@ -25,7 +25,7 @@
 - [x] Provider پیش‌فرض زرین‌پال، request/verify و callback
 - [x] Landing اسکرولی، Auth UI، Dashboard، Product Library و Upload UI
 - [x] Creative Builder، Generation History، Progress/Result و Pricing/Checkout UI پایه
-- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۹۶ تست و ۳۸۷ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry، Product Cleanup، Watermark Plans و Billing/Invoice).
+- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۱۵۸ تست و ۶۷۲ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry، Product Cleanup، Watermark Plans و Billing/Invoice).
 
 ## P0: تکمیل مسیر واقعی MVP
 
@@ -62,7 +62,8 @@
 
 - [x] تکمیل محدودیت‌های ماهانه Plan.
   - image limit و video limit ماهانه و هم‌راستاسازی با `starts_at` تا `ends_at` دوره اشتراک یا ماه تقویمی برای Free.
-  - enforce اتمیک قبل از reserve با lock روی user و transaction مشترک اضافه شده؛ تست race/double-spend واقعی هنوز لازم است.
+  - enforce اتمیک قبل از reserve با lock روی user و transaction مشترک اضافه شده.
+  - تست‌های race واقعی با `PlanLimitRaceTest` و `CreditDoubleSpendRaceTest` (interleaving درخواست‌ها، ادعای اتمیک ردیف generation و idempotency settle/refund) سبز شدند؛ باگ double-spend واقعی در `CreditService::settle/refund` در همین فرایند رفع شد.
 
 - [x] حذف دوگانگی منبع Credit/Plan.
   - `credit_accounts.balance` و ledger منبع اصلی بمانند.
@@ -91,7 +92,7 @@
 
 - [x] تکمیل Product Library.
   - نمایش thumbnail واقعی از Storage با endpoint احراز‌شده تکمیل شده است.
-  - edit، delete، search، pagination و re-upload در UI تکمیل شده‌اند؛ تست browser و state خطا هنوز لازم است.
+  - edit، delete، search، pagination و re-upload در UI تکمیل شده‌اند؛ تست‌های state خطا با `ProductLibraryErrorStateTest` (خطای شبکه، 401، 403، 404، 422، 500 و موارد نامعتبر در upload/edit/delete/search) سبز شدند.
   - confirmation و state خطا برای حذف.
   - حذف Product با detach صریح و پاک‌سازی کامل DB و Storage برای Assetهای بدون ارجاع همراه با تست `ProductCleanupTest`.
 
@@ -114,8 +115,9 @@
   - پوشش با تست‌های `ExampleTest`.
 
 - [x] PWA پایه.
-  - manifest، service worker و offline fallback اضافه شده‌اند؛ install prompt سفارشی و push باقی است.
-  - تصمیم دربارهٔ push notification.
+  - manifest، service worker و offline fallback اضافه شده‌اند.
+  - install prompt سفارشی با هندلر `beforeinstallprompt` در `app.js` و دکمه `data-install-pwa` در هدر داشبورد پیاده‌سازی شد.
+  - تصمیم دربارهٔ push notification (خارج از MVP، به P2 موکول شد).
 
 ## P1: قابلیت‌های لازم برای Launch
 
@@ -193,7 +195,7 @@
   - تست کامل چرخه پرداخت در محیط سندباکس زرین‌پال شامل checkout، دریافت آدرس پرداخت سندباکس، و اعتبارسنجی کال‌بک در `ZarinpalSandboxIntegrationTest`.
   - تست کامل ارسال و اعتبارسنجی پیامک OTP در `SmsIrSandboxIntegrationTest`.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert، query audit و admin PRD metrics پوشش داده شدند (۱۲۴ تست، ۵۵۱ assertion).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert، query audit و admin PRD metrics پوشش داده شدند (در مجموع ۱۵۸ تست و ۶۷۲ assertion در کل suite سبز است؛ شامل تست‌های HttpOnly cookie، race/double-spend و خطاهای Product Library).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شد.
 - [x] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit.
@@ -288,9 +290,10 @@
 - [x] **Loading skeleton برای تصاویر محصول.**
   - حل شد: انیمیشن شیمر مدرن CSS و تولید کارت‌های skeleton در `app.js` هنگام بارگذاری کتابخانه، همراه با حالت بارگذاری async برای تصاویر و جایگزینی بدون پرش پیاده‌سازی و باندل شد.
 
-- [ ] **Token در `localStorage` — ریسک امنیتی XSS.**
-  - Sanctum token در localStorage نگهداری می‌شود که در معرض حملات XSS قرار دارد.
-  - راه‌حل بلندمدت: migration به `HttpOnly` cookie در صورت امکان.
+- [x] **Token در `localStorage` — ریسک امنیتی XSS.**
+  - حل شد: توکن از `localStorage` به کوکی `hale_token` با `HttpOnly` و `SameSite=Lax` مهاجرت کرد (`AuthTokenCookie` + middleware سراسری `AuthenticateFromCookie` که کوکی را به header Bearer تبدیل می‌کند).
+  - login/register کوکی را می‌سازند و logout/reset آن را پاک می‌کنند؛ فرانت (pricing و admin) با `ensureSession` و همهٔ fetchها بدون هیچ دسترسی به `localStorage` کار می‌کنند و هر 401 به `/` هدایت می‌شود.
+  - پوشش تست با `HttpOnlyCookieAuthTest` (صف، پاک‌سازی logout، تبدیل کوکی به header و شکست بدون کوکی).
 
 ### CI/CD
 
