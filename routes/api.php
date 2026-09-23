@@ -20,6 +20,8 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-attempt');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-attempt');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-attempt');
+    Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware('throttle:email-verify')->name('email.verification.verify');
+    Route::post('/email/verification-notification', [AuthController::class, 'resendVerification'])->middleware(['auth:sanctum', 'throttle:email-verify']);
     Route::post('/phone/send-code', [AuthController::class, 'sendPhoneVerification'])->middleware(['auth:sanctum', 'throttle:sms-send']);
     Route::post('/verify-phone', [AuthController::class, 'verifyPhone'])->middleware(['auth:sanctum', 'throttle:sms-verify']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
@@ -57,10 +59,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/creative/options', [CreativeController::class, 'options']);
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
     Route::get('/generations', [GenerationController::class, 'index']);
-    Route::post('/generations', [GenerationController::class, 'store'])->middleware('throttle:generation');
+    Route::post('/generations', [GenerationController::class, 'store'])->middleware(['verified', 'throttle:generation']);
     Route::get('/generations/{generation}', [GenerationController::class, 'show']);
-    Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry'])->middleware('throttle:generation');
-    Route::post('/generations/{generation}/regenerate', [GenerationController::class, 'regenerate'])->middleware('throttle:generation');
+    Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry'])->middleware(['verified', 'throttle:generation']);
+    Route::post('/generations/{generation}/regenerate', [GenerationController::class, 'regenerate'])->middleware(['verified', 'throttle:generation']);
     Route::post('/generations/{generation}/feedback', [GenerationController::class, 'feedback']);
     Route::get('/generations/{generation}/download', [GenerationController::class, 'download']);
     Route::get('/credits/balance', [CreditController::class, 'balance']);
@@ -73,7 +75,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
-    Route::post('/subscriptions/checkout', [PlanController::class, 'checkout'])->middleware('throttle:checkout');
+    Route::post('/subscriptions/checkout', [PlanController::class, 'checkout'])->middleware(['verified', 'throttle:checkout']);
 });
 
 Route::get('/health', [HealthController::class, 'check']);

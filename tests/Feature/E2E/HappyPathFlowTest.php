@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -39,6 +40,13 @@ class HappyPathFlowTest extends TestCase
 
         $token = $registerRes->json('data.token');
         $this->assertNotEmpty($token);
+
+        // Mandatory email verification before generation/checkout.
+        $user = User::query()->where('email', 'saeed@example.com')->firstOrFail();
+        $this->get(URL::temporarySignedRoute('email.verification.verify', now()->addDay(), [
+            'id' => $user->id,
+            'hash' => sha1($user->email),
+        ]))->assertOk();
 
         // 2. Login & Profile Check
         $loginRes = $this->postJson('/api/auth/login', [

@@ -32,8 +32,46 @@ class AuthController extends Controller
         $user = User::create($request->safe()->only(['name', 'email', 'phone', 'password']));
         $credits->initialize($user);
         $user->notify(new WelcomeNotification);
+        if ($user->email !== null) {
+            $user->sendEmailVerificationNotification();
+        }
 
         return $this->withAuthCookie($request, $this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits), 201);
+    }
+
+    public function verifyEmail(Request $request, string $id, string $hash): JsonResponse
+    {
+        $user = User::query()->find($id);
+        if ($user === null || $user->email === null || ! hash_equals(sha1((string) $user->getEmailForVerification()), $hash)) {
+            return $this->error('INVALID_VERIFICATION_LINK', 'لینک تأیید ایمیل نامعتبر است.', 404);
+        }
+
+        if (! $request->hasValidSignature()) {
+            return $this->error('EXPIRED_VERIFICATION_LINK', 'لینک تأیید ایمیل منقضی شده است. لطفاً دوباره درخواست ارسال کنید.', 403);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+        }
+
+        return $this->success(['message' => 'ایمیل شما با موفقیت تأیید شد. اکنون می‌توانید محتوا بسازید.']);
+    }
+
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->email === null) {
+            return $this->error('NO_EMAIL_ADDRESS', 'این حساب ایمیل ندارد و نیازی به تأیید ایمیل نیست.', 422);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return $this->error('ALREADY_VERIFIED', 'ایمیل شما قبلاً تأیید شده است.', 422);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return $this->success(['message' => 'لینک تأیید ایمیل دوباره ارسال شد. صندوق ایمیل (و پوشه اسپم) را بررسی کنید.']);
     }
 
     public function login(LoginRequest $request, CreditService $credits): JsonResponse
@@ -113,9 +151,20 @@ class AuthController extends Controller
             return $this->error('INVALID_CURRENT_PASSWORD', 'رمز عبور فعلی نادرست است.', 422);
         }
 
+        $previousEmail = $user->email;
         $user->fill($request->safe()->only(['name', 'email', 'password']))->save();
+        $fresh = $user->fresh();
 
-        return $this->success($this->userPayload($user->fresh(), $credits));
+        if ($fresh->email !== $previousEmail) {
+            // A changed address must be re-verified before it can be used
+            // for generation or checkout again.
+            $fresh->forceFill(['email_verified_at' => null])->save();
+            if ($fresh->email !== null) {
+                $fresh->sendEmailVerificationNotification();
+            }
+        }
+
+        return $this->success($this->userPayload($fresh, $credits));
     }
 
     private function tokenPayload(User $user, string $deviceName, CreditService $credits): array

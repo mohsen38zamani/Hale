@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\Subscription;
 use App\Domains\Creative\Models\CreativeProject;
 use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
+use App\Domains\Notifications\Notifications\VerifyEmailNotification;
 use App\Domains\Products\Models\Product;
 use App\Support\PhoneNormalizer;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
 use Illuminate\Contracts\Auth\CanResetPassword;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,10 +24,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements CanResetPassword
+class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use CanResetPasswordTrait, HasApiTokens, HasFactory, Notifiable;
+    use CanResetPasswordTrait, HasApiTokens, HasFactory, MustVerifyEmailTrait, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -69,6 +71,25 @@ class User extends Authenticatable implements CanResetPassword
         return Attribute::make(
             set: fn (?string $value) => PhoneNormalizer::normalize($value),
         );
+    }
+
+    /**
+     * Phone-only accounts have no email address, so they are exempt from
+     * email verification (they already went through OTP verification).
+     */
+    public function hasVerifiedEmail()
+    {
+        return $this->email === null || ! is_null($this->email_verified_at);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
+    }
+
+    public function requiresEmailVerification(): bool
+    {
+        return $this->email !== null && $this->email_verified_at === null;
     }
 
     public function products(): HasMany
