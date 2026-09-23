@@ -43,6 +43,13 @@ class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
     ];
 
     /**
+     * Attributes appended to the model's serialized form.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['is_banned'];
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -62,6 +69,8 @@ class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'banned_at' => 'datetime',
+            'banned_until' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -90,6 +99,49 @@ class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
     public function requiresEmailVerification(): bool
     {
         return $this->email !== null && $this->email_verified_at === null;
+    }
+
+    /**
+     * A ban with a past banned_until has lapsed and no longer blocks the
+     * account, even if the row was never cleaned up.
+     */
+    public function currentlyBanned(): bool
+    {
+        if ($this->banned_at === null) {
+            return false;
+        }
+
+        if ($this->banned_until !== null && $this->banned_until->isPast()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function getIsBannedAttribute(): bool
+    {
+        return $this->currentlyBanned();
+    }
+
+    public function ban(?string $until, ?string $reason): void
+    {
+        $this->forceFill([
+            'banned_at' => now(),
+            'banned_until' => $until,
+            'ban_reason' => $reason,
+        ])->save();
+
+        // Every outstanding session/token must die immediately.
+        $this->tokens()->delete();
+    }
+
+    public function unban(): void
+    {
+        $this->forceFill([
+            'banned_at' => null,
+            'banned_until' => null,
+            'ban_reason' => null,
+        ])->save();
     }
 
     public function products(): HasMany

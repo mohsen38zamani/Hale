@@ -199,6 +199,36 @@
         </section>
     </div>
 
+    {{-- Ban User Modal --}}
+    <div id="admin-ban-modal" class="auth-modal" hidden>
+        <div class="modal-backdrop" id="admin-close-ban-backdrop"></div>
+        <section class="auth-panel" style="max-width: 440px;">
+            <button class="close-button" id="admin-close-ban-btn" aria-label="بستن">×</button>
+            <h3 style="font-size: 20px; font-weight: 800; margin: 0 0 8px;">مسدودسازی کاربر</h3>
+            <p style="color: var(--text-muted); font-size: 12px; margin: 0 0 18px;">کاربر مسدودشده از ورود، ساخت محتوا و خرید منع می‌شود و نشست‌های او بلافاصله لغو می‌شود.</p>
+
+            <form id="admin-ban-form">
+                <input type="hidden" id="ban-user-id">
+                <label>
+                    کاربر مقصد:
+                    <input id="ban-user-name" readonly style="background: rgba(255,255,255,0.02); color: var(--text-secondary); cursor: not-allowed;">
+                </label>
+                <label style="margin-top: 14px;">
+                    دلیل مسدودسازی:
+                    <input id="ban-reason" required placeholder="مثلاً تخلف از شرایط استفاده">
+                </label>
+                <label style="margin-top: 14px;">
+                    تا چه زمانی؟ (خالی = دائمی):
+                    <input id="ban-expires-at" type="datetime-local">
+                </label>
+                <p id="ban-msg" class="form-message"></p>
+                <button class="btn-aurora full-button" type="submit" style="padding: 12px; border-radius: 12px;">
+                    اعمال مسدودسازی
+                </button>
+            </form>
+        </section>
+    </div>
+
     {{-- Script for fetching Admin Data --}}
     <script>
         // Session is carried by an HttpOnly cookie; no token lives in
@@ -285,7 +315,7 @@
                 tbody.innerHTML = users.map(u => `
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
                         <td style="padding: 14px 16px;">
-                            <strong style="color: #FFFFFF; display: block;">${u.name}</strong>
+                            <strong style="color: #FFFFFF; display: block;">${u.name}${u.is_banned ? ' <span class="sim-chip" style="background: rgba(248,113,113,0.15); color: #F87171; font-size: 10px;">مسدود</span>' : ''}</strong>
                             <small style="color: var(--text-muted);">${u.email || u.phone || 'بدون شناسه'}</small>
                         </td>
                         <td style="padding: 14px 16px;"><span class="sim-chip" style="font-size: 11px;">${u.plan_key}</span></td>
@@ -294,6 +324,9 @@
                         <td style="padding: 14px 16px; color: var(--text-muted);">${u.created_at ? new Date(u.created_at).toLocaleDateString('fa-IR') : '-'}</td>
                         <td style="padding: 14px 16px;">
                             <button class="small-button" onclick="openRefundModal(${u.id}, '${u.name}')">+ بازگشت اعتبار</button>
+                            ${u.is_banned
+                                ? `<button class="small-button" onclick="unbanUser(${u.id})" style="margin-right: 6px;">لغو مسدودی</button>`
+                                : `<button class="small-button" onclick="openBanModal(${u.id}, '${u.name}')" style="margin-right: 6px;">مسدودسازی</button>`}
                         </td>
                     </tr>
                 `).join('');
@@ -340,6 +373,55 @@
         const closeRefund = () => document.getElementById('admin-refund-modal').setAttribute('hidden', '');
         document.getElementById('admin-close-refund-btn')?.addEventListener('click', closeRefund);
         document.getElementById('admin-close-refund-backdrop')?.addEventListener('click', closeRefund);
+
+        window.openBanModal = (id, name) => {
+            document.getElementById('ban-user-id').value = id;
+            document.getElementById('ban-user-name').value = name;
+            document.getElementById('ban-reason').value = '';
+            document.getElementById('ban-expires-at').value = '';
+            document.getElementById('ban-msg').textContent = '';
+            document.getElementById('admin-ban-modal').removeAttribute('hidden');
+        };
+
+        const closeBan = () => document.getElementById('admin-ban-modal').setAttribute('hidden', '');
+        document.getElementById('admin-close-ban-btn')?.addEventListener('click', closeBan);
+        document.getElementById('admin-close-ban-backdrop')?.addEventListener('click', closeBan);
+
+        document.getElementById('admin-ban-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('ban-user-id').value;
+            const reason = document.getElementById('ban-reason').value;
+            const expiresAt = document.getElementById('ban-expires-at').value;
+            const msg = document.getElementById('ban-msg');
+            msg.textContent = 'در حال اعمال...';
+
+            try {
+                const body = { reason };
+                if (expiresAt) body.expires_at = new Date(expiresAt).toISOString();
+                const res = await adminFetch(`/api/admin/users/${id}/ban`, {
+                    method: 'POST',
+                    body: JSON.stringify(body)
+                });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error?.message || 'مسدودسازی انجام نشد.');
+                msg.className = 'form-message success-message';
+                msg.textContent = 'حساب کاربری مسدود شد.';
+                setTimeout(() => { closeBan(); loadUsers(); }, 800);
+            } catch (err) {
+                msg.className = 'form-message error-message';
+                msg.textContent = err.message;
+            }
+        });
+
+        window.unbanUser = async (id) => {
+            if (!confirm('مسدودسازی این حساب برداشته شود؟')) return;
+            try {
+                const res = await adminFetch(`/api/admin/users/${id}/unban`, { method: 'POST' });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error?.message || 'عملیات انجام نشد.');
+                loadUsers();
+            } catch (err) { alert(err.message); }
+        };
 
         document.getElementById('admin-refund-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();

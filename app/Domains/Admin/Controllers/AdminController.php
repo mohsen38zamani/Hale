@@ -52,10 +52,62 @@ class AdminController extends Controller
             'credits_balance' => $account->balance,
             'credits_reserved' => $account->reserved,
             'lifetime_used' => $account->lifetime_used,
+            'is_banned' => $user->currentlyBanned(),
+            'banned_at' => $user->banned_at,
+            'banned_until' => $user->banned_until,
+            'ban_reason' => $user->ban_reason,
             'active_subscription' => $activeSub,
             'recent_generations' => $latestGenerations,
             'recent_transactions' => $transactions,
             'created_at' => $user->created_at,
+        ]);
+    }
+
+    public function ban(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:255'],
+            'expires_at' => ['nullable', 'date', 'after:now'],
+        ], [
+            'reason.required' => 'ثبت دلیل مسدودسازی الزامی است.',
+            'reason.max' => 'دلیل مسدودسازی نمی‌تواند بیش از ۲۵۵ کاراکتر باشد.',
+            'expires_at.date' => 'تاریخ پایان مسدودسازی نامعتبر است.',
+            'expires_at.after' => 'تاریخ پایان مسدودسازی باید در آینده باشد.',
+        ]);
+
+        $adminEmails = array_filter(array_map('trim', explode(',', (string) config('auth.admin_emails', ''))));
+        if (in_array($user->email, $adminEmails, true)) {
+            return $this->error('ADMIN_ACCOUNT_PROTECTED', 'امکان مسدودسازی حساب مدیر وجود ندارد.', 422);
+        }
+
+        if ($user->currentlyBanned()) {
+            return $this->error('ALREADY_BANNED', 'این حساب هم‌اکنون مسدود است.', 422);
+        }
+
+        $user->ban($validated['expires_at'] ?? null, $validated['reason']);
+
+        return $this->success([
+            'id' => $user->id,
+            'is_banned' => true,
+            'banned_at' => $user->fresh()->banned_at,
+            'banned_until' => $user->banned_until,
+            'ban_reason' => $user->ban_reason,
+            'message' => 'حساب کاربری مسدود شد و نشست‌های او لغو گردید.',
+        ]);
+    }
+
+    public function unban(User $user): JsonResponse
+    {
+        if ($user->banned_at === null) {
+            return $this->error('NOT_BANNED', 'این حساب مسدود نیست.', 422);
+        }
+
+        $user->unban();
+
+        return $this->success([
+            'id' => $user->id,
+            'is_banned' => false,
+            'message' => 'مسدودسازی حساب کاربری برداشته شد.',
         ]);
     }
 

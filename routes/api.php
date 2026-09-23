@@ -86,6 +86,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class, 'thr
     Route::get('/users/{user}', [AdminController::class, 'user']);
     Route::get('/generations', [AdminController::class, 'generations']);
     Route::post('/users/{user}/refund', [AdminController::class, 'refund']);
+    Route::post('/users/{user}/ban', [AdminController::class, 'ban']);
+    Route::post('/users/{user}/unban', [AdminController::class, 'unban']);
     Route::get('/settings', [AdminController::class, 'settings']);
     Route::post('/settings', [AdminController::class, 'updateSettings']);
 });

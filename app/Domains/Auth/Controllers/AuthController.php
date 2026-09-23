@@ -84,6 +84,10 @@ class AuthController extends Controller
             return $this->error('INVALID_CREDENTIALS', 'ایمیل یا شماره موبایل یا رمز عبور نادرست است.', 422);
         }
 
+        if ($user->currentlyBanned()) {
+            return $this->error('ACCOUNT_BANNED', 'حساب کاربری شما مسدود شده است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.', 403);
+        }
+
         return $this->withAuthCookie($request, $this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits));
     }
 

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateFromCookie;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\PreventBannedUser;
 use App\Http\Middleware\RequestId;
 use App\Support\AuthTokenCookie;
 use Illuminate\Auth\AuthenticationException;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(RequestId::class);
         $middleware->append(AuthenticateFromCookie::class);
+        $middleware->append(PreventBannedUser::class);
         $middleware->alias(['verified' => EnsureEmailIsVerified::class]);
         // Auth token cookie is intentionally raw: it is only consumed by the
         // AuthenticateFromCookie middleware on API routes and must never be
