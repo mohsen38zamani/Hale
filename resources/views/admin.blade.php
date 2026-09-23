@@ -201,20 +201,35 @@
 
     {{-- Script for fetching Admin Data --}}
     <script>
-        const token = localStorage.getItem('hale_token');
-        if (!token) {
-            window.location.href = '/';
-        }
-
+        // Session is carried by an HttpOnly cookie; no token lives in
+        // localStorage anymore. adminFetch forwards the cookie and redirects
+        // to the landing page when the session expires (401).
         const headers = {
             'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
+        };
+        const adminFetch = async (url, options = {}) => {
+            const res = await fetch(url, {
+                credentials: 'same-origin',
+                ...options,
+                headers: { ...headers, ...(options.headers || {}) }
+            });
+            if (res.status === 401) window.location.href = '/';
+            return res;
+        };
+
+        const ensureSession = async () => {
+            try {
+                const res = await adminFetch('/api/user/profile');
+                return res.status !== 401;
+            } catch {
+                return true;
+            }
         };
 
         const loadMetrics = async () => {
             try {
-                const res = await fetch('/api/admin/metrics', { headers });
+                const res = await adminFetch('/api/admin/metrics');
                 if (!res.ok) throw new Error('عدم دسترسی به پنل مدیریت (۴۰۳)');
                 const result = await res.json();
                 const d = result.data;
@@ -257,7 +272,7 @@
         const loadUsers = async (search = '') => {
             try {
                 const query = search ? `?search=${encodeURIComponent(search)}` : '';
-                const res = await fetch(`/api/admin/users${query}`, { headers });
+                const res = await adminFetch(`/api/admin/users${query}`);
                 if (!res.ok) return;
                 const result = await res.json();
                 const users = result.data?.data || [];
@@ -287,7 +302,7 @@
 
         const loadGenerations = async () => {
             try {
-                const res = await fetch('/api/admin/generations?per_page=10', { headers });
+                const res = await adminFetch('/api/admin/generations?per_page=10');
                 if (!res.ok) return;
                 const result = await res.json();
                 const gens = result.data?.data || [];
@@ -335,9 +350,8 @@
             msg.textContent = 'در حال ثبت...';
 
             try {
-                const res = await fetch(`/api/admin/users/${id}/refund`, {
+                const res = await adminFetch(`/api/admin/users/${id}/refund`, {
                     method: 'POST',
-                    headers,
                     body: JSON.stringify({ amount, reason })
                 });
                 const result = await res.json();
@@ -362,14 +376,16 @@
         });
 
         document.getElementById('admin-logout-btn')?.addEventListener('click', async () => {
-            await fetch('/api/auth/logout', { method: 'POST', headers }).catch(() => {});
-            localStorage.removeItem('hale_token');
+            await adminFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
             window.location.href = '/';
         });
 
-        loadMetrics();
-        loadUsers();
-        loadGenerations();
+        ensureSession().then((sessionOk) => {
+            if (!sessionOk) return;
+            loadMetrics();
+            loadUsers();
+            loadGenerations();
+        });
     </script>
 </body>
 </html>

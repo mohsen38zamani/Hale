@@ -116,4 +116,16 @@ return [
 
     'admin_emails' => env('ADMIN_EMAILS', ''),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Auth Token Cookie Lifetime
+    |--------------------------------------------------------------------------
+    |
+    | Lifetime (in minutes) of the HttpOnly cookie that carries the API token
+    | for browser/PWA clients. Default is 30 days.
+    |
+    */
+
+    'token_cookie_minutes' => (int) env('AUTH_COOKIE_MINUTES', 43200),
+
 ];

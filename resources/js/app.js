@@ -8,6 +8,20 @@ const confirmField = document.querySelector('[data-confirm-field]');
 const submit = document.querySelector('[data-submit-auth]');
 let authMode = 'login';
 
+// Auth is carried by an HttpOnly cookie (set on login/register); tokens are
+// no longer stored in localStorage. authFetch sends the cookie implicitly and
+// sends the user home when the session has expired (401).
+const rawFetch = window.fetch.bind(window);
+const authFetch = async (url, options = {}) => {
+	const response = await rawFetch(url, {
+		credentials: 'same-origin',
+		...options,
+		headers: { Accept: 'application/json', ...(options.headers || {}) },
+	});
+	if (response.status === 401) window.location.href = '/';
+	return response;
+};
+
 const setAuthMode = (mode) => {
 	authMode = mode;
 	modal?.removeAttribute('hidden');
@@ -57,7 +71,7 @@ form?.addEventListener('submit', async (event) => {
 	message.className = 'form-message';
 	message.textContent = 'در حال ارسال اطلاعات...';
 	try {
-		const response = await fetch(`/api/auth/${authMode}`, {
+		const response = await authFetch(`/api/auth/${authMode}`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 			body: JSON.stringify(payload)
@@ -73,7 +87,6 @@ form?.addEventListener('submit', async (event) => {
 			}
 			throw new Error(errorMsg || 'اطلاعات واردشده صحیح نیست.');
 		}
-		localStorage.setItem('hale_token', result.data.token);
 		message.className = 'form-message success-message';
 		message.textContent = authMode === 'register' ? 'حساب کاربری با موفقیت ساخته شد. در حال انتقال...' : 'ورود موفق بود. در حال انتقال...';
 		setTimeout(() => { window.location.href = '/dashboard'; }, 450);
@@ -85,30 +98,26 @@ form?.addEventListener('submit', async (event) => {
 	}
 });
 
-const token = localStorage.getItem('hale_token');
 const credit = document.querySelector('[data-credit]');
 const welcome = document.querySelector('[data-welcome]');
 
 if (credit || welcome) {
-	if (!token) window.location.href = '/';
-	fetch('/api/user/profile', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } })
+	authFetch('/api/user/profile')
 		.then(async (response) => {
 			if (!response.ok) throw new Error('unauthenticated');
 			return response.json();
 		})
 		.then((result) => {
-			welcome.textContent = `${result.data.name}، آماده‌ای یک خروجی تازه بسازی؟`;
+			if (welcome) welcome.textContent = `${result.data.name}، آماده‌ای یک خروجی تازه بسازی؟`;
 			if (credit) credit.textContent = result.data.credits_balance ?? '۰';
 		})
 		.catch(() => {
-			localStorage.removeItem('hale_token');
 			window.location.href = '/';
 		});
 }
 
 document.querySelector('[data-logout]')?.addEventListener('click', async () => {
-	await fetch('/api/auth/logout', { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
-	localStorage.removeItem('hale_token');
+	await authFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
 	window.location.href = '/';
 });
 
@@ -142,12 +151,12 @@ const renderProductSkeletons = (count = 4) => {
 };
 
 const loadProducts = async () => {
-	if (!productGrid || !token) return;
+	if (!productGrid) return;
 	productGrid.innerHTML = renderProductSkeletons(4);
 	const query = new URLSearchParams({ per_page: '12', page: String(productPageNumber) });
 	if (productSearch?.value.trim()) query.set('search', productSearch.value.trim());
 	try {
-		const response = await fetch(`/api/products?${query}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const response = await authFetch(`/api/products?${query}`, { headers: { Accept: 'application/json' } });
 		if (!response.ok) {
 			productGrid.innerHTML = '<p class="empty-state">خطا در دریافت لیست محصولات.</p>';
 			return;
@@ -167,7 +176,7 @@ const loadProducts = async () => {
 		await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => {
 			const asset = product.assets[0];
 			try {
-				const response = await fetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'image/*', Authorization: `Bearer ${token}` } });
+				const response = await authFetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'image/*' } });
 				const image = document.querySelector(`[data-product-asset="${asset.id}"]`);
 				const artBox = image?.parentElement;
 				if (!response.ok) {
@@ -203,7 +212,7 @@ productGrid?.addEventListener('click', async (event) => {
 	const editButton = event.target.closest('[data-edit-product]');
 	const deleteButton = event.target.closest('[data-delete-product]');
 	if (editButton) {
-		const response = await fetch(`/api/products/${editButton.dataset.editProduct}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const response = await authFetch(`/api/products/${editButton.dataset.editProduct}`, { headers: { Accept: 'application/json' } });
 		const product = await response.json();
 		const data = product.data;
 		editingProductId = data.id;
@@ -215,7 +224,7 @@ productGrid?.addEventListener('click', async (event) => {
 		productModal?.removeAttribute('hidden');
 	}
 	if (deleteButton && window.confirm('این محصول و assetهای بدون استفاده حذف شوند؟')) {
-		const response = await fetch(`/api/products/${deleteButton.dataset.deleteProduct}`, { method: 'DELETE', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const response = await authFetch(`/api/products/${deleteButton.dataset.deleteProduct}`, { method: 'DELETE', headers: { Accept: 'application/json' } });
 		if (response.ok) await loadProducts(); else productMessage.textContent = 'حذف محصول انجام نشد.';
 	}
 });
@@ -226,13 +235,13 @@ productForm?.addEventListener('submit', async (event) => {
 	button.disabled = true;
 	productMessage.textContent = editingProductId ? 'در حال ذخیره...' : 'در حال آپلود...';
 	try {
-		const productResponse = await fetch(editingProductId ? `/api/products/${editingProductId}` : '/api/products', { method: editingProductId ? 'PUT' : 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name: values.get('name'), description: values.get('description') }) });
+		const productResponse = await authFetch(editingProductId ? `/api/products/${editingProductId}` : '/api/products', { method: editingProductId ? 'PUT' : 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: values.get('name'), description: values.get('description') }) });
 		const productResult = await productResponse.json();
 		if (!productResponse.ok) throw new Error(productResult.error?.message || 'ذخیره محصول انجام نشد.');
 		const upload = new FormData();
 		if (values.get('image')?.size) {
 			upload.append('image', values.get('image'));
-			const assetResponse = await fetch(`/api/products/${productResult.data.id}/assets`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, body: upload });
+			const assetResponse = await authFetch(`/api/products/${productResult.data.id}/assets`, { method: 'POST', headers: { Accept: 'application/json' }, body: upload });
 			if (!assetResponse.ok) throw new Error('آپلود تصویر انجام نشد.');
 		}
 		productModal.setAttribute('hidden', '');
@@ -252,8 +261,8 @@ loadProducts().catch(() => {
 });
 
 const generationList = document.querySelector('[data-generation-list]');
-if (generationList && token) {
-	fetch('/api/generations?per_page=6', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } })
+if (generationList) {
+	authFetch('/api/generations?per_page=6', { headers: { Accept: 'application/json' } })
 		.then((response) => response.json())
 		.then((result) => {
 			const generations = result.data?.data || [];
@@ -263,17 +272,17 @@ if (generationList && token) {
 }
 
 const notificationList = document.querySelector('[data-notification-list]');
-if (notificationList && token) {
+if (notificationList) {
 	const loadNotifications = async () => {
-		const response = await fetch('/api/notifications?per_page=8', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const response = await authFetch('/api/notifications?per_page=8', { headers: { Accept: 'application/json' } });
 		if (!response.ok) throw new Error('دریافت اعلان‌ها انجام نشد.');
 		const result = await response.json();
 		const notifications = result.data?.items || [];
 		notificationList.innerHTML = notifications.length ? notifications.map((notification) => `<button class="notification-item ${notification.read_at ? '' : 'unread'}" data-notification-id="${notification.id}"><strong>${notification.data?.message || 'اعلان جدید'}</strong><small>${notification.created_at ? new Date(notification.created_at).toLocaleDateString('fa-IR') : ''}</small></button>`).join('') : '<p class="empty-state">اعلان جدیدی نداری.</p>';
 	};
 	loadNotifications().catch(() => { notificationList.innerHTML = '<p class="empty-state">اعلان‌ها فعلاً در دسترس نیستند.</p>'; });
-	notificationList.addEventListener('click', async (event) => { const item = event.target.closest('[data-notification-id]'); if (!item || !item.classList.contains('unread')) return; const response = await fetch(`/api/notifications/${item.dataset.notificationId}/read`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); if (response.ok) item.classList.remove('unread'); });
-	document.querySelector('[data-read-all-notifications]')?.addEventListener('click', async () => { const response = await fetch('/api/notifications/read-all', { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }); if (response.ok) notificationList.querySelectorAll('.unread').forEach((item) => item.classList.remove('unread')); });
+	notificationList.addEventListener('click', async (event) => { const item = event.target.closest('[data-notification-id]'); if (!item || !item.classList.contains('unread')) return; const response = await authFetch(`/api/notifications/${item.dataset.notificationId}/read`, { method: 'POST', headers: { Accept: 'application/json' } }); if (response.ok) item.classList.remove('unread'); });
+	document.querySelector('[data-read-all-notifications]')?.addEventListener('click', async () => { const response = await authFetch('/api/notifications/read-all', { method: 'POST', headers: { Accept: 'application/json' } }); if (response.ok) notificationList.querySelectorAll('.unread').forEach((item) => item.classList.remove('unread')); });
 }
 
 const builderForm = document.querySelector('[data-builder-form]');
@@ -289,7 +298,7 @@ if (builderForm) {
 		const format = formatBox.querySelector('input[name="format"]:checked')?.value;
 		if (!format) return;
 		const type = ['instagram_reel', 'tiktok'].includes(format) ? 'video' : 'image';
-		const response = await fetch('/api/credits/estimate', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ type, video_duration_seconds: type === 'video' ? Number(duration.value) : null }) });
+		const response = await authFetch('/api/credits/estimate', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ type, video_duration_seconds: type === 'video' ? Number(duration.value) : null }) });
 		const result = await response.json();
 		if (!response.ok) throw new Error(result.error?.message || 'برآورد اعتبار انجام نشد.');
 		estimate.textContent = result.data.sufficient ? `هزینه: ${result.data.cost} Credit | موجودی: ${result.data.balance} Credit` : `اعتبار کافی نیست (${result.data.balance} از ${result.data.cost} Credit) | خرید اعتبار`;
@@ -297,8 +306,8 @@ if (builderForm) {
 	};
 	const renderChoices = (target, values, name, withType = false) => { target.innerHTML = values.map((item) => { const key = withType ? item.key : item; return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${labels[key] || key}${withType ? `<small>${item.aspect_ratio}</small>` : ''}</span></label>`; }).join(''); };
 	Promise.all([
-		fetch('/api/products?per_page=50', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }).then((response) => response.json()),
-		fetch('/api/creative/options', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }).then((response) => response.json()),
+		authFetch('/api/products?per_page=50', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
+		authFetch('/api/creative/options', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
 	]).then(([products, options]) => {
 		(products.data?.data || []).forEach((product) => { select.insertAdjacentHTML('beforeend', `<option value="${product.id}">${product.name}</option>`); });
 		renderChoices(document.querySelector('[data-goals]'), options.data.goals, 'goal');
@@ -317,9 +326,9 @@ if (builderForm) {
 			autoBestBtn.disabled = true;
 			autoBestBtn.textContent = 'در حال انتخاب بهترین ترکیب...';
 			try {
-				const response = await fetch('/api/creative/preview', {
+				const response = await authFetch('/api/creative/preview', {
 					method: 'POST',
-					headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ product_id: Number(select.value) })
 				});
 				const result = await response.json();
@@ -362,9 +371,9 @@ if (builderForm) {
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null
 		};
 		try {
-			const response = await fetch('/api/generations', {
+			const response = await authFetch('/api/generations', {
 				method: 'POST',
-				headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)
 			});
 			const result = await response.json();
@@ -418,9 +427,7 @@ if (document.body.classList.contains('landing-page') && matchMedia('(hover: hove
 }
 
 const generationPage = document.querySelector('[data-generation-id]');
-if (generationPage && !token) {
-	window.location.href = '/';
-} else if (generationPage && token) {
+if (generationPage) {
 	const generationId = generationPage.dataset.generationId;
 	const title = document.querySelector('[data-generation-title]');
 	const copy = document.querySelector('[data-generation-copy]');
@@ -438,7 +445,7 @@ if (generationPage && !token) {
 	let isFinished = false;
 
 	const loadOutput = async () => {
-		const response = await fetch(`/api/generations/${generationId}/download`, { headers: { Accept: 'application/octet-stream', Authorization: `Bearer ${token}` } });
+		const response = await authFetch(`/api/generations/${generationId}/download`, { headers: { Accept: 'application/octet-stream' } });
 		if (!response.ok) throw new Error('دریافت خروجی ممکن نیست.');
 		if (outputUrl) URL.revokeObjectURL(outputUrl);
 		outputUrl = URL.createObjectURL(await response.blob());
@@ -457,7 +464,7 @@ if (generationPage && !token) {
 
 	const poll = async () => {
 		if (isFinished) return;
-		const response = await fetch(`/api/generations/${generationId}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const response = await authFetch(`/api/generations/${generationId}`, { headers: { Accept: 'application/json' } });
 		const result = await response.json();
 		if (!response.ok) throw new Error(result.error?.message || 'دریافت وضعیت ممکن نیست.');
 		const generation = result.data;
@@ -514,9 +521,9 @@ if (generationPage && !token) {
 	});
 	document.querySelector('[data-feedback="positive"]')?.addEventListener('click', () => sendFeedback('positive'));
 	document.querySelector('[data-feedback="negative"]')?.addEventListener('click', () => sendFeedback('negative'));
-	async function sendFeedback(feedback) { await fetch(`/api/generations/${generationId}/feedback`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ feedback }) }); message.textContent = 'بازخوردت ثبت شد، ممنون.'; }
+	async function sendFeedback(feedback) { await authFetch(`/api/generations/${generationId}/feedback`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ feedback }) }); message.textContent = 'بازخوردت ثبت شد، ممنون.'; }
 	document.querySelector('[data-regenerate]')?.addEventListener('click', async () => {
-		const response = await fetch(`/api/generations/${generationId}/regenerate`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const response = await authFetch(`/api/generations/${generationId}/regenerate`, { method: 'POST', headers: { Accept: 'application/json' } });
 		const result = await response.json();
 		if (response.ok) {
 			window.location.href = `/generations/${result.data.id}`;
@@ -528,7 +535,7 @@ if (generationPage && !token) {
 	});
 	retryButton?.addEventListener('click', async () => {
 		retryButton.disabled = true;
-		const response = await fetch(`/api/generations/${generationId}/retry`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const response = await authFetch(`/api/generations/${generationId}/retry`, { method: 'POST', headers: { Accept: 'application/json' } });
 		const result = await response.json();
 		if (response.ok) {
 			window.location.reload();
@@ -541,3 +548,4 @@ if (generationPage && !token) {
 		}
 	});
 }
+

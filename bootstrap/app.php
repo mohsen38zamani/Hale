@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Middleware\AuthenticateFromCookie;
 use App\Http\Middleware\RequestId;
+use App\Support\AuthTokenCookie;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -18,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(RequestId::class);
+        $middleware->append(AuthenticateFromCookie::class);
+        // Auth token cookie is intentionally raw: it is only consumed by the
+        // AuthenticateFromCookie middleware on API routes and must never be
+        // serialized into a readable JS-accessible value.
+        $middleware->encryptCookies([AuthTokenCookie::NAME]);
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('media:cleanup-expired')->daily();

@@ -16,6 +16,7 @@ use App\Domains\Credits\Services\CreditService;
 use App\Domains\Notifications\Notifications\WelcomeNotification;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuthTokenCookie;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ class AuthController extends Controller
         $credits->initialize($user);
         $user->notify(new WelcomeNotification);
 
-        return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits), 201);
+        return $this->withAuthCookie($request, $this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits), 201);
     }
 
     public function login(LoginRequest $request, CreditService $credits): JsonResponse
@@ -45,14 +46,15 @@ class AuthController extends Controller
             return $this->error('INVALID_CREDENTIALS', 'ایمیل یا شماره موبایل یا رمز عبور نادرست است.', 422);
         }
 
-        return $this->success($this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits));
+        return $this->withAuthCookie($request, $this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits));
     }
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();
 
-        return $this->success(['message' => 'با موفقیت خارج شدید.']);
+        return $this->success(['message' => 'با موفقیت خارج شدید.'])
+            ->withCookie(AuthTokenCookie::forget($request));
     }
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
@@ -76,7 +78,8 @@ class AuthController extends Controller
             return $this->error('INVALID_RESET_TOKEN', 'لینک بازیابی معتبر یا قابل استفاده نیست.', 422);
         }
 
-        return $this->success(['message' => 'رمز عبور با موفقیت تغییر کرد.']);
+        return $this->success(['message' => 'رمز عبور با موفقیت تغییر کرد.'])
+            ->withCookie(AuthTokenCookie::forget($request));
     }
 
     public function sendPhoneVerification(SendPhoneVerificationRequest $request, PhoneVerificationService $verification): JsonResponse
@@ -118,6 +121,12 @@ class AuthController extends Controller
     private function tokenPayload(User $user, string $deviceName, CreditService $credits): array
     {
         return ['user' => $this->userPayload($user, $credits), 'token' => $user->createToken($deviceName)->plainTextToken];
+    }
+
+    private function withAuthCookie(Request $request, array $payload, int $status = 200): JsonResponse
+    {
+        return $this->success($payload, $status)
+            ->withCookie(AuthTokenCookie::make($request, $payload['token']));
     }
 
     private function userPayload(User $user, CreditService $credits): array

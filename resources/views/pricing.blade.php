@@ -323,7 +323,28 @@
 </div>
 
 <script>
-    const pricingToken = localStorage.getItem('hale_token');
+    // Session is carried by an HttpOnly cookie; probe it once instead of
+    // reading a token from localStorage.
+    let sessionState = null;
+    const ensureSession = async () => {
+        if (sessionState === null) {
+            try {
+                const res = await fetch('/api/user/profile', {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' }
+                });
+                sessionState = res.ok;
+            } catch {
+                sessionState = false;
+            }
+        }
+        return sessionState;
+    };
+    const pricingFetch = (url, options = {}) => fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+        headers: { Accept: 'application/json', ...(options.headers || {}) }
+    });
     const pricingGrid = document.querySelector('[data-pricing-grid]');
     const pricingMessage = document.querySelector('[data-pricing-message]');
     const paymentList = document.querySelector('[data-payment-list]');
@@ -348,13 +369,6 @@
             paymentResultBanner.className = 'payment-result-card success';
             resultTitle.textContent = 'پرداخت با موفقیت انجام شد';
             resultDesc.textContent = 'اشتراک شما فعال گردید و اعتبارات به حسابتان واریز شد. می‌توانید از هم‌اکنون پروژه‌های جدید خود را بسازید.';
-            if (pricingToken) {
-                fetch('/api/user/profile', {
-                    headers: { Accept: 'application/json', Authorization: `Bearer ${pricingToken}` }
-                }).then(res => res.json()).then(result => {
-                    if (result.data) localStorage.setItem('hale_user', JSON.stringify(result.data));
-                }).catch(() => {});
-            }
         } else {
             paymentResultBanner.className = 'payment-result-card failed';
             resultTitle.textContent = 'پرداخت ناموفق بود';
@@ -366,16 +380,14 @@
     const paymentLabels = { pending: 'در انتظار پرداخت', paid: 'پرداخت موفق', failed: 'ناموفق' };
 
     const loadPayments = async (page = 1) => {
-        if (!pricingToken) {
+        if (!(await ensureSession())) {
             paymentList.innerHTML = '<p class="empty-state">برای مشاهده تاریخچه و فاکتورها وارد حساب کاربری شوید.</p>';
             paymentPagination.style.display = 'none';
             return;
         }
 
         try {
-            const response = await fetch(`/api/payments?page=${page}&per_page=10`, {
-                headers: { Accept: 'application/json', Authorization: `Bearer ${pricingToken}` }
-            });
+            const response = await pricingFetch(`/api/payments?page=${page}&per_page=10`);
             if (!response.ok) throw new Error('دریافت تاریخچه پرداخت انجام نشد.');
 
             const result = await response.json();
@@ -420,8 +432,8 @@
                 button.addEventListener('click', async () => {
                     button.disabled = true;
                     try {
-                        const receipt = await fetch(`/api/payments/${button.dataset.paymentReceipt}/receipt`, {
-                            headers: { Accept: 'text/plain', Authorization: `Bearer ${pricingToken}` }
+                        const receipt = await pricingFetch(`/api/payments/${button.dataset.paymentReceipt}/receipt`, {
+                            headers: { Accept: 'text/plain' }
                         });
                         if (receipt.ok) {
                             const link = document.createElement('a');
@@ -440,9 +452,7 @@
                 button.addEventListener('click', async () => {
                     button.disabled = true;
                     try {
-                        const invRes = await fetch(`/api/payments/${button.dataset.paymentInvoice}/invoice`, {
-                            headers: { Accept: 'application/json', Authorization: `Bearer ${pricingToken}` }
-                        });
+                        const invRes = await pricingFetch(`/api/payments/${button.dataset.paymentInvoice}/invoice`);
                         if (invRes.ok) {
                             const invData = (await invRes.json()).data;
                             if (invData) {
@@ -497,7 +507,7 @@
 
         document.querySelectorAll('[data-plan]').forEach(button => {
             button.addEventListener('click', async () => {
-                if (!pricingToken) {
+                if (!(await ensureSession())) {
                     pricingMessage.className = 'form-message error-message';
                     pricingMessage.textContent = 'برای انتخاب پلن، ابتدا وارد حساب کاربری خود شوید.';
                     return;
@@ -505,12 +515,10 @@
                 button.disabled = true;
                 button.textContent = 'در حال اتصال...';
                 try {
-                    const response = await fetch('/api/subscriptions/checkout', {
+                    const response = await pricingFetch('/api/subscriptions/checkout', {
                         method: 'POST',
                         headers: {
-                            Accept: 'application/json',
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${pricingToken}`,
                             'Idempotency-Key': crypto.randomUUID()
                         },
                         body: JSON.stringify({ plan_key: button.dataset.plan })
