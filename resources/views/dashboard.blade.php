@@ -26,6 +26,9 @@
                     <strong data-credit>--</strong>
                     <a href="/pricing" style="font-size: 12px; margin-right: 4px; color: var(--primary);">+ شارژ</a>
                 </div>
+                <button class="btn-glass" data-install-pwa hidden style="padding: 6px 14px; font-size: 13px;">
+                    📲 نصب Hale
+                </button>
                 <button class="btn-glass" data-logout style="padding: 6px 14px; font-size: 13px;">
                     خروج
                 </button>

@@ -549,3 +549,30 @@ if (generationPage) {
 	});
 }
 
+// ---- PWA custom install prompt (beforeinstallprompt) ----
+const installButton = document.querySelector('[data-install-pwa]');
+if (installButton) {
+	let deferredInstallPrompt = null;
+	window.addEventListener('beforeinstallprompt', (event) => {
+		event.preventDefault();
+		deferredInstallPrompt = event;
+		installButton.hidden = false;
+	});
+	installButton.addEventListener('click', async () => {
+		if (!deferredInstallPrompt) return;
+		installButton.disabled = true;
+		try {
+			deferredInstallPrompt.prompt();
+			await deferredInstallPrompt.userChoice;
+		} finally {
+			deferredInstallPrompt = null;
+			installButton.hidden = true;
+			installButton.disabled = false;
+		}
+	});
+	window.addEventListener('appinstalled', () => {
+		installButton.hidden = true;
+		deferredInstallPrompt = null;
+	});
+}
+
