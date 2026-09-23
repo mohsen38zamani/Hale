@@ -25,7 +25,7 @@
 - [x] Provider پیش‌فرض زرین‌پال، request/verify و callback
 - [x] Landing اسکرولی، Auth UI، Dashboard، Product Library و Upload UI
 - [x] Creative Builder، Generation History، Progress/Result و Pricing/Checkout UI پایه
-- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۱۵۸ تست و ۶۷۲ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry، Product Cleanup، Watermark Plans و Billing/Invoice).
+- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۱۸۶ تست و ۷۹۰ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry، Product Cleanup، Watermark Plans و Billing/Invoice).
 
 ## P0: تکمیل مسیر واقعی MVP
 
@@ -195,7 +195,7 @@
   - تست کامل چرخه پرداخت در محیط سندباکس زرین‌پال شامل checkout، دریافت آدرس پرداخت سندباکس، و اعتبارسنجی کال‌بک در `ZarinpalSandboxIntegrationTest`.
   - تست کامل ارسال و اعتبارسنجی پیامک OTP در `SmsIrSandboxIntegrationTest`.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert، query audit و admin PRD metrics پوشش داده شدند (در مجموع ۱۵۸ تست و ۶۷۲ assertion در کل suite سبز است؛ شامل تست‌های HttpOnly cookie، race/double-spend و خطاهای Product Library).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert، query audit و admin PRD metrics پوشش داده شدند (در مجموع ۱۸۶ تست و ۷۹۰ assertion در کل suite سبز است؛ شامل تست‌های HttpOnly cookie، race/double-spend، خطاهای Product Library، تأیید ایمیل، ban کاربر و لغو generation).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شد.
 - [x] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit.
@@ -314,11 +314,21 @@
 - [ ] White Label و Social Auto Publish.
 - [ ] WebSocket/SSE جایگزین polling برای صفحه خروجی.
 - [ ] Image optimization/compression برای web delivery.
-- [ ] GDPR-style account deletion endpoint.
-- [ ] Email verification الزامی (فعال کردن `MustVerifyEmail`).
+- [x] GDPR-style account deletion endpoint — **رد شد و از مسیر محصول حذف شد.**
+  - تصمیم صریح: حذف کاربر وجود ندارد چون به هر حساب کردیت رایگان اولیه تعلق می‌گیرد و حذف اکانت باعث ایجاد سوءاستفاده/مشکل مالی می‌شود. هیچ اندپوینت حذف حسابی پیاده‌سازی نخواهد شد.
+- [x] Email verification الزامی (فعال کردن `MustVerifyEmail`).
+  - پیاده‌سازی: `User` به interface و trait `MustVerifyEmail` مجهز شد؛ ارسال لینک با `VerifyEmailNotification` روی signed URL API به `GET /api/auth/email/verify/{id}/{hash}` (اعتبار ۲۴ ساعته) و ارسال مجدد با `POST /api/auth/email/verification-notification` (throttled).
+  - الزام با middleware سراسری `verified` (`EnsureEmailIsVerified`): کاربر unverified امکان ساخت/retry/regenerate و checkout ندارد (403 `EMAIL_NOT_VERIFIED`)؛ اکانت‌های phone-only معاف‌اند و تغییر ایمیل در پروفایل، تأیید را باطل می‌کند.
+  - migration backfill برای کاربران قدیمی تا قفل نشوند؛ پوشش با `EmailVerificationTest` (۱۳ تست).
 - [ ] Credit top-up بدون subscription (خرید اعتبار جداگانه).
-- [ ] Admin: امکان ban/suspend کاربر.
-- [ ] Admin: لغو generation در حال پردازش.
+- [x] Admin: امکان ban/suspend کاربر.
+  - ستون‌های `banned_at`/`banned_until`/`ban_reason` + اندپوینت‌های `POST /api/admin/users/{user}/ban` و `/unban` (دلیل الزامی، `expires_at` اختیاری برای suspend موقت؛ حساب‌های مدیر محافظت‌شده‌اند).
+  - اجرا: revoke همهٔ توکن‌ها هنگام ban، مسدودسازی login، middleware سراسری `PreventBannedUser` (403 به‌جز profile و logout)، انقضای خودکار suspend موقت، نمایش chip «مسدود» و دکمه‌های مسدودسازی/لغو در پنل ادمین.
+  - پوشش با `AdminBanTest` (۸ تست).
+- [x] Admin: لغو generation در حال پردازش.
+  - `POST /api/admin/generations/{generation}/cancel` با سرویس `CancelGeneration`: قفل ردیف، فقط `queued`/`processing` → status `cancelled` → refund اتمیک اعتبار → release بودجه AI → پاک‌سازی خروجی موقت → notification کاربر؛ در غیر این صورت 409 `GENERATION_NOT_CANCELLABLE`.
+  - guard در `ProcessGeneration`: claim فقط از `queued`، بلوک تغییر status به `failed/queued` روی generation لغوشده در مسیر exception و خروج زودهنگام `failed()`؛ UI ادمین دکمه «لغو» + chip «لغو شد» و صفحهٔ خروجی کاربر حالت لغو را terminal می‌کند (بدون retry).
+  - پوشش با `AdminCancelGenerationTest` (۷ تست شامل no-op شدن جاب صف بعد از لغو).
 
 ## ترتیب پیشنهادی اجرا
 
