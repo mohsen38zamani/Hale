@@ -71,7 +71,8 @@ form?.addEventListener('submit', async (event) => {
 	message.className = 'form-message';
 	message.textContent = 'در حال ارسال اطلاعات...';
 	try {
-		const response = await authFetch(`/api/auth/${authMode}`, {
+		const response = await rawFetch(`/api/auth/${authMode}`, {
+			credentials: 'same-origin',
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 			body: JSON.stringify(payload)
@@ -224,8 +225,17 @@ productGrid?.addEventListener('click', async (event) => {
 		productModal?.removeAttribute('hidden');
 	}
 	if (deleteButton && window.confirm('این محصول و assetهای بدون استفاده حذف شوند؟')) {
-		const response = await authFetch(`/api/products/${deleteButton.dataset.deleteProduct}`, { method: 'DELETE', headers: { Accept: 'application/json' } });
-		if (response.ok) await loadProducts(); else productMessage.textContent = 'حذف محصول انجام نشد.';
+		try {
+			const response = await authFetch(`/api/products/${deleteButton.dataset.deleteProduct}`, { method: 'DELETE', headers: { Accept: 'application/json' } });
+			if (response.ok) {
+				await loadProducts();
+			} else {
+				const result = await response.json().catch(() => null);
+				alert(result?.error?.message || 'حذف محصول انجام نشد.');
+			}
+		} catch (error) {
+			alert('خطا در برقراری ارتباط با سرور.');
+		}
 	}
 });
 productForm?.addEventListener('submit', async (event) => {
