@@ -52,33 +52,63 @@ class CreditService
     public function settle(Generation $generation): void
     {
         DB::transaction(function () use ($generation): void {
+            // Lock the account first so concurrent settle/refund calls
+            // serialize on the same row instead of passing a stale guard.
+            $account = $this->lockedAccount($generation->user);
             $generation->refresh();
             if ($generation->credits_charged > 0 || $generation->credits_reserved < 1) {
                 return;
             }
-            $account = $this->lockedAccount($generation->user);
             $amount = $generation->credits_reserved;
+
+            // Atomic claim: exactly one caller can consume the reservation.
+            $claimed = Generation::query()
+                ->whereKey($generation->id)
+                ->where('credits_charged', 0)
+                ->where('credits_reserved', $amount)
+                ->update(['credits_charged' => $amount, 'credits_reserved' => 0]);
+            if ($claimed === 0) {
+                $generation->refresh();
+
+                return;
+            }
+
             $account->decrement('reserved', $amount);
             $account->increment('lifetime_used', $amount);
             $this->record($account->fresh(), $generation, 'charge', $amount, "generation:{$generation->id}:charge");
-            $generation->update(['credits_charged' => $amount, 'credits_reserved' => 0]);
+            $generation->refresh();
         });
     }
 
     public function refund(Generation $generation): void
     {
         DB::transaction(function () use ($generation): void {
+            // Lock the account first so concurrent settle/refund calls
+            // serialize on the same row instead of passing a stale guard.
+            $account = $this->lockedAccount($generation->user);
             $generation->refresh();
             if ($generation->credits_reserved < 1) {
                 return;
             }
-            $account = $this->lockedAccount($generation->user);
             $amount = $generation->credits_reserved;
+
+            // Atomic claim: exactly one caller can return the reservation.
+            $claimed = Generation::query()
+                ->whereKey($generation->id)
+                ->where('credits_charged', 0)
+                ->where('credits_reserved', $amount)
+                ->update(['credits_reserved' => 0]);
+            if ($claimed === 0) {
+                $generation->refresh();
+
+                return;
+            }
+
             $account->decrement('reserved', $amount);
             $account->increment('balance', $amount);
             $refundNumber = $account->transactions()->where('generation_id', $generation->id)->where('type', 'refund')->count() + 1;
             $this->record($account->fresh(), $generation, 'refund', $amount, "generation:{$generation->id}:refund:{$refundNumber}");
-            $generation->update(['credits_reserved' => 0]);
+            $generation->refresh();
         });
     }
 
