@@ -217,4 +217,35 @@ class EmailVerificationTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('error.code', 'EMAIL_NOT_VERIFIED');
     }
+
+    public function test_notification_signed_url_redirects_to_dashboard_with_success_query(): void
+    {
+        $user = User::factory()->unverified()->create(['email' => 'redirect@test.com']);
+        $notification = new VerifyEmailNotification;
+        $url = $notification->verificationUrl($user);
+
+        $this->get($url)
+            ->assertRedirect('/dashboard?email_verified=1');
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_user_profile_endpoint_exposes_verification_and_ban_status(): void
+    {
+        $unverified = User::factory()->unverified()->create();
+        Sanctum::actingAs($unverified);
+
+        $res = $this->getJson('/api/user/profile')->assertOk();
+        $this->assertFalse($res->json('data.email_verified'));
+        $this->assertTrue($res->json('data.requires_email_verification'));
+        $this->assertFalse($res->json('data.is_banned'));
+
+        $this->app['auth']->forgetGuards();
+
+        $verified = User::factory()->create();
+        Sanctum::actingAs($verified);
+        $res2 = $this->getJson('/api/user/profile')->assertOk();
+        $this->assertTrue($res2->json('data.email_verified'));
+        $this->assertFalse($res2->json('data.requires_email_verification'));
+    }
 }

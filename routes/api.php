@@ -24,7 +24,7 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerification'])->middleware(['auth:sanctum', 'throttle:email-verify']);
     Route::post('/phone/send-code', [AuthController::class, 'sendPhoneVerification'])->middleware(['auth:sanctum', 'throttle:sms-send']);
     Route::post('/verify-phone', [AuthController::class, 'verifyPhone'])->middleware(['auth:sanctum', 'throttle:sms-verify']);
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+    Route::post('/logout', [AuthController::class, 'logout']);
 });
 
 Route::get('/user/profile', function (CreditService $credits, SubscriptionService $subscriptions) {
@@ -37,6 +37,12 @@ Route::get('/user/profile', function (CreditService $credits, SubscriptionServic
         'success' => true,
         'data' => [
             ...$user->only(['id', 'name', 'email', 'phone', 'plan_key']),
+            'email_verified' => $user->hasVerifiedEmail(),
+            'requires_email_verification' => $user->requiresEmailVerification(),
+            'is_banned' => $user->currentlyBanned(),
+            'banned_at' => $user->banned_at?->toIso8601String(),
+            'banned_until' => $user->banned_until?->toIso8601String(),
+            'ban_reason' => $user->currentlyBanned() ? $user->ban_reason : null,
             'credits_balance' => $credits->account($user)->balance,
             'subscription' => $activeSub ? [
                 'plan_key' => $activeSub->plan_key,

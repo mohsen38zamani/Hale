@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Support\AuthTokenCookie;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -39,19 +40,33 @@ class AuthController extends Controller
         return $this->withAuthCookie($request, $this->tokenPayload($user, $request->string('device_name')->value() ?: 'pwa', $credits), 201);
     }
 
-    public function verifyEmail(Request $request, string $id, string $hash): JsonResponse
+    public function verifyEmail(Request $request, string $id, string $hash): JsonResponse|RedirectResponse
     {
+        $shouldRedirect = $request->boolean('redirect') || $request->query('redirect') === '1';
+
         $user = User::query()->find($id);
         if ($user === null || $user->email === null || ! hash_equals(sha1((string) $user->getEmailForVerification()), $hash)) {
+            if ($shouldRedirect) {
+                return redirect('/dashboard?email_verification_error=invalid');
+            }
+
             return $this->error('INVALID_VERIFICATION_LINK', 'لینک تأیید ایمیل نامعتبر است.', 404);
         }
 
         if (! $request->hasValidSignature()) {
+            if ($shouldRedirect) {
+                return redirect('/dashboard?email_verification_error=expired');
+            }
+
             return $this->error('EXPIRED_VERIFICATION_LINK', 'لینک تأیید ایمیل منقضی شده است. لطفاً دوباره درخواست ارسال کنید.', 403);
         }
 
         if (! $user->hasVerifiedEmail()) {
             $user->markEmailAsVerified();
+        }
+
+        if ($shouldRedirect) {
+            return redirect('/dashboard?email_verified=1');
         }
 
         return $this->success(['message' => 'ایمیل شما با موفقیت تأیید شد. اکنون می‌توانید محتوا بسازید.']);
@@ -93,7 +108,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        $request->user('sanctum')?->currentAccessToken()?->delete();
 
         return $this->success(['message' => 'با موفقیت خارج شدید.'])
             ->withCookie(AuthTokenCookie::forget($request));
@@ -187,6 +202,15 @@ class AuthController extends Controller
         app(SubscriptionService::class)->syncExpired($user);
         $user->refresh();
 
-        return [...$user->only(['id', 'name', 'email', 'phone', 'plan_key']), 'credits_balance' => $credits->account($user)->balance];
+        return [
+            ...$user->only(['id', 'name', 'email', 'phone', 'plan_key']),
+            'email_verified' => $user->hasVerifiedEmail(),
+            'requires_email_verification' => $user->requiresEmailVerification(),
+            'is_banned' => $user->currentlyBanned(),
+            'banned_at' => $user->banned_at?->toIso8601String(),
+            'banned_until' => $user->banned_until?->toIso8601String(),
+            'ban_reason' => $user->currentlyBanned() ? $user->ban_reason : null,
+            'credits_balance' => $credits->account($user)->balance,
+        ];
     }
 }

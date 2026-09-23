@@ -36,6 +36,30 @@
         </header>
 
         <main class="dashboard-main">
+            {{-- Email Verification Banner --}}
+            <div data-unverified-banner hidden style="margin-bottom: 24px; padding: 14px 20px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FCD34D;">
+                    <span style="font-size: 18px;">⚠️</span>
+                    <span>ایمیل شما هنوز تأیید نشده است. برای امکان ساخت محتوا و خرید اشتراک، لطفاً ایمیل خود را تأیید کنید.</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="small-button" data-resend-verification style="background: rgba(245, 158, 11, 0.25); border-color: rgba(245, 158, 11, 0.5); color: #FFF; cursor: pointer;">ارسال مجدد ایمیل فعال‌سازی</button>
+                    <span data-resend-status style="font-size: 12px; color: #FCD34D;"></span>
+                </div>
+            </div>
+
+            {{-- Email Verified Success Banner --}}
+            <div data-verified-success-banner hidden style="margin-bottom: 24px; padding: 14px 20px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #6EE7B7;">
+                <span style="font-size: 18px;">✓</span>
+                <span>ایمیل شما با موفقیت تأیید شد. اکنون دسترسی کامل به استودیو و ساخت محتوا دارید!</span>
+            </div>
+
+            {{-- Account Banned Warning Banner --}}
+            <div data-banned-banner hidden style="margin-bottom: 24px; padding: 14px 20px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FCA5A5;">
+                <span style="font-size: 18px;">⛔</span>
+                <span data-banned-message>حساب کاربری شما مسدود شده است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.</span>
+            </div>
+
             {{-- Welcome & Heading --}}
             <div class="dashboard-heading">
                 <div>

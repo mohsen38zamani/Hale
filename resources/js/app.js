@@ -111,11 +111,58 @@ if (credit || welcome) {
 		.then((result) => {
 			if (welcome) welcome.textContent = `${result.data.name}، آماده‌ای یک خروجی تازه بسازی؟`;
 			if (credit) credit.textContent = result.data.credits_balance ?? '۰';
+
+			const unverifiedBanner = document.querySelector('[data-unverified-banner]');
+			if (unverifiedBanner && result.data.requires_email_verification) {
+				unverifiedBanner.removeAttribute('hidden');
+			}
+
+			const bannedBanner = document.querySelector('[data-banned-banner]');
+			if (bannedBanner && result.data.is_banned) {
+				bannedBanner.removeAttribute('hidden');
+				const bannedMsg = document.querySelector('[data-banned-message]');
+				if (bannedMsg && result.data.ban_reason) {
+					bannedMsg.textContent = `حساب کاربری شما مسدود شده است (${result.data.ban_reason}). برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.`;
+				}
+			}
 		})
 		.catch(() => {
 			window.location.href = '/';
 		});
 }
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('email_verified') === '1') {
+	const verifiedBanner = document.querySelector('[data-verified-success-banner]');
+	if (verifiedBanner) verifiedBanner.removeAttribute('hidden');
+} else if (urlParams.get('email_verification_error')) {
+	const unverifiedBanner = document.querySelector('[data-unverified-banner]');
+	if (unverifiedBanner) {
+		unverifiedBanner.removeAttribute('hidden');
+		const resendStatus = document.querySelector('[data-resend-status]');
+		if (resendStatus) resendStatus.textContent = 'لینک قبلی منقضی یا نامعتبر بود. لطفاً لینک جدید بگیرید.';
+	}
+}
+
+document.querySelector('[data-resend-verification]')?.addEventListener('click', async () => {
+	const resendBtn = document.querySelector('[data-resend-verification]');
+	const statusEl = document.querySelector('[data-resend-status]');
+	if (resendBtn) resendBtn.disabled = true;
+	if (statusEl) statusEl.textContent = 'در حال ارسال...';
+	try {
+		const res = await authFetch('/api/auth/email/verification-notification', { method: 'POST' });
+		const data = await res.json();
+		if (res.ok) {
+			if (statusEl) statusEl.textContent = 'لینک جدید با موفقیت ارسال شد. ایمیل خود را بررسی کنید.';
+		} else {
+			if (statusEl) statusEl.textContent = data.error?.message || 'ارسال نشد.';
+			if (resendBtn) resendBtn.disabled = false;
+		}
+	} catch {
+		if (statusEl) statusEl.textContent = 'خطا در برقراری ارتباط.';
+		if (resendBtn) resendBtn.disabled = false;
+	}
+});
 
 document.querySelector('[data-logout]')?.addEventListener('click', async () => {
 	await authFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});

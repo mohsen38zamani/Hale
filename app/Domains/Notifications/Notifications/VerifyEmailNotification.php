@@ -33,6 +33,7 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
         return URL::temporarySignedRoute('email.verification.verify', now()->addDay(), [
             'id' => $notifiable->getKey(),
             'hash' => sha1($notifiable->getEmailForVerification()),
+            'redirect' => 1,
         ]);
     }
 }
