@@ -158,4 +158,14 @@ class WatermarkPlanTest extends TestCase
         $this->assertSame($rawPng, $creatorResult);
         $this->assertNotSame($rawPng, $freeResult);
     }
+
+    public function test_watermark_service_safely_skips_videos(): void
+    {
+        $service = new WatermarkService;
+        $fakeVideoBytes = "\x00\x00\x00\x18ftypmp42fake-video-bytes";
+
+        $result = $service->applyForPlan($fakeVideoBytes, 'video/mp4', 'free');
+
+        $this->assertSame($fakeVideoBytes, $result);
+    }
 }

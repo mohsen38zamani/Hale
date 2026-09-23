@@ -127,21 +127,71 @@ const productNext = document.querySelector('[data-product-next]');
 let productPageNumber = 1;
 let editingProductId = null;
 
+const renderProductSkeletons = (count = 4) => {
+	return Array.from({ length: count }).map(() => `
+		<article class="product-tile product-tile-skeleton" aria-hidden="true">
+			<div class="product-tile-art skeleton-shimmer"></div>
+			<div class="skeleton-line skeleton-title skeleton-shimmer"></div>
+			<div class="skeleton-line skeleton-desc skeleton-shimmer"></div>
+			<div class="product-tile-actions">
+				<div class="skeleton-button skeleton-shimmer"></div>
+				<div class="skeleton-button skeleton-shimmer"></div>
+			</div>
+		</article>
+	`).join('');
+};
+
 const loadProducts = async () => {
 	if (!productGrid || !token) return;
+	productGrid.innerHTML = renderProductSkeletons(4);
 	const query = new URLSearchParams({ per_page: '12', page: String(productPageNumber) });
 	if (productSearch?.value.trim()) query.set('search', productSearch.value.trim());
-	const response = await fetch(`/api/products?${query}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
-	if (!response.ok) return;
-	const result = await response.json();
-	const products = result.data?.data || [];
-	const pagination = result.data || {};
-	productPagination.hidden = (pagination.last_page || 1) <= 1;
-	productPage.textContent = `${pagination.current_page || 1} / ${pagination.last_page || 1}`;
-	productPrev.disabled = (pagination.current_page || 1) <= 1;
-	productNext.disabled = (pagination.current_page || 1) >= (pagination.last_page || 1);
-	productGrid.innerHTML = products.length ? products.map((product) => { const primary = product.assets?.[0]; return `<article class="product-tile"><div class="product-tile-art">${primary ? `<img data-product-asset="${primary.id}" alt="${product.name}">` : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`; }).join('') : '<p class="empty-state">محصولی با این مشخصات پیدا نشد.</p>';
-	await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => { const asset = product.assets[0]; const response = await fetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'image/*', Authorization: `Bearer ${token}` } }); if (!response.ok) return; const image = document.querySelector(`[data-product-asset="${asset.id}"]`); if (image) image.src = URL.createObjectURL(await response.blob()); }));
+	try {
+		const response = await fetch(`/api/products?${query}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		if (!response.ok) {
+			productGrid.innerHTML = '<p class="empty-state">خطا در دریافت لیست محصولات.</p>';
+			return;
+		}
+		const result = await response.json();
+		const products = result.data?.data || [];
+		const pagination = result.data || {};
+		productPagination.hidden = (pagination.last_page || 1) <= 1;
+		productPage.textContent = `${pagination.current_page || 1} / ${pagination.last_page || 1}`;
+		productPrev.disabled = (pagination.current_page || 1) <= 1;
+		productNext.disabled = (pagination.current_page || 1) >= (pagination.last_page || 1);
+		productGrid.innerHTML = products.length ? products.map((product) => {
+			const primary = product.assets?.[0];
+			return `<article class="product-tile"><div class="product-tile-art ${primary ? 'skeleton-shimmer is-loading' : ''}">${primary ? `<img data-product-asset="${primary.id}" alt="${product.name}" style="opacity: 0;">` : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`;
+		}).join('') : '<p class="empty-state">محصولی با این مشخصات پیدا نشد.</p>';
+
+		await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => {
+			const asset = product.assets[0];
+			try {
+				const response = await fetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'image/*', Authorization: `Bearer ${token}` } });
+				const image = document.querySelector(`[data-product-asset="${asset.id}"]`);
+				const artBox = image?.parentElement;
+				if (!response.ok) {
+					if (artBox) {
+						artBox.classList.remove('skeleton-shimmer', 'is-loading');
+						artBox.innerHTML = '<b>H</b>';
+					}
+					return;
+				}
+				if (image) {
+					image.onload = () => {
+						image.style.opacity = '1';
+						artBox?.classList.remove('skeleton-shimmer', 'is-loading');
+					};
+					image.src = URL.createObjectURL(await response.blob());
+				}
+			} catch (_) {
+				const image = document.querySelector(`[data-product-asset="${asset.id}"]`);
+				image?.parentElement?.classList.remove('skeleton-shimmer', 'is-loading');
+			}
+		}));
+	} catch (e) {
+		productGrid.innerHTML = '<p class="empty-state">خطا در برقراری ارتباط با سرور.</p>';
+	}
 };
 
 document.querySelectorAll('[data-open-product]').forEach((button) => button.addEventListener('click', () => { editingProductId = null; productForm?.reset(); productFormTitle.textContent = 'محصول جدید'; productSubmit.innerHTML = 'افزودن محصول <span>←</span>'; productImage.required = true; productModal?.removeAttribute('hidden'); }));
@@ -153,7 +203,8 @@ productGrid?.addEventListener('click', async (event) => {
 	const editButton = event.target.closest('[data-edit-product]');
 	const deleteButton = event.target.closest('[data-delete-product]');
 	if (editButton) {
-		const product = (await fetch(`/api/products/${editButton.dataset.editProduct}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } })).json();
+		const response = await fetch(`/api/products/${editButton.dataset.editProduct}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
+		const product = await response.json();
 		const data = product.data;
 		editingProductId = data.id;
 		productForm.elements.name.value = data.name;
@@ -193,7 +244,12 @@ productForm?.addEventListener('submit', async (event) => {
 		productMessage.textContent = error.message;
 	} finally { button.disabled = false; }
 });
-loadProducts();
+loadProducts().catch(() => {
+	if (productMessage) {
+		productMessage.className = 'form-message error-message';
+		productMessage.textContent = 'بارگذاری محصولات ناموفق بود.';
+	}
+});
 
 const generationList = document.querySelector('[data-generation-list]');
 if (generationList && token) {
@@ -389,10 +445,13 @@ if (generationPage && !token) {
 		return outputUrl;
 	};
 
+	let pollAttempt = 0;
 	const scheduleNextPoll = () => {
 		if (pollTimeoutId) clearTimeout(pollTimeoutId);
 		if (!isFinished && document.visibilityState === 'visible') {
-			pollTimeoutId = setTimeout(poll, 2500);
+			pollAttempt++;
+			const delay = Math.min(15000, Math.round(2500 * Math.pow(1.5, Math.min(pollAttempt - 1, 4))));
+			pollTimeoutId = setTimeout(poll, delay);
 		}
 	};
 

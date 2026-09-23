@@ -2,6 +2,7 @@
 
 namespace App\Domains\Admin\Controllers;
 
+use App\Domains\Admin\Models\SystemSetting;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
@@ -121,8 +122,8 @@ class AdminController extends Controller
         $secondGenRate = $activatedUsers > 0 ? round(($secondGenUsers / $activatedUsers) * 100, 2) : 0.0;
 
         // 2. Feedback Satisfaction Rate (PRD: 👍 Rate > 50%)
-        $thumbsUp = Generation::where('feedback', 'thumbs_up')->count();
-        $thumbsDown = Generation::where('feedback', 'thumbs_down')->count();
+        $thumbsUp = Generation::whereIn('feedback', ['positive', 'thumbs_up'])->count();
+        $thumbsDown = Generation::whereIn('feedback', ['negative', 'thumbs_down'])->count();
         $totalFeedback = $thumbsUp + $thumbsDown;
         $thumbsUpRate = $totalFeedback > 0 ? round(($thumbsUp / $totalFeedback) * 100, 2) : 0.0;
 
@@ -134,7 +135,7 @@ class AdminController extends Controller
         $totalRevenueToman = (int) Payment::where('status', 'paid')->sum('amount');
         $totalCostUsd = (float) Generation::where('status', 'completed')->sum('cost_usd');
 
-        $usdToTomanRate = 100000;
+        $usdToTomanRate = (int) SystemSetting::get('usd_to_toman_rate', (int) config('payment.usd_to_toman_rate', 100000));
         $totalCostToman = (int) round($totalCostUsd * $usdToTomanRate);
         $grossProfitToman = $totalRevenueToman - $totalCostToman;
         $grossMarginRate = $totalRevenueToman > 0
@@ -184,6 +185,36 @@ class AdminController extends Controller
                     'status' => $grossMarginRate >= 50 ? 'pass' : 'needs_attention',
                 ],
             ],
+        ]);
+    }
+
+    public function settings(): JsonResponse
+    {
+        return $this->success(SystemSetting::query()->get());
+    }
+
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'key' => ['sometimes', 'string', 'max:100'],
+            'value' => ['sometimes', 'nullable', 'max:10000'],
+            'settings' => ['sometimes', 'array', 'max:50'],
+            'settings.*' => ['nullable', 'max:10000'],
+        ]);
+
+        if (isset($data['key']) && array_key_exists('value', $data)) {
+            SystemSetting::set($data['key'], $data['value']);
+        }
+
+        if (isset($data['settings']) && is_array($data['settings'])) {
+            foreach ($data['settings'] as $key => $value) {
+                SystemSetting::set($key, $value);
+            }
+        }
+
+        return $this->success([
+            'message' => 'تنظیمات سیستم با موفقیت به‌روزرسانی شد.',
+            'settings' => SystemSetting::query()->get(),
         ]);
     }
 }

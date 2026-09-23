@@ -13,5 +13,7 @@ class CreditEstimatorTest extends TestCase
 
         $this->assertSame(10, $estimator->estimate('image'));
         $this->assertSame(60, $estimator->estimate('video', 8));
+        $this->assertSame(45, $estimator->estimate('video')); // default 5 seconds
+        $this->assertSame(45, $estimator->estimate('video', 2)); // clamped to min 5 seconds
     }
 }

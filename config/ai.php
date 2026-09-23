@@ -8,7 +8,18 @@ return [
     'daily_budget_usd' => (float) env('AI_DAILY_BUDGET_USD', 50.0),
     'processing_lease_seconds' => (int) env('AI_PROCESSING_LEASE_SECONDS', 600),
     'moderation' => [
-        'blocked_terms' => ['pornographic', 'sexual violence', 'child abuse'],
+        'blocked_terms' => [
+            'pornographic',
+            'sexual violence',
+            'child abuse',
+            'پورنوگرافی',
+            'محتوای مستهجن',
+            'پورن',
+            'خشونت جنسی',
+            'آزار جنسی',
+            'کودک آزاری',
+            'سکس',
+        ],
     ],
     'providers' => [
         'google' => [
@@ -17,6 +28,7 @@ return [
             'imagen_model' => env('GOOGLE_IMAGEN_MODEL', 'imagen-3.0-generate-002'),
             'veo_model' => env('GOOGLE_VEO_MODEL', 'veo-2.0-generate-001'),
             'timeout' => (int) env('GOOGLE_AI_TIMEOUT', 60),
+            'veo_timeout' => (int) env('GOOGLE_VEO_TIMEOUT', 120),
         ],
     ],
 ];

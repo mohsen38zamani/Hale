@@ -32,7 +32,7 @@ class PhoneVerificationService
         $code = config('verification.phone.testing_code') ?: str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expiresAt = Carbon::now()->addMinutes((int) config('verification.phone.expires_minutes'));
 
-        return DB::transaction(function () use ($user, $phone, $code, $expiresAt): array {
+        $result = DB::transaction(function () use ($user, $phone, $code, $expiresAt): array {
             PhoneVerificationCode::query()
                 ->where('user_id', $user->id)
                 ->whereNull('verified_at')
@@ -45,12 +45,23 @@ class PhoneVerificationService
                 'expires_at' => $expiresAt,
             ]);
 
-            $this->sms->sendVerification($phone, $code);
             $user->forceFill(['phone' => $phone, 'phone_verified_at' => null])->save();
             Log::info('Phone verification requested', ['user_id' => $user->id, 'phone_suffix' => substr($phone, -4)]);
 
             return ['expires_at' => $expiresAt, 'debug_code' => app()->environment(['local', 'testing']) ? $code : null];
         });
+
+        try {
+            $this->sms->sendVerification($phone, $code);
+        } catch (\Throwable $e) {
+            PhoneVerificationCode::query()
+                ->where('user_id', $user->id)
+                ->whereNull('verified_at')
+                ->delete();
+            throw $e;
+        }
+
+        return $result;
     }
 
     public function verify(User $user, string $code): int

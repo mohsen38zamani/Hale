@@ -13,4 +13,5 @@ return [
         'currency' => env('ZARINPAL_CURRENCY', 'IRR'),
         'timeout' => (int) env('ZARINPAL_TIMEOUT', 15),
     ],
+    'usd_to_toman_rate' => (int) env('FINANCIAL_USD_TO_TOMAN', env('FINANCIAL_USD_TO_IRR', 100000)),
 ];

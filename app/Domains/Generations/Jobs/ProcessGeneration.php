@@ -44,6 +44,8 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
     public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null): void
     {
         $watermarks ??= app(WatermarkService::class);
+        $circuitBreaker ??= app(CircuitBreaker::class);
+
         $claimed = DB::transaction(function (): ?array {
             $generation = Generation::query()->whereKey($this->generationId)->lockForUpdate()->firstOrFail();
             if ($generation->status !== 'queued') {

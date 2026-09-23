@@ -4,6 +4,9 @@ namespace App\Domains\AI\Services;
 
 use App\Domains\AI\Models\AiBudgetReservation;
 use App\Domains\AI\Models\AiDailyBudget;
+use App\Domains\Notifications\Notifications\AiBudgetAlertNotification;
+use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -60,6 +63,8 @@ class CircuitBreaker
                 'estimated_usd' => $estimatedUsd,
             ]);
         });
+
+        $this->checkBudgetAlert();
     }
 
     public function settle(int $generationId, float $actualUsd): void
@@ -87,5 +92,46 @@ class CircuitBreaker
             $budget->decrement('reserved_usd', (float) $reservation->estimated_usd);
             $reservation->delete();
         });
+    }
+
+    public function checkBudgetAlert(float $thresholdPercentage = 80.0): bool
+    {
+        $limit = (float) config('ai.daily_budget_usd', 50.0);
+        if ($limit <= 0) {
+            return false;
+        }
+
+        $date = now()->toDateString();
+        $dailyBudget = AiDailyBudget::query()
+            ->whereDate('budget_date', $date)
+            ->first();
+
+        if ($dailyBudget === null) {
+            return false;
+        }
+
+        $todayCost = (float) $dailyBudget->spent_usd + (float) $dailyBudget->reserved_usd;
+        $usagePercentage = ($todayCost / $limit) * 100.0;
+
+        if ($usagePercentage < $thresholdPercentage) {
+            return false;
+        }
+
+        $cacheKey = "ai_daily_budget_alert_sent:{$date}";
+        if (Cache::has($cacheKey)) {
+            return false;
+        }
+
+        Cache::put($cacheKey, true, now()->endOfDay());
+
+        $adminEmails = array_filter(array_map('trim', explode(',', (string) config('auth.admin_emails', ''))));
+        if (! empty($adminEmails)) {
+            $admins = User::query()->whereIn('email', $adminEmails)->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new AiBudgetAlertNotification($todayCost, $limit, round($usagePercentage, 1)));
+            }
+        }
+
+        return true;
     }
 }

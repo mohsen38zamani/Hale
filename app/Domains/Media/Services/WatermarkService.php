@@ -12,6 +12,10 @@ class WatermarkService
             return $contents;
         }
 
+        if (str_starts_with($mime, 'video/')) {
+            return $contents;
+        }
+
         if (! function_exists('imagecreatefromstring')) {
             throw new RuntimeException('پردازش watermark روی سرور فعال نیست.');
         }

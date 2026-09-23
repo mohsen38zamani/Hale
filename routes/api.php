@@ -11,6 +11,7 @@ use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
 use App\Domains\Notifications\Controllers\NotificationController;
 use App\Domains\Products\Controllers\ProductController;
+use App\Http\Controllers\HealthController;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -69,17 +70,20 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/payments/{payment}/receipt', [PlanController::class, 'receipt']);
     Route::get('/payments/{payment}/invoice', [PlanController::class, 'invoice']);
     Route::get('/notifications', [NotificationController::class, 'index']);
-    Route::get('/user/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/subscriptions/checkout', [PlanController::class, 'checkout'])->middleware('throttle:checkout');
 });
 
-Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class])->group(function (): void {
+Route::get('/health', [HealthController::class, 'check']);
+
+Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class, 'throttle:admin'])->group(function (): void {
     Route::get('/metrics', [AdminController::class, 'metrics']);
     Route::get('/users', [AdminController::class, 'users']);
     Route::get('/users/{user}', [AdminController::class, 'user']);
     Route::get('/generations', [AdminController::class, 'generations']);
     Route::post('/users/{user}/refund', [AdminController::class, 'refund']);
+    Route::get('/settings', [AdminController::class, 'settings']);
+    Route::post('/settings', [AdminController::class, 'updateSettings']);
 });

@@ -60,3 +60,13 @@ Artisan::command('generations:recover-stale', function (CreditService $credits, 
         });
     $this->info("Recovered {$count} stale generations.");
 })->purpose('Refund and fail generations stuck in processing');
+
+Artisan::command('ai:check-budget-alert {--threshold=80 : Percentage threshold to trigger alert}', function (CircuitBreaker $circuitBreaker): void {
+    $threshold = (float) $this->option('threshold');
+    $alerted = $circuitBreaker->checkBudgetAlert($threshold);
+    if ($alerted) {
+        $this->warn("AI budget alert triggered and sent to administrators (threshold: {$threshold}%).");
+    } else {
+        $this->info('AI budget is within normal limits or alert was already sent for today.');
+    }
+})->purpose('Check daily AI budget usage and notify administrators if threshold is reached');

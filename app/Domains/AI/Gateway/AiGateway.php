@@ -21,11 +21,12 @@ class AiGateway
         $this->circuitBreaker?->ensureAvailable();
 
         $provider = $this->router->route($input->type, $input->durationSeconds);
-        if ($input->generationId !== null) {
-            $this->circuitBreaker?->reserve($input->generationId, $this->estimateCost($input));
-        }
 
         try {
+            if ($input->generationId !== null) {
+                $this->circuitBreaker?->reserve($input->generationId, $this->estimateCost($input));
+            }
+
             $result = $provider->generate($input);
 
             return ['provider' => $provider->key(), 'result' => $result];

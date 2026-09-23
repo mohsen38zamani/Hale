@@ -23,26 +23,24 @@ class ModelRouter
 
     public function fallback(string $type, ?int $durationSeconds, GenerationProvider $failedProvider): ?GenerationProvider
     {
-        $foundFailed = false;
+        $afterFailed = false;
+        $beforeFallback = null;
+
         foreach ($this->providers as $provider) {
             if ($provider === $failedProvider || $provider->key() === $failedProvider->key()) {
-                $foundFailed = true;
+                $afterFailed = true;
 
                 continue;
             }
 
-            if ($foundFailed && $provider->supports($type, $durationSeconds)) {
-                return $provider;
+            if ($provider->supports($type, $durationSeconds)) {
+                if ($afterFailed) {
+                    return $provider;
+                }
+                $beforeFallback ??= $provider;
             }
         }
 
-        // If no provider after the failed one, check any other provider that supports it
-        foreach ($this->providers as $provider) {
-            if ($provider !== $failedProvider && $provider->key() !== $failedProvider->key() && $provider->supports($type, $durationSeconds)) {
-                return $provider;
-            }
-        }
-
-        return null;
+        return $beforeFallback;
     }
 }

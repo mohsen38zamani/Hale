@@ -74,8 +74,13 @@ class PlanController extends Controller
     {
         $authority = $request->string('authority')->value();
         $status = $request->string('status')->value();
+        $secret = (string) config('payment.webhook_secret');
+        if (app()->isProduction() && ($secret === '' || $secret === 'change-me')) {
+            abort(500, 'کلید امضای وبهوک در محیط عملیاتی پیکربندی نشده است.');
+        }
+
         $signature = $request->header('X-Payment-Signature', '');
-        $expected = hash_hmac('sha256', $authority.'|'.$status, (string) config('payment.webhook_secret'));
+        $expected = hash_hmac('sha256', $authority.'|'.$status, $secret);
         abort_unless($signature !== '' && hash_equals($expected, $signature), 401, 'امضای وبهوک نامعتبر است.');
 
         return $this->success($billing->settle($authority, $status));

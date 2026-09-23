@@ -9,7 +9,11 @@ use App\Domains\AI\Gateway\AiGateway;
 use App\Domains\AI\Models\AiDailyBudget;
 use App\Domains\AI\Router\ModelRouter;
 use App\Domains\AI\Services\CircuitBreaker;
+use App\Domains\Notifications\Notifications\AiBudgetAlertNotification;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -85,5 +89,60 @@ class CircuitBreakerTest extends TestCase
 
         $this->assertSame('working_fallback', $response['provider']);
         $this->assertSame('fallback-v1', $response['result']->model);
+    }
+
+    public function test_circuit_breaker_triggers_admin_alert_when_usage_reaches_80_percent(): void
+    {
+        Notification::fake();
+        Cache::flush();
+
+        config([
+            'ai.daily_budget_usd' => 10.0,
+            'auth.admin_emails' => 'admin@hale.test',
+        ]);
+
+        $admin = User::factory()->create(['email' => 'admin@hale.test']);
+
+        AiDailyBudget::query()->create([
+            'budget_date' => now()->toDateString(),
+            'spent_usd' => 8.0,
+            'reserved_usd' => 0.0,
+        ]);
+
+        $circuitBreaker = new CircuitBreaker;
+        $triggered = $circuitBreaker->checkBudgetAlert(80.0);
+
+        $this->assertTrue($triggered);
+        Notification::assertSentTo($admin, AiBudgetAlertNotification::class, function ($notification) {
+            return $notification->percentage >= 80.0 && $notification->limitUsd === 10.0;
+        });
+
+        $secondRun = $circuitBreaker->checkBudgetAlert(80.0);
+        $this->assertFalse($secondRun);
+    }
+
+    public function test_artisan_command_ai_check_budget_alert(): void
+    {
+        Notification::fake();
+        Cache::flush();
+
+        config([
+            'ai.daily_budget_usd' => 10.0,
+            'auth.admin_emails' => 'admin@hale.test',
+        ]);
+
+        $admin = User::factory()->create(['email' => 'admin@hale.test']);
+
+        AiDailyBudget::query()->create([
+            'budget_date' => now()->toDateString(),
+            'spent_usd' => 8.5,
+            'reserved_usd' => 0.0,
+        ]);
+
+        $this->artisan('ai:check-budget-alert --threshold=80')
+            ->expectsOutputToContain('AI budget alert triggered and sent to administrators')
+            ->assertExitCode(0);
+
+        Notification::assertSentTo($admin, AiBudgetAlertNotification::class);
     }
 }

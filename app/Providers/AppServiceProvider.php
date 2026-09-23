@@ -71,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(5)->by((string) ($request->user()?->id ?? $request->ip())));
         RateLimiter::for('payment-history', fn (Request $request) => Limit::perMinute(30)->by((string) ($request->user()?->id ?? $request->ip())));
         RateLimiter::for('payment-webhook', fn (Request $request) => Limit::perMinute(60)->by((string) $request->ip()));
+        RateLimiter::for('admin', fn (Request $request) => Limit::perMinute(60)->by((string) ($request->user()?->id ?? $request->ip())));
 
         RateLimiter::for('auth-attempt', fn (Request $request) => Limit::perMinute(10)->by((string) ($request->input('email') ?? $request->input('phone') ?? $request->ip())));
         RateLimiter::for('sms-send', function (Request $request) {

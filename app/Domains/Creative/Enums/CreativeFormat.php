@@ -11,7 +11,10 @@ enum CreativeFormat: string
 
     public function type(): string
     {
-        return $this === self::InstagramPost ? 'image' : ($this === self::InstagramStory ? 'image' : 'video');
+        return match ($this) {
+            self::InstagramPost, self::InstagramStory => 'image',
+            default => 'video',
+        };
     }
 
     public function aspectRatio(): string

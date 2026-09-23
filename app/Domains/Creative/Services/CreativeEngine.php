@@ -26,8 +26,9 @@ class CreativeEngine
         $environment = match (true) {
             str_contains($name, 'عطر') || str_contains($name, 'perfume') => 'luxury',
             str_contains($name, 'گیاه') || str_contains($name, 'طبیعی') || str_contains($name, 'natural') => 'nature',
-            str_contains($name, 'لباس') || str_contains($name, 'پوشاک') || str_contains($name, 'dress') => 'street',
-            str_contains($name, 'کافه') || str_contains($name, 'غذا') || str_contains($name, 'food') => 'cafe',
+            str_contains($name, 'لباس') || str_contains($name, 'پوشاک') || str_contains($name, 'dress') || str_contains($name, 'شهر') || str_contains($name, 'urban') => 'urban',
+            str_contains($name, 'خانه') || str_contains($name, 'دکور') || str_contains($name, 'مبلمان') || str_contains($name, 'home') => 'home',
+            str_contains($name, 'هنر') || str_contains($name, 'انتزاعی') || str_contains($name, 'مفهومی') || str_contains($name, 'abstract') => 'abstract',
             default => 'studio',
         };
 

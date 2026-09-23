@@ -28,7 +28,7 @@ class GoogleVeoProvider implements GenerationProvider
         $this->apiKey = $apiKey ?? (string) config('ai.providers.google.api_key', '');
         $this->baseUrl = $baseUrl ?? (string) config('ai.providers.google.base_url', 'https://generativelanguage.googleapis.com/v1beta');
         $this->model = $model ?? (string) config('ai.providers.google.veo_model', 'veo-2.0-generate-001');
-        $this->timeout = $timeout ?? (int) config('ai.providers.google.timeout', 120);
+        $this->timeout = $timeout ?? (int) config('ai.providers.google.veo_timeout', config('ai.providers.google.timeout', 120));
     }
 
     public function key(): string

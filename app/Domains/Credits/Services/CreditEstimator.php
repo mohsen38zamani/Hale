@@ -10,6 +10,8 @@ class CreditEstimator
             return (int) config("credits.costs.image.{$quality}", config('credits.costs.image.standard'));
         }
 
-        return (int) config('credits.costs.video.base') + ((int) $durationSeconds * (int) config('credits.costs.video.per_second'));
+        $duration = max(5, $durationSeconds ?? 5);
+
+        return (int) config('credits.costs.video.base') + ($duration * (int) config('credits.costs.video.per_second'));
     }
 }

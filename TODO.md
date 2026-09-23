@@ -1,6 +1,8 @@
+<div dir="rtl">
+
 # Hale TODO
 
-**آخرین ممیزی:** ۱۴۰۵/۰۶/۲۱
+**آخرین ممیزی:** ۱۴۰۵/۰۷/۰۲
 **مرجع:** وضعیت واقعی کد، `docs/MVP_Specification_FA.md` و `docs/Development_Roadmap_FA.md`
 
 این فایل مرجع ادامهٔ توسعه است. هر آیتم باید با تست/مدرک پایان و یک commit مستقل بسته شود.
@@ -202,6 +204,99 @@
 - [x] سیستم اندازه‌گیری و رصد شاخص‌های کلیدی تصمیم‌گیری PRD Go/No-Go.
   - پیاده‌سازی اندپوینت احراز‌شدهٔ مدیریت `GET /api/admin/metrics` برای سنجش خودکار ۵ شاخص حیاتی: نرخ فعال‌سازی (هدف > ۶۰٪)، تولید دوم (هدف > ۳۰٪)، نرخ رضایت 👍 (هدف > ۵۰٪)، نرخ تبدیل پولی (هدف > ۵٪) و مارجین سود ناخالص (هدف > ۵۰٪) با پوشش تست `AdminMetricsTest`.
 
+## 🔴 P0 — باگ‌های بحرانی (باید پیش از Beta رفع شوند)
+
+### باگ‌های Frontend
+
+- [x] **[BUG] `app.js:156` — edit محصول هرگز داده بارگذاری نمی‌کند.**
+  - حل شد: دریافت پاسخ با `await response.json()` به درستی بازنویسی شد و دیتای محصول به فرم منتقل می‌شود.
+
+- [x] **[BUG] `app.js:196` — `loadProducts()` بدون error handler فراخوانی می‌شود.**
+  - حل شد: هندلر `.catch()` اضافه شد و در صورت بروز خطای شبکه پیام خطا به کاربر نمایش داده می‌شود.
+
+### باگ‌های Backend
+
+- [x] **[BUG] `AdminController.php:124-125` — مقادیر feedback اشتباه در متریک‌ها.**
+  - حل شد: کوئری با `whereIn` برای هر دو مقدار رسمی `positive`/`negative` و مقادیر تستی `thumbs_up`/`thumbs_down` به‌روزرسانی شد.
+
+- [x] **[BUG] `WatermarkService.php` — برای ویدئو crash می‌کند.**
+  - حل شد: بررسی MIME type با `str_starts_with($mime, 'video/')` اضافه شد تا ویدئوها بدون تغییر و بدون کرش برگشت داده شوند.
+
+- [x] **[BUG] `PhoneVerificationService.php:48` — SMS داخل DB transaction ارسال می‌شود.**
+  - حل شد: ارسال پیامک به بعد از اتمام موفق تراکنش منتقل گردید و در صورت شکست ارسال خارجی، کد ایجاد شده پاکسازی می‌شود.
+
+- [x] **[BUG] `AiGateway.php:25` — `reserve()` خارج از try/catch فراخوانی می‌شود.**
+  - حل شد: رزرو بودجه به داخل بلاک `try` منتقل شد تا تضمین شود هرگونه استثنا در فرآیند تولید به درستی بودجه رزرو شده را آزاد می‌کند.
+
+## 🟡 P1 — مشکلات منطقی و کیفی
+
+### مشکلات کد و معماری
+
+- [x] **`CreativeFormat.php:14` — منطق `type()` نامناسب.**
+  - حل شد: ساختار Ternary تودرتو با ساختار بهینه `match ($this)` جایگزین شد.
+
+- [x] **`ModelRouter.php:40-44` — حلقه دوگانه در fallback بی‌مورد است.**
+  - حل شد: دو حلقه جداگانه در یک پیمایش تک‌حلقه‌ای O(N) بهینه ادغام شدند.
+
+- [x] **`ProcessGeneration.php:46` — `app()` مستقیم در Queue Job.**
+  - حل شد: تزریق وابستگی مستقیم سرویس به متد `handle()` به جای وابستگی دستی پیاده‌سازی شد.
+
+- [x] **`CreditEstimator.php:13` — مدت ویدئو null fallback اشتباه.**
+  - حل شد: حداقل زمان مجاز ۵ ثانیه (`max(5, $durationSeconds ?? 5)`) به عنوان مقدار پیش‌فرض اعمال شد.
+
+- [x] **`GoogleVeoProvider.php` — timeout پیش‌فرض از config اشتباه خوانده می‌شود.**
+  - حل شد: کلید کانفیگ مستقل `ai.providers.google.veo_timeout` با مقدار پیش‌فرض ۱۲۰ ثانیه اضافه شد.
+
+- [x] **`config/payment.php` — مقدار پیش‌فرض `webhook_secret` ریسک امنیتی دارد.**
+  - حل شد: اعتبارسنجی در `PlanController` جهت جلوگیری از اجرای محیط پروداکشن با secret پیش‌فرض اضافه شد و راهنما در `.env.example` ثبت گردید.
+
+- [x] **`AdminController.php:137` — نرخ تبدیل دلار به تومان هاردکد شده.**
+  - حل شد: ایجاد جدول دیتابیسی `system_settings` همراه با مدل `SystemSetting` با قابلیت کش، و اندپوینت‌های `GET/POST /api/admin/settings` جهت به‌روزرسانی دستی توسط ادمین یا به‌روزرسانی خودکار لحظه‌ای/روزانه توسط وب‌سرویس‌ها.
+
+### مشکلات محتوای مدیریتی
+
+- [x] **`PromptModerator.php` — blocked terms فقط انگلیسی هستند.**
+  - حل شد: واژگان و اصطلاحات نامناسب به زبان فارسی به لیست `ai.moderation.blocked_terms` اضافه شد و با تست واحد پوشش داده شد.
+
+- [x] **`CreativeEngine.php` — environments برخی هرگز auto-select نمی‌شوند.**
+  - حل شد: کلیدواژه‌های مرتبط با محیط‌های `urban`، `home` و `abstract` اضافه شد تا تمام محیط‌های موجود قابل انتخاب خودکار باشند.
+
+- [x] **`routes/api.php:72` — endpoint تکراری.**
+  - حل شد: روت اضافی `/api/user/notifications` حذف و تنها اندپوینت استاندارد `/api/notifications` حفظ شد.
+
+## 🟡 P1 — قابلیت‌های ناقص (لازم برای پایداری)
+
+### عملیات و زیرساخت
+
+- [x] **Stale Generation Recovery — Job پاک‌کردن generation‌های گیر کرده.**
+  - حل شد: فرمان Artisan اختصاصی `php artisan generations:recover-stale` برای بازگرداندن/رد و استرداد اعتبار درخواست‌های با lease منقضی شده با پوشش تست ویژگی.
+
+- [x] **Health Check Endpoint — `/health` یا `/ping` برای monitoring.**
+  - حل شد: اندپوینت `GET /api/health` با کنترلر `HealthController` جهت بررسی اتصال پایگاه‌داده و سرویس کش پیاده‌سازی و تست شد.
+
+- [x] **Admin Daily Budget Alert — هشدار نزدیک شدن به سقف بودجه.**
+  - حل شد: اعلان `AiBudgetAlertNotification` و متد پایش در `CircuitBreaker` همراه با کامند آرتیسان `php artisan ai:check-budget-alert --threshold=80` با جلوگیری از ارسال تکراری در همان روز پیاده‌سازی و تست شد.
+
+- [x] **Rate Limiting برای Admin Routes.**
+  - حل شد: لیمیتر اختصاصی `admin` (۶۰ درخواست در دقیقه) تعریف و به عنوان میدلور به گروه روت‌های `/api/admin/*` متصل شد.
+
+### Frontend
+
+- [x] **Polling بهینه — exponential backoff برای صفحه generation.**
+  - حل شد: زمان‌بندی پلکانی از ۲.۵ ثانیه تا حداکثر ۱۵ ثانیه با ضریب افزایش ۱.۵ در `scheduleNextPoll` پیاده‌سازی شد.
+
+- [x] **Loading skeleton برای تصاویر محصول.**
+  - حل شد: انیمیشن شیمر مدرن CSS و تولید کارت‌های skeleton در `app.js` هنگام بارگذاری کتابخانه، همراه با حالت بارگذاری async برای تصاویر و جایگزینی بدون پرش پیاده‌سازی و باندل شد.
+
+- [ ] **Token در `localStorage` — ریسک امنیتی XSS.**
+  - Sanctum token در localStorage نگهداری می‌شود که در معرض حملات XSS قرار دارد.
+  - راه‌حل بلندمدت: migration به `HttpOnly` cookie در صورت امکان.
+
+### CI/CD
+
+- [x] **Static Analysis — PHPStan/Larastan به pipeline CI اضافه شود.**
+  - حل شد: بسته `larastan/larastan` نصب و کانفیگ `phpstan.neon` با سطح تحلیل پایدار تعریف شد. اسکریپت `composer analyse` و مرحله بررسی استاتیک در ورک‌فلو CI گیت‌هاب اضافه شد.
+
 ## P2: بعد از MVP
 
 - [ ] Image limit و quality tier پیشرفته.
@@ -214,14 +309,21 @@
 - [ ] Campaign Generator، Bulk Generation، Caption و Calendar.
 - [ ] Organizations، Workspace، Team/RBAC و Public API.
 - [ ] White Label و Social Auto Publish.
+- [ ] WebSocket/SSE جایگزین polling برای صفحه خروجی.
+- [ ] Image optimization/compression برای web delivery.
+- [ ] GDPR-style account deletion endpoint.
+- [ ] Email verification الزامی (فعال کردن `MustVerifyEmail`).
+- [ ] Credit top-up بدون subscription (خرید اعتبار جداگانه).
+- [ ] Admin: امکان ban/suspend کاربر.
+- [ ] Admin: لغو generation در حال پردازش.
 
 ## ترتیب پیشنهادی اجرا
 
-1. Provider واقعی Image و Video و تکمیل pipeline.
-2. حذف دوگانگی Credit و تکمیل plan/renewal/invoice.
-3. Notifications، Watermark، retention و Admin.
-4. تکمیل Progress/Result/Pricing UI با callback واقعی.
-5. E2E، CI، staging، monitoring و backup.
+1. رفع باگ‌های P0 (ویرایش محصول، metrics، watermark ویدئو، SMS در transaction).
+2. مشکلات منطقی P1 (timeout Veo، CreditEstimator، PromptModerator فارسی).
+3. زیرساخت عملیاتی (health check، stale generation recovery، admin rate limit).
+4. بهینه‌سازی‌های Frontend (polling backoff، skeleton loading).
+5. CI با static analysis.
 6. Beta با ۲۰ کاربر و اندازه‌گیری KPIهای PRD.
 
 ## معیار خروج MVP
@@ -232,5 +334,8 @@
 - [x] Watermark، Notifications و Admin refund آماده‌اند.
 - [x] Happy Path و Paywall با E2E تست شده‌اند.
 - [x] CI، staging، monitoring، backup و restore آماده‌اند.
+- [x] باگ‌های P0 رفع شده‌اند.
 - [ ] حداقل ۲۰ beta user مسیر را تست کرده‌اند (نیازمند استقرار بر روی سرور واقعی و دعوت از کاربران آزمایشی).
 - [x] KPIهای PRD: Activation، Second Generation، 👍 Rate، Free→Paid و Gross Margin اندازه‌گیری و در اندپوینت لاجیک سنجش قرار گرفتند.
+
+</div>
