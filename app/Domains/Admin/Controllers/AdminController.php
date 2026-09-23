@@ -5,7 +5,9 @@ namespace App\Domains\Admin\Controllers;
 use App\Domains\Admin\Models\SystemSetting;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Credits\Services\CreditService;
+use App\Domains\Generations\Exceptions\GenerationNotCancellable;
 use App\Domains\Generations\Models\Generation;
+use App\Domains\Generations\Services\CancelGeneration;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
@@ -154,6 +156,23 @@ class AdminController extends Controller
             'amount_refunded' => $granted,
             'new_balance' => $credits->account($user)->balance,
         ]);
+    }
+
+    public function cancelGeneration(Request $request, Generation $generation, CancelGeneration $cancel): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ], [
+            'reason.max' => 'دلیل لغو نمی‌تواند بیش از ۲۵۵ کاراکتر باشد.',
+        ]);
+
+        try {
+            $cancelled = $cancel->execute($generation, $validated['reason'] ?? 'توسط مدیر لغو شد.');
+        } catch (GenerationNotCancellable) {
+            return $this->failure('GENERATION_NOT_CANCELLABLE', 'فقط تولیدهای در صف یا در حال پردازش قابل لغو هستند.', 409);
+        }
+
+        return $this->success($cancelled);
     }
 
     public function metrics(): JsonResponse

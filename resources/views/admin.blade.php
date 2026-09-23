@@ -353,9 +353,12 @@
                                 <small style="color: var(--text-muted); font-size: 12px;">مدل: ${g.model || 'Standard'} · هزینه: $${Number(g.cost_usd || 0).toFixed(4)}</small>
                             </div>
                         </div>
-                        <span class="sim-chip ${g.status === 'completed' ? 'active' : ''}" style="font-size: 11px;">
-                            ${g.status === 'completed' ? '✓ موفق' : g.status === 'failed' ? '✕ ناموفق' : '⏳ در صف'}
+                        <span class="sim-chip ${g.status === 'completed' ? 'active' : ''}" style="font-size: 11px; ${g.status === 'cancelled' ? 'background: rgba(248,113,113,0.15); color: #F87171;' : ''}">
+                            ${g.status === 'completed' ? '✓ موفق' : g.status === 'failed' ? '✕ ناموفق' : g.status === 'cancelled' ? '⛔ لغو شد' : '⏳ در صف'}
                         </span>
+                        ${['queued', 'processing'].includes(g.status)
+                            ? `<button class="small-button" onclick="cancelGeneration(${g.id})" style="margin-right: 8px;">لغو</button>`
+                            : ''}
                     </div>
                 `).join('');
             } catch (err) { console.error(err); }
@@ -420,6 +423,16 @@
                 const result = await res.json();
                 if (!res.ok) throw new Error(result.error?.message || 'عملیات انجام نشد.');
                 loadUsers();
+            } catch (err) { alert(err.message); }
+        };
+
+        window.cancelGeneration = async (id) => {
+            if (!confirm('این تولید لغو شود و اعتبار رزروشده برگشت داده شود؟')) return;
+            try {
+                const res = await adminFetch(`/api/admin/generations/${id}/cancel`, { method: 'POST' });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error?.message || 'لغو انجام نشد.');
+                loadGenerations();
             } catch (err) { alert(err.message); }
         };
 

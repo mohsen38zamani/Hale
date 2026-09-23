@@ -26,18 +26,30 @@ class GenerationStatusNotification extends Notification implements ShouldQueue
             'generation_id' => $this->generation->id,
             'type' => $this->generation->type,
             'status' => $this->status,
-            'message' => $this->status === 'completed' ? 'تولید شما با موفقیت تکمیل شد.' : 'تولید شما ناموفق بود و اعتبار رزروشده برگشت داده شد.',
+            'message' => match ($this->status) {
+                'completed' => 'تولید شما با موفقیت تکمیل شد.',
+                'cancelled' => 'تولید شما توسط مدیر لغو شد و اعتبار رزروشده برگشت داده شد.',
+                default => 'تولید شما ناموفق بود و اعتبار رزروشده برگشت داده شد.',
+            },
         ];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         $completed = $this->status === 'completed';
+        $cancelled = $this->status === 'cancelled';
+
+        $subject = $completed ? 'خروجی Hale آماده است'
+            : ($cancelled ? 'تولید Hale لغو شد' : 'تولید Hale ناموفق بود');
+        $line = $completed ? 'خروجی شما با موفقیت آماده شده است.'
+            : ($cancelled
+                ? 'تولید شما توسط مدیر لغو شد و اعتبار رزروشده برگشت داده شد.'
+                : 'تولید شما ناموفق بود و اعتبار رزروشده برگشت داده شد.');
 
         return (new MailMessage)
-            ->subject($completed ? 'خروجی Hale آماده است' : 'تولید Hale ناموفق بود')
+            ->subject($subject)
             ->greeting('سلام '.$notifiable->name)
-            ->line($completed ? 'خروجی شما با موفقیت آماده شده است.' : 'تولید شما ناموفق بود و اعتبار رزروشده برگشت داده شد.')
+            ->line($line)
             ->action($completed ? 'مشاهده خروجی' : 'مشاهده تاریخچه', url($completed ? '/generations/'.$this->generation->id : '/dashboard'));
     }
 }

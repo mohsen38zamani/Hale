@@ -276,7 +276,7 @@ if (generationList) {
 		.then((response) => response.json())
 		.then((result) => {
 			const generations = result.data?.data || [];
-			generationList.innerHTML = generations.length ? generations.map((generation) => `<a class="generation-row" href="/dashboard"><span class="generation-icon ${generation.status}">${generation.type === 'video' ? '▶' : '✦'}</span><strong>${generation.creative_project?.product?.name || 'محصول'}</strong><span>${generation.status === 'completed' ? 'آماده' : generation.status === 'failed' ? 'ناموفق' : 'در حال ساخت'}</span><small>${generation.created_at ? new Date(generation.created_at).toLocaleDateString('fa-IR') : ''}</small></a>`).join('') : '<p class="empty-state">هنوز محتوایی نساخته‌ای.</p>';
+			generationList.innerHTML = generations.length ? generations.map((generation) => `<a class="generation-row" href="/dashboard"><span class="generation-icon ${generation.status}">${generation.type === 'video' ? '▶' : '✦'}</span><strong>${generation.creative_project?.product?.name || 'محصول'}</strong><span>${generation.status === 'completed' ? 'آماده' : generation.status === 'failed' ? 'ناموفق' : generation.status === 'cancelled' ? 'لغو شد' : 'در حال ساخت'}</span><small>${generation.created_at ? new Date(generation.created_at).toLocaleDateString('fa-IR') : ''}</small></a>`).join('') : '<p class="empty-state">هنوز محتوایی نساخته‌ای.</p>';
 		})
 		.catch(() => { generationList.innerHTML = '<p class="empty-state">تاریخچه فعلاً در دسترس نیست.</p>'; });
 }
@@ -449,7 +449,7 @@ if (generationPage) {
 	const creditInfo = document.querySelector('[data-generation-credit]');
 	const retryButton = document.querySelector('[data-retry]');
 	const regenerateButton = document.querySelector('[data-regenerate]');
-	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.' };
+	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.', cancelled: 'تولید لغو شد.' };
 	let outputUrl;
 	let pollTimeoutId = null;
 	let isFinished = false;
@@ -484,7 +484,7 @@ if (generationPage) {
 				? `اعتبار رزروشده: ${generation.credits_reserved} Credit`
 				: 'اعتبار هنوز رزرو نشده است';
 		status.textContent = statusLabels[generation.status] || generation.status;
-		progress.style.width = generation.status === 'completed' ? '100%' : generation.status === 'processing' ? '65%' : generation.status === 'failed' ? '0%' : '25%';
+		progress.style.width = generation.status === 'completed' ? '100%' : generation.status === 'processing' ? '65%' : (generation.status === 'failed' || generation.status === 'cancelled') ? '0%' : '25%';
 		if (generation.status === 'completed') {
 			isFinished = true;
 			if (pollTimeoutId) clearTimeout(pollTimeoutId);
@@ -500,14 +500,16 @@ if (generationPage) {
 			regenerateButton.hidden = false;
 			return;
 		}
-		if (generation.status === 'failed') {
+		if (generation.status === 'failed' || generation.status === 'cancelled') {
 			isFinished = true;
 			if (pollTimeoutId) clearTimeout(pollTimeoutId);
-			title.innerHTML = 'ساخت محتوا<br><em>متوقف شد.</em>';
-			message.textContent = generation.error_message || 'دوباره تلاش کن.';
+			const cancelled = generation.status === 'cancelled';
+			title.innerHTML = cancelled ? 'ساخت محتوا<br><em>لغو شد.</em>' : 'ساخت محتوا<br><em>متوقف شد.</em>';
+			message.textContent = generation.error_message || (cancelled ? 'این تولید لغو شد و اعتبار رزروشده برگشت داده شد.' : 'دوباره تلاش کن.');
 			actions.hidden = false;
-			retryButton.hidden = false;
+			retryButton.hidden = cancelled;
 			regenerateButton.hidden = true;
+			if (cancelled) document.querySelector('[data-download]').hidden = true;
 			return;
 		}
 		scheduleNextPoll();

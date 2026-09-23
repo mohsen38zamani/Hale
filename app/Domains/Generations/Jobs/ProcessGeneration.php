@@ -125,7 +125,15 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
             $circuitBreaker?->release($generation->id);
             $attempt->update(['status' => 'failed', 'error_message' => $exception->getMessage(), 'finished_at' => now()]);
             $attemptNumber = max(1, $this->attempts());
-            $generation->update(['status' => $attemptNumber >= $this->tries ? 'failed' : 'queued', 'error_message' => $exception->getMessage(), 'processing_lease_expires_at' => null]);
+            // Never overwrite a cancellation that landed while the job was running.
+            Generation::query()
+                ->whereKey($this->generationId)
+                ->where('status', '!=', 'cancelled')
+                ->update([
+                    'status' => $attemptNumber >= $this->tries ? 'failed' : 'queued',
+                    'error_message' => $exception->getMessage(),
+                    'processing_lease_expires_at' => null,
+                ]);
             throw $exception;
         }
     }
@@ -134,6 +142,17 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
     {
         $generation = Generation::query()->find($this->generationId);
         if ($generation === null) {
+            return;
+        }
+
+        if ($generation->status === 'cancelled') {
+            // Already cancelled by an admin: refund, release and notification
+            // were handled by CancelGeneration.
+            Log::info("Generation was cancelled before job failure: #{$generation->id}", [
+                'generation_id' => $generation->id,
+                'error' => $exception->getMessage(),
+            ]);
+
             return;
         }
 
