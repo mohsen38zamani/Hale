@@ -25,7 +25,7 @@
 - [x] Provider پیش‌فرض زرین‌پال، request/verify و callback
 - [x] Landing اسکرولی، Auth UI، Dashboard، Product Library و Upload UI
 - [x] Creative Builder، Generation History، Progress/Result و Pricing/Checkout UI پایه
-- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۱۸۶ تست و ۷۹۰ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry، Product Cleanup، Watermark Plans و Billing/Invoice).
+- [x] تست‌های Backend، Providerها و جریان‌های E2E: ۲۰۹ تست و ۸۴۳ assertion در Docker با `pdo_sqlite` با موفقیت ۱۰۰٪ سبز هستند (شامل E2E Happy Path، Paywall Checkout، Subscription Expiry، Product Cleanup، Watermark Plans و Billing/Invoice).
 
 ## P0: تکمیل مسیر واقعی MVP
 
@@ -195,7 +195,7 @@
   - تست کامل چرخه پرداخت در محیط سندباکس زرین‌پال شامل checkout، دریافت آدرس پرداخت سندباکس، و اعتبارسنجی کال‌بک در `ZarinpalSandboxIntegrationTest`.
   - تست کامل ارسال و اعتبارسنجی پیامک OTP در `SmsIrSandboxIntegrationTest`.
 - [x] تست‌های قراردادی و regression برای شکاف‌های ممیزی.
-  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert، query audit و admin PRD metrics پوشش داده شدند (در مجموع ۱۸۶ تست و ۷۹۰ assertion در کل suite سبز است؛ شامل تست‌های HttpOnly cookie، race/double-spend، خطاهای Product Library، تأیید ایمیل، ban کاربر و لغو generation).
+  - subscription expiry، race limit، checkout idempotency، storage failure، retry API، notification queue، watermark plans، phone anti-fraud، payment replay، request ID، storage isolation، sandbox providers، queue failing alert، query audit و admin PRD metrics پوشش داده شدند (در مجموع ۲۰۹ تست و ۸۴۳ assertion در کل suite سبز است؛ شامل تست‌های HttpOnly cookie، race/double-spend، خطاهای Product Library، تأیید ایمیل، ban کاربر، لغو generation و fallback چند Provider AI).
   - معیار پایان: بازشماری test/assertion و coverage threshold در CI ثبت شد.
 - [x] CI شامل PHPUnit، `npm run build`، lint و migration test.
   - پایپ‌لاین GitHub Actions در `.github/workflows/ci.yml` راه‌اندازی شد شامل نصب وابستگی‌ها، تست فرمت و استایل کد با Laravel Pint، بیلد استاتیک Vite (`npm run build`)، اجرای مایگریشن‌های دیتابیس و اجرای کامل تست‌های PHPUnit.
@@ -303,7 +303,12 @@
 ## P2: بعد از MVP
 
 - [ ] Image limit و quality tier پیشرفته.
-- [ ] fallback چند Provider AI و cost optimization.
+- [x] fallback چند Provider AI و cost optimization.
+  - `AiProviderException` با پچم `retryable` (429/5xx/408/شبکه/خروجی نامعتبر/نبود کلید → retryable؛ خطاهای 4xx اعتبارسنجی → permanent و توقف زنجیره).
+  - `ModelRouter::candidates()` زنجیرهٔ کامل providerها را در اولویت پیکربندی برمی‌گرداند و `AiGateway::generate()` روی کل زنجیره می‌چرخد، هنگام fallback لاگ `ai.provider.fallback` ثبت می‌کند، بودجه را فقط یک‌بار release می‌کند و فهرست `failures` را در metadata جنریشن ذخیره می‌کند.
+  - هزینهٔ رزرو از `config/ai.pricing` خوانده می‌شود (پیش‌فرض + override هر provider از طریق env) و زنجیره در صورت اتمام بودجهٔ روزانه در میانهٔ تلاش متوقف می‌شود؛ اولویت providerها با `AI_PROVIDER_PRIORITY`.
+  - رفع باگ پنهان `CircuitBreaker::reserve` (مقایسهٔ `budget_date` با `where` ساده که روی sqlite به‌دلیل ذخیرهٔ `Y-m-d 00:00:00` شکست می‌خورد).
+  - پوشش با `ModelRouterTest` (۵ تست)، `AiGatewayTest` (۱۰ تست شامل زنجیرهٔ ۳تایی، خطای permanent، شکست کامل، توقف بودجه و قیمت‌گذاری) و سناریوی Feature در `ProcessGenerationTest` (429 گوگل → fallback به local با ثبت failures).
 - [ ] Search پیشرفته/Meilisearch.
 - [ ] Favorites، collections و history filter پیشرفته.
 - [ ] Push notification PWA.
