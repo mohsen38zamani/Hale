@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domains\AI\Contracts\GenerationProvider;
 use App\Domains\AI\Providers\Google\GoogleImagenProvider;
 use App\Domains\AI\Providers\Google\GoogleVeoProvider;
 use App\Domains\AI\Providers\Local\FakeGenerationProvider;
@@ -35,6 +36,18 @@ class AppServiceProvider extends ServiceProvider
                 $providers[] = $app->make(GoogleVeoProvider::class);
             }
             $providers[] = $app->make(FakeGenerationProvider::class);
+
+            // AI_PROVIDER_PRIORITY="local,google_imagen" reorders the fallback
+            // chain; keys not listed (or no config) keep registration order.
+            $priority = (array) config('ai.provider_priority', []);
+            if ($priority !== []) {
+                usort($providers, function (GenerationProvider $a, GenerationProvider $b) use ($priority): int {
+                    $aIndex = array_search($a->key(), $priority, true);
+                    $bIndex = array_search($b->key(), $priority, true);
+
+                    return ($aIndex === false ? PHP_INT_MAX : $aIndex) <=> ($bIndex === false ? PHP_INT_MAX : $bIndex);
+                });
+            }
 
             return new ModelRouter($providers);
         });

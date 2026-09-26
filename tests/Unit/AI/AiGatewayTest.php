@@ -134,6 +134,88 @@ class AiGatewayTest extends TestCase
         );
     }
 
+    public function test_budget_estimate_is_read_from_config_pricing(): void
+    {
+        config(['ai.daily_budget_usd' => 10.0, 'ai.pricing.default.image' => 0.11]);
+        $generationId = $this->generationId();
+
+        $gateway = new AiGateway(new ModelRouter([$this->workingProvider('priced')]), new CircuitBreaker);
+        $gateway->generate(new GenerationInput('image', 'prompt', '1:1', generationId: $generationId));
+
+        $reservation = AiBudgetReservation::query()->where('generation_id', $generationId)->firstOrFail();
+        $this->assertEqualsWithDelta(0.11, (float) $reservation->estimated_usd, 0.000001);
+    }
+
+    public function test_provider_specific_pricing_overrides_the_default_estimate(): void
+    {
+        config([
+            'ai.daily_budget_usd' => 10.0,
+            'ai.pricing.default.image' => 0.11,
+            'ai.pricing.custom.image' => 0.99,
+        ]);
+        $generationId = $this->generationId();
+
+        $gateway = new AiGateway(new ModelRouter([$this->workingProvider('custom')]), new CircuitBreaker);
+        $gateway->generate(new GenerationInput('image', 'prompt', '1:1', generationId: $generationId));
+
+        $reservation = AiBudgetReservation::query()->where('generation_id', $generationId)->firstOrFail();
+        $this->assertEqualsWithDelta(0.99, (float) $reservation->estimated_usd, 0.000001);
+    }
+
+    public function test_video_estimate_uses_per_second_pricing_from_config(): void
+    {
+        config(['ai.daily_budget_usd' => 10.0, 'ai.pricing.default.video_per_second' => 0.07]);
+        $generationId = $this->generationId();
+
+        $gateway = new AiGateway(new ModelRouter([$this->workingProvider('custom')]), new CircuitBreaker);
+        $gateway->generate(new GenerationInput('video', 'prompt', '9:16', 8, generationId: $generationId));
+
+        $reservation = AiBudgetReservation::query()->where('generation_id', $generationId)->firstOrFail();
+        $this->assertEqualsWithDelta(8 * 0.07, (float) $reservation->estimated_usd, 0.000001);
+    }
+
+    public function test_chain_stops_when_daily_budget_is_exhausted_mid_chain(): void
+    {
+        config(['ai.daily_budget_usd' => 10.0]);
+        $generationId = $this->generationId();
+
+        $exhausting = new class implements GenerationProvider
+        {
+            public function key(): string
+            {
+                return 'exhausting';
+            }
+
+            public function supports(string $type, ?int $durationSeconds = null): bool
+            {
+                return true;
+            }
+
+            public function generate(GenerationInput $input): GenerationResult
+            {
+                AiDailyBudget::query()->whereDate('budget_date', now())->update(['spent_usd' => 999.0]);
+
+                throw new RuntimeException('rate limited');
+            }
+        };
+
+        $never = $this->mock(GenerationProvider::class);
+        $never->shouldReceive('supports')->andReturn(true);
+        $never->shouldReceive('key')->andReturn('never_used');
+        $never->shouldNotReceive('generate');
+
+        $gateway = new AiGateway(new ModelRouter([$exhausting, $never]), new CircuitBreaker);
+
+        try {
+            $gateway->generate(new GenerationInput('image', 'prompt', '1:1', generationId: $generationId));
+            $this->fail('Expected the first provider error to be rethrown.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('rate limited', $exception->getMessage());
+        }
+
+        $this->assertSame(0, AiBudgetReservation::query()->count(), 'Budget stop must release the reservation.');
+    }
+
     private function generationId(): int
     {
         $user = User::factory()->create();

@@ -2,6 +2,7 @@
 
 namespace App\Domains\AI\Gateway;
 
+use App\Domains\AI\Contracts\GenerationProvider;
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Data\GenerationResult;
 use App\Domains\AI\Exceptions\AiProviderException;
@@ -30,7 +31,7 @@ class AiGateway
         $candidates = $this->router->candidates($input->type, $input->durationSeconds);
 
         if ($input->generationId !== null) {
-            $this->circuitBreaker?->reserve($input->generationId, $this->estimateCost($input));
+            $this->circuitBreaker?->reserve($input->generationId, $this->estimateCost($input, $candidates[0]));
         }
 
         /** @var list<array{provider: string, error: string}> $failures */
@@ -38,6 +39,12 @@ class AiGateway
         $firstException = null;
 
         foreach ($candidates as $index => $provider) {
+            if ($index > 0 && ($this->circuitBreaker?->isAvailable() ?? true) === false) {
+                // Daily budget was exhausted mid-chain (e.g. by concurrent
+                // generations): stop instead of starting another provider.
+                break;
+            }
+
             try {
                 $result = $provider->generate($input);
 
@@ -74,10 +81,19 @@ class AiGateway
         throw $firstException ?? new RuntimeException('هیچ provider هوش مصنوعی نتوانست درخواست را انجام دهد.');
     }
 
-    private function estimateCost(GenerationInput $input): float
+    private function estimateCost(GenerationInput $input, GenerationProvider $provider): float
     {
-        return $input->type === 'video'
-            ? max(1, $input->durationSeconds ?? 5) * 0.05
-            : 0.04;
+        $pricing = (array) config('ai.pricing.default', []);
+        foreach ((array) config('ai.pricing.'.$provider->key(), []) as $key => $value) {
+            if ($value !== null) {
+                $pricing[$key] = $value;
+            }
+        }
+
+        if ($input->type === 'video') {
+            return max(1, $input->durationSeconds ?? 5) * (float) ($pricing['video_per_second'] ?? 0.05);
+        }
+
+        return (float) ($pricing['image'] ?? 0.04);
     }
 }

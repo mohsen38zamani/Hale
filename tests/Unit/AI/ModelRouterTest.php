@@ -79,4 +79,30 @@ class ModelRouterTest extends TestCase
 
         $router->candidates('video', 5);
     }
+
+    public function test_provider_priority_config_reorders_the_fallback_chain(): void
+    {
+        config(['ai.driver' => 'google', 'ai.provider_priority' => ['local', 'google_imagen']]);
+        $this->app->forgetInstance(ModelRouter::class);
+
+        $keys = array_map(
+            fn (GenerationProvider $provider) => $provider->key(),
+            app(ModelRouter::class)->candidates('image'),
+        );
+
+        $this->assertSame(['local', 'google_imagen'], $keys);
+    }
+
+    public function test_registration_order_is_kept_when_no_priority_is_configured(): void
+    {
+        config(['ai.driver' => 'google', 'ai.provider_priority' => []]);
+        $this->app->forgetInstance(ModelRouter::class);
+
+        $keys = array_map(
+            fn (GenerationProvider $provider) => $provider->key(),
+            app(ModelRouter::class)->candidates('image'),
+        );
+
+        $this->assertSame(['google_imagen', 'local'], $keys);
+    }
 }
