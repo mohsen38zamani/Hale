@@ -3,6 +3,7 @@
 namespace Tests\Unit\AI;
 
 use App\Domains\AI\Data\GenerationInput;
+use App\Domains\AI\Exceptions\AiProviderException;
 use App\Domains\AI\Providers\Google\GoogleVeoProvider;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -74,5 +75,50 @@ class GoogleVeoProviderTest extends TestCase
         $this->expectExceptionMessage('محدودیت نرخ درخواست هوش مصنوعی گوگل (429) فرا رسیده است.');
 
         $provider->generate(new GenerationInput('video', 'product showcase', '9:16', durationSeconds: 5));
+    }
+
+    public function test_rate_limit_error_is_marked_retryable_for_fallback(): void
+    {
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response(['error' => 'Resource exhausted'], 429),
+        ]);
+
+        $provider = new GoogleVeoProvider('fake-key');
+
+        try {
+            $provider->generate(new GenerationInput('video', 'product showcase', '9:16', durationSeconds: 5));
+            $this->fail('Expected a rate limit exception.');
+        } catch (AiProviderException $exception) {
+            $this->assertTrue($exception->retryable());
+        }
+    }
+
+    public function test_client_validation_error_is_marked_permanent(): void
+    {
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response(['error' => 'Bad request'], 400),
+        ]);
+
+        $provider = new GoogleVeoProvider('fake-key');
+
+        try {
+            $provider->generate(new GenerationInput('video', 'product showcase', '9:16', durationSeconds: 5));
+            $this->fail('Expected a validation exception.');
+        } catch (AiProviderException $exception) {
+            $this->assertFalse($exception->retryable());
+            $this->assertSame('خطا در پاسخ هوش مصنوعی گوگل: 400', $exception->getMessage());
+        }
+    }
+
+    public function test_missing_api_key_is_marked_retryable_so_the_chain_can_fall_back(): void
+    {
+        $provider = new GoogleVeoProvider('');
+
+        try {
+            $provider->generate(new GenerationInput('video', 'product showcase', '9:16', durationSeconds: 5));
+            $this->fail('Expected a missing key exception.');
+        } catch (AiProviderException $exception) {
+            $this->assertTrue($exception->retryable());
+        }
     }
 }

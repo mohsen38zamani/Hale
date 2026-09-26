@@ -5,9 +5,9 @@ namespace App\Domains\AI\Providers\Google;
 use App\Domains\AI\Contracts\GenerationProvider;
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Data\GenerationResult;
+use App\Domains\AI\Exceptions\AiProviderException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use RuntimeException;
 
 class GoogleVeoProvider implements GenerationProvider
 {
@@ -44,7 +44,9 @@ class GoogleVeoProvider implements GenerationProvider
     public function generate(GenerationInput $input): GenerationResult
     {
         if (empty($this->apiKey)) {
-            throw new RuntimeException('Google AI API Key تنظیم نشده است.');
+            // Treated as transient so the fallback chain can reach the next
+            // configured provider (e.g. the local fake one) without config.
+            throw new AiProviderException('Google AI API Key تنظیم نشده است.');
         }
 
         $duration = $input->durationSeconds ?? 5;
@@ -77,11 +79,14 @@ class GoogleVeoProvider implements GenerationProvider
             ]);
 
         if ($response->status() === 429) {
-            throw new RuntimeException('محدودیت نرخ درخواست هوش مصنوعی گوگل (429) فرا رسیده است.');
+            throw new AiProviderException('محدودیت نرخ درخواست هوش مصنوعی گوگل (429) فرا رسیده است.');
         }
 
         if (! $response->successful()) {
-            throw new RuntimeException("خطا در پاسخ هوش مصنوعی گوگل: {$response->status()}");
+            $status = $response->status();
+            // 5xx/408 are transient; other 4xx responses are request errors
+            // that would fail identically on the next provider.
+            throw new AiProviderException("خطا در پاسخ هوش مصنوعی گوگل: {$status}", $status >= 500 || $status === 408);
         }
 
         $data = $response->json();
@@ -95,18 +100,18 @@ class GoogleVeoProvider implements GenerationProvider
             if ($downloadUri) {
                 $videoResponse = Http::timeout($this->timeout)->get($downloadUri);
                 if (! $videoResponse->successful()) {
-                    throw new RuntimeException('دانلود ویدئوی خروجی از گوگل ناموفق بود.');
+                    throw new AiProviderException('دانلود ویدئوی خروجی از گوگل ناموفق بود.');
                 }
                 $contents = $videoResponse->body();
             } else {
-                throw new RuntimeException('خروجی ویدئوی معتبری از گوگل دریافت نشد.');
+                throw new AiProviderException('خروجی ویدئوی معتبری از گوگل دریافت نشد.');
             }
         } else {
             $contents = base64_decode($base64);
         }
 
         if ($contents === false || strlen($contents) < 12 || substr($contents, 4, 4) !== 'ftyp') {
-            throw new RuntimeException('محتوای خروجی ویدئو MP4 معتبر نیست.');
+            throw new AiProviderException('محتوای خروجی ویدئو MP4 معتبر نیست.');
         }
 
         return new GenerationResult(

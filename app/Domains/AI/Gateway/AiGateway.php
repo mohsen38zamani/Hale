@@ -4,8 +4,11 @@ namespace App\Domains\AI\Gateway;
 
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Data\GenerationResult;
+use App\Domains\AI\Exceptions\AiProviderException;
 use App\Domains\AI\Router\ModelRouter;
 use App\Domains\AI\Services\CircuitBreaker;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 class AiGateway
@@ -15,42 +18,60 @@ class AiGateway
         private readonly ?CircuitBreaker $circuitBreaker = null,
     ) {}
 
-    /** @return array{provider: string, result: GenerationResult} */
+    /**
+     * Try every capable provider in priority order until one succeeds.
+     *
+     * @return array{provider: string, result: GenerationResult, failures: list<array{provider: string, error: string}>}
+     */
     public function generate(GenerationInput $input): array
     {
         $this->circuitBreaker?->ensureAvailable();
 
-        $provider = $this->router->route($input->type, $input->durationSeconds);
+        $candidates = $this->router->candidates($input->type, $input->durationSeconds);
 
-        try {
-            if ($input->generationId !== null) {
-                $this->circuitBreaker?->reserve($input->generationId, $this->estimateCost($input));
-            }
-
-            $result = $provider->generate($input);
-
-            return ['provider' => $provider->key(), 'result' => $result];
-        } catch (Throwable $e) {
-            $fallback = $this->router->fallback($input->type, $input->durationSeconds, $provider);
-            if ($fallback !== null) {
-                try {
-                    $result = $fallback->generate($input);
-
-                    return ['provider' => $fallback->key(), 'result' => $result];
-                } catch (Throwable $fallbackException) {
-                    if ($input->generationId !== null) {
-                        $this->circuitBreaker?->release($input->generationId);
-                    }
-                    throw $fallbackException;
-                }
-            }
-
-            if ($input->generationId !== null) {
-                $this->circuitBreaker?->release($input->generationId);
-            }
-
-            throw $e;
+        if ($input->generationId !== null) {
+            $this->circuitBreaker?->reserve($input->generationId, $this->estimateCost($input));
         }
+
+        /** @var list<array{provider: string, error: string}> $failures */
+        $failures = [];
+        $firstException = null;
+
+        foreach ($candidates as $index => $provider) {
+            try {
+                $result = $provider->generate($input);
+
+                if ($index > 0) {
+                    Log::warning('ai.provider.fallback', [
+                        'generation_id' => $input->generationId,
+                        'used_provider' => $provider->key(),
+                        'failures' => $failures,
+                    ]);
+                }
+
+                return ['provider' => $provider->key(), 'result' => $result, 'failures' => $failures];
+            } catch (AiProviderException $exception) {
+                $firstException ??= $exception;
+                $failures[] = ['provider' => $provider->key(), 'error' => $exception->getMessage()];
+
+                if (! $exception->retryable()) {
+                    // Permanent request errors would fail identically on the
+                    // next provider, so stop instead of burning time/budget.
+                    break;
+                }
+            } catch (Throwable $exception) {
+                // Unknown errors are treated as transient so a provider-specific
+                // failure still gets a fallback chance.
+                $firstException ??= $exception;
+                $failures[] = ['provider' => $provider->key(), 'error' => $exception->getMessage()];
+            }
+        }
+
+        if ($input->generationId !== null) {
+            $this->circuitBreaker?->release($input->generationId);
+        }
+
+        throw $firstException ?? new RuntimeException('هیچ provider هوش مصنوعی نتوانست درخواست را انجام دهد.');
     }
 
     private function estimateCost(GenerationInput $input): float

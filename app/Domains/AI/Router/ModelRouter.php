@@ -10,37 +10,25 @@ class ModelRouter
     /** @param iterable<GenerationProvider> $providers */
     public function __construct(private readonly iterable $providers) {}
 
-    public function route(string $type, ?int $durationSeconds = null): GenerationProvider
+    /**
+     * All providers that can handle the request, in configured priority order.
+     * The gateway walks this chain until one of them succeeds.
+     *
+     * @return list<GenerationProvider>
+     */
+    public function candidates(string $type, ?int $durationSeconds = null): array
     {
+        $candidates = [];
         foreach ($this->providers as $provider) {
             if ($provider->supports($type, $durationSeconds)) {
-                return $provider;
+                $candidates[] = $provider;
             }
         }
 
-        throw new RuntimeException('No AI provider supports the requested generation.');
-    }
-
-    public function fallback(string $type, ?int $durationSeconds, GenerationProvider $failedProvider): ?GenerationProvider
-    {
-        $afterFailed = false;
-        $beforeFallback = null;
-
-        foreach ($this->providers as $provider) {
-            if ($provider === $failedProvider || $provider->key() === $failedProvider->key()) {
-                $afterFailed = true;
-
-                continue;
-            }
-
-            if ($provider->supports($type, $durationSeconds)) {
-                if ($afterFailed) {
-                    return $provider;
-                }
-                $beforeFallback ??= $provider;
-            }
+        if ($candidates === []) {
+            throw new RuntimeException('No AI provider supports the requested generation.');
         }
 
-        return $beforeFallback;
+        return $candidates;
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Unit\AI;
 
 use App\Domains\AI\Data\GenerationInput;
+use App\Domains\AI\Exceptions\AiProviderException;
 use App\Domains\AI\Providers\Google\GoogleImagenProvider;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -112,5 +113,66 @@ class GoogleImagenProviderTest extends TestCase
         $this->expectExceptionMessage('خطا در پاسخ هوش مصنوعی گوگل: 500');
 
         $provider->generate(new GenerationInput('image', 'luxury perfume', '1:1'));
+    }
+
+    public function test_rate_limit_error_is_marked_retryable_for_fallback(): void
+    {
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response(['error' => 'Resource exhausted'], 429),
+        ]);
+
+        $provider = new GoogleImagenProvider('fake-key');
+
+        try {
+            $provider->generate(new GenerationInput('image', 'luxury perfume', '1:1'));
+            $this->fail('Expected a rate limit exception.');
+        } catch (AiProviderException $exception) {
+            $this->assertTrue($exception->retryable());
+        }
+    }
+
+    public function test_server_error_is_marked_retryable_for_fallback(): void
+    {
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response(['error' => 'Internal error'], 503),
+        ]);
+
+        $provider = new GoogleImagenProvider('fake-key');
+
+        try {
+            $provider->generate(new GenerationInput('image', 'luxury perfume', '1:1'));
+            $this->fail('Expected a server error exception.');
+        } catch (AiProviderException $exception) {
+            $this->assertTrue($exception->retryable());
+        }
+    }
+
+    public function test_client_validation_error_is_marked_permanent(): void
+    {
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response(['error' => 'Bad request'], 400),
+        ]);
+
+        $provider = new GoogleImagenProvider('fake-key');
+
+        try {
+            $provider->generate(new GenerationInput('image', 'luxury perfume', '1:1'));
+            $this->fail('Expected a validation exception.');
+        } catch (AiProviderException $exception) {
+            $this->assertFalse($exception->retryable());
+            $this->assertSame('خطا در پاسخ هوش مصنوعی گوگل: 400', $exception->getMessage());
+        }
+    }
+
+    public function test_missing_api_key_is_marked_retryable_so_the_chain_can_fall_back(): void
+    {
+        $provider = new GoogleImagenProvider('');
+
+        try {
+            $provider->generate(new GenerationInput('image', 'luxury perfume', '1:1'));
+            $this->fail('Expected a missing key exception.');
+        } catch (AiProviderException $exception) {
+            $this->assertTrue($exception->retryable());
+        }
     }
 }

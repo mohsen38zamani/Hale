@@ -80,6 +80,7 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
                 $generation->id,
             ));
             $result = $response['result'];
+            $providerFailures = $response['failures'] ?? [];
             $contents = $watermarks->applyForPlan($result->contents, $result->mime, $generation->user->plan_key);
             $this->assertOutputContract($generation->type, $result->mime, $result->extension, $contents);
             $path = "generations/{$generation->user_id}/{$generation->id}.{$result->extension}";
@@ -89,14 +90,27 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
             }
             $fileStored = true;
             $elapsed = (int) ((hrtime(true) - $startedAt) / 1_000_000);
-            $completed = DB::transaction(function () use ($generation, $path, $result, $contents, $response, $elapsed, $credits, $attempt, $circuitBreaker): bool {
+            $completed = DB::transaction(function () use ($generation, $path, $result, $contents, $response, $providerFailures, $elapsed, $credits, $attempt, $circuitBreaker): bool {
                 $generation = Generation::query()->whereKey($generation->id)->lockForUpdate()->firstOrFail();
                 if ($generation->status !== 'processing' || $generation->processing_lease_expires_at?->isPast()) {
                     return false;
                 }
                 $media = $generation->user->mediaAssets()->firstOrCreate(['path' => $path], ['disk' => config('ai.output_disk'), 'mime' => $result->mime, 'size' => strlen($contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
                 $generation->usageLogs()->firstOrCreate([], ['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
-                $generation->update(['status' => 'completed', 'provider' => $response['provider'], 'model' => $result->model, 'cost_usd' => $result->costUsd, 'processing_time_ms' => $elapsed, 'output_media_id' => $media->id, 'processing_lease_expires_at' => null]);
+                $generation->update([
+                    'status' => 'completed',
+                    'provider' => $response['provider'],
+                    'model' => $result->model,
+                    'cost_usd' => $result->costUsd,
+                    'processing_time_ms' => $elapsed,
+                    'output_media_id' => $media->id,
+                    'processing_lease_expires_at' => null,
+                    // Which providers failed before this one succeeded, so a
+                    // fallback run stays observable on the generation itself.
+                    'metadata' => $providerFailures === []
+                        ? $generation->metadata
+                        : array_merge($generation->metadata ?? [], ['provider_failures' => $providerFailures]),
+                ]);
                 $credits->settle($generation);
                 $circuitBreaker?->settle($generation->id, $result->costUsd);
                 $attempt->update(['status' => 'completed', 'finished_at' => now()]);

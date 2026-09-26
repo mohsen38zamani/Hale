@@ -2,7 +2,13 @@
 
 namespace Tests\Feature\Generations;
 
+use App\Domains\AI\Contracts\GenerationProvider;
+use App\Domains\AI\Data\GenerationInput;
+use App\Domains\AI\Data\GenerationResult;
+use App\Domains\AI\Exceptions\AiProviderException;
 use App\Domains\AI\Gateway\AiGateway;
+use App\Domains\AI\Providers\Local\FakeGenerationProvider;
+use App\Domains\AI\Router\ModelRouter;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Domains\Generations\Models\Generation;
@@ -147,6 +153,47 @@ class ProcessGenerationTest extends TestCase
         (new ProcessGeneration($generation->id))->handle($gateway, app(CreditService::class));
 
         $this->assertSame(0, $generation->jobs()->count());
+    }
+
+    public function test_failed_primary_provider_falls_back_and_records_failures_in_metadata(): void
+    {
+        Storage::fake('s3');
+        $user = User::factory()->create();
+        $generation = $this->createGeneration($user);
+        $credits = app(CreditService::class);
+        $credits->reserve($user, $generation, 10);
+
+        $rateLimitedPrimary = new class implements GenerationProvider
+        {
+            public function key(): string
+            {
+                return 'google_imagen';
+            }
+
+            public function supports(string $type, ?int $durationSeconds = null): bool
+            {
+                return $type === 'image';
+            }
+
+            public function generate(GenerationInput $input): GenerationResult
+            {
+                throw new AiProviderException('محدودیت نرخ درخواست هوش مصنوعی گوگل (429) فرا رسیده است.');
+            }
+        };
+        $this->app->instance(ModelRouter::class, new ModelRouter([
+            $rateLimitedPrimary,
+            app(FakeGenerationProvider::class),
+        ]));
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), $credits);
+
+        $generation->refresh();
+        $this->assertSame('completed', $generation->status);
+        $this->assertSame('local', $generation->provider);
+        $this->assertSame('google_imagen', $generation->metadata['provider_failures'][0]['provider']);
+        $this->assertSame('محدودیت نرخ درخواست هوش مصنوعی گوگل (429) فرا رسیده است.', $generation->metadata['provider_failures'][0]['error']);
+        $this->assertSame(10, $generation->credits_charged);
+        $this->assertSame(0, $generation->user->creditAccount->fresh()->reserved);
     }
 
     private function createGeneration(User $user): Generation

@@ -44,8 +44,10 @@ class CircuitBreaker
 
         DB::transaction(function () use ($generationId, $estimatedUsd): void {
             $date = now()->toDateString();
-            AiDailyBudget::query()->firstOrCreate(['budget_date' => $date]);
-            $budget = AiDailyBudget::query()->where('budget_date', $date)->lockForUpdate()->firstOrFail();
+            // whereDate (not where): the model's date cast stores "Y-m-d 00:00:00",
+            // which only equals the plain date string on MySQL DATE columns.
+            $budget = AiDailyBudget::query()->whereDate('budget_date', $date)->lockForUpdate()->first()
+                ?? AiDailyBudget::query()->create(['budget_date' => $date]);
             $existing = AiBudgetReservation::query()->where('generation_id', $generationId)->lockForUpdate()->first();
             if ($existing !== null) {
                 return;
