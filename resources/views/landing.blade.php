@@ -6,10 +6,79 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
     <meta name="theme-color" content="#06070B">
+    <meta name="robots" content="index, follow">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="canonical" href="{{ url('/') }}">
     <title>Hale | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار</title>
+
+    {{-- Open Graph / Twitter: bare links shared in DMs and social feeds --}}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Hale">
+    <meta property="og:locale" content="fa_IR">
+    <meta property="og:url" content="{{ url('/') }}">
+    <meta property="og:title" content="Hale | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار">
+    <meta property="og:description" content="Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Hale | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار">
+    <meta name="twitter:description" content="Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
+
     @vite(['resources/css/app.css', 'resources/css/landing.css', 'resources/js/app.js'])
+
+    {{-- Structured data: the product card + the FAQ rendered below on this page --}}
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Hale",
+        "alternateName": "Hale AI Content Studio",
+        "url": "{{ url('/') }}",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "fa-IR",
+        "description": "Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt."
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "آیا نیاز به مهارت گرافیک یا نوشتن پرامپت دارم؟",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "خیر، به هیچ وجه. پلتفرم Hale طوری طراحی شده که شما تنها عکس معمولی محصولتان را با موبایل آپلود کرده و سبک مد نظرتان را با لمس دکمه‌ها انتخاب می‌کنید. مهندسی پرامپت و پردازش‌های تخصصی تماماً توسط الگوریتم خودکار ما انجام می‌شود."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "آیا خروجی‌ها برای چاپ کاتالوگ و سایت هم مناسب هستند؟",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "بله، فایل‌ها با رزولوشن استاندارد و وضوح بالا ذخیره می‌شوند و برای استفاده در سایت فروشگاهی (دیجی‌کالا، ترب، باسلام و فروشگاه شخصی) و همچنین چاپ با کیفیت عالی در دسترس هستند."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "اگر از تصویر خروجی راضی نبودم چه اتفاقی می‌افتد؟",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "شما می‌توانید از کلید «تولید مجدد (Regenerate)» استفاده کنید تا همان سبک با زاویه یا نور تازه‌ای خلق شود. همچنین در صورت بروز خطای سیستمی، اعتبار کسرشده در همان لحظه به کیف پول شما برگشت داده می‌شود."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "نحوه پرداخت و دریافت فاکتور رسمی چگونه است؟",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "پرداخت با کلیه کارت‌های عضو شبکه شتاب از طریق درگاه امن زرین‌پال انجام می‌شود و پس از پرداخت، فاکتور رسمی دیجیتال دارای شماره یکتا بلافاصله در پنل شما قابل مشاهده، پرینت و دانلود است."
+                }
+            }
+        ]
+    }
+    </script>
 </head>
 <body class="landing-page">
 

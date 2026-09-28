@@ -62,4 +62,61 @@ class LandingPageTest extends TestCase
         $this->assertSame('fa', $manifest['lang']);
         $this->assertSame('rtl', $manifest['dir']);
     }
+
+    public function test_landing_exposes_seo_meta_tags(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('<link rel="canonical" href="http://localhost"', false);
+        $response->assertSee('<meta name="robots" content="index, follow">', false);
+        $response->assertSee('<meta property="og:type" content="website">', false);
+        $response->assertSee('<meta property="og:site_name" content="Hale">', false);
+        $response->assertSee('<meta property="og:locale" content="fa_IR">', false);
+        $response->assertSee('<meta property="og:title"', false);
+        $response->assertSee('<meta property="og:description"', false);
+        $response->assertSee('<meta name="twitter:card" content="summary">', false);
+        $response->assertSee('<meta name="twitter:title"', false);
+    }
+
+    public function test_landing_exposes_valid_structured_data(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+
+        preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches);
+        $this->assertCount(2, $matches[1], 'Expected SoftwareApplication + FAQPage JSON-LD blocks.');
+
+        $software = json_decode($matches[1][0], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('SoftwareApplication', $software['@type']);
+        $this->assertSame('Hale', $software['name']);
+        $this->assertSame('DesignApplication', $software['applicationCategory']);
+        $this->assertSame('http://localhost', $software['url']);
+
+        $faq = json_decode($matches[1][1], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('FAQPage', $faq['@type']);
+        $this->assertCount(4, $faq['mainEntity']);
+
+        // Every JSON-LD question must exist verbatim on the visible page.
+        foreach ($faq['mainEntity'] as $question) {
+            $this->assertSame('Question', $question['@type']);
+            $this->assertStringContainsString($question['name'], $html);
+            $this->assertNotEmpty($question['acceptedAnswer']['text']);
+        }
+    }
+
+    public function test_structured_data_matches_the_rendered_faq_section(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+
+        // The JSON-LD answer text must match the <p> rendered inside #faq.
+        preg_match('#<section class="faq-section" id="faq".*?</section>#s', $html, $section);
+        $this->assertNotEmpty($section[0], 'FAQ section missing from landing page.');
+
+        preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches);
+        $faq = json_decode($matches[1][1], true, 512, JSON_THROW_ON_ERROR);
+
+        foreach ($faq['mainEntity'] as $question) {
+            $this->assertStringContainsString($question['acceptedAnswer']['text'], $section[0]);
+        }
+    }
 }
