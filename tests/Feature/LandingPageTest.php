@@ -173,16 +173,18 @@ class LandingPageTest extends TestCase
         $response = $this->get('/');
         $response->assertOk();
 
-        // one inline SVG per sample product + the initial cinematic scene
+        // high-resolution commercial photography per sample product + initial scene
         foreach (['perfume', 'shoe', 'watch'] as $art) {
             $response->assertSee('data-art="'.$art.'"', false, "Missing $art artwork in the simulator.");
+            $response->assertSee('/images/landing/sim-'.$art.'.webp', false, "Missing $art webp image source.");
+            $this->assertFileExists(public_path('images/landing/sim-'.$art.'.webp'));
+            $this->assertFileExists(public_path('images/landing/sim-'.$art.'.jpg'));
         }
         $response->assertSee('class="sim-render-card scene-cinematic"', false);
-        $response->assertSee('<svg viewBox="0 0 200 260"', false);
         $response->assertDontSee('sim-sample', false, 'The empty gradient placeholder box must be gone.');
 
         $css = $this->landingCssSources();
-        foreach (['scene-cinematic', 'scene-minimal', 'scene-natural', 'scene-neon', '.sim-art svg'] as $token) {
+        foreach (['scene-cinematic', 'scene-minimal', 'scene-natural', 'scene-neon', '.sim-art img', '.sim-scene-overlay'] as $token) {
             $this->assertStringContainsString($token, $css, "Missing simulator scene rule: $token");
         }
     }

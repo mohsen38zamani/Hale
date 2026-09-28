@@ -196,82 +196,27 @@
                                 <span id="sim-badge-text">سبک سینمایی لوکس</span>
                             </div>
 
-                            {{-- Product artwork: inline SVG per sample product (no network requests) --}}
+                            {{-- Real photorealistic commercial advertising imagery --}}
                             <div id="sim-graphic" class="sim-graphic" aria-hidden="true">
                                 <div class="sim-art" data-art="perfume">
-                                    <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <defs>
-                                            <linearGradient id="perfume-glass" x1="40" y1="70" x2="160" y2="215" gradientUnits="userSpaceOnUse">
-                                                <stop stop-color="#E9D5FF"/>
-                                                <stop offset="0.5" stop-color="#A855F7"/>
-                                                <stop offset="1" stop-color="#4C1D95"/>
-                                            </linearGradient>
-                                            <linearGradient id="perfume-shine" x1="0" y1="0" x2="1" y2="0">
-                                                <stop stop-color="#FFFFFF" stop-opacity="0.9"/>
-                                                <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <ellipse cx="100" cy="232" rx="60" ry="10" fill="#0F172A" fill-opacity="0.45"/>
-                                        <rect x="83" y="16" width="34" height="32" rx="8" fill="#111827"/>
-                                        <rect x="89" y="46" width="22" height="16" rx="3" fill="#1F2937"/>
-                                        <rect x="54" y="62" width="92" height="156" rx="24" fill="url(#perfume-glass)"/>
-                                        <rect x="55" y="63" width="90" height="154" rx="23" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2"/>
-                                        <rect x="64" y="74" width="14" height="130" rx="7" fill="url(#perfume-shine)"/>
-                                        <rect x="70" y="126" width="60" height="58" rx="9" fill="#FFFFFF" fill-opacity="0.94"/>
-                                        <text x="100" y="147" text-anchor="middle" font-size="9" letter-spacing="3" fill="#7C3AED" font-family="Georgia, serif">HALE</text>
-                                        <text x="100" y="164" text-anchor="middle" font-size="11" font-weight="700" fill="#111827" font-family="Georgia, serif">L'EAU</text>
-                                        <text x="100" y="177" text-anchor="middle" font-size="11" font-weight="700" fill="#111827" font-family="Georgia, serif">NOIR</text>
-                                    </svg>
+                                    <picture>
+                                        <source srcset="/images/landing/sim-perfume.webp" type="image/webp">
+                                        <img src="/images/landing/sim-perfume.jpg" alt="عطر لوکس فرانسوی L'EAU NOIR" width="600" height="600" loading="eager" decoding="async">
+                                    </picture>
                                 </div>
                                 <div class="sim-art" data-art="shoe" hidden>
-                                    <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <defs>
-                                            <linearGradient id="shoe-upper" x1="46" y1="128" x2="170" y2="198" gradientUnits="userSpaceOnUse">
-                                                <stop stop-color="#22D3EE"/>
-                                                <stop offset="0.55" stop-color="#3B82F6"/>
-                                                <stop offset="1" stop-color="#EC4899"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <ellipse cx="102" cy="220" rx="72" ry="10" fill="#0F172A" fill-opacity="0.45"/>
-                                        <path d="M44 196C40 154 68 130 106 130C134 130 152 142 162 158L170 178C173 187 168 196 158 196H44Z" fill="url(#shoe-upper)"/>
-                                        <path d="M142 134C155 139 163 150 167 162H150C146 151 143 142 142 134Z" fill="#0F172A" fill-opacity="0.85"/>
-                                        <g stroke="#FFFFFF" stroke-width="5" stroke-linecap="round">
-                                            <path d="M72 148L92 140"/>
-                                            <path d="M82 160L102 152"/>
-                                            <path d="M92 172L112 164"/>
-                                        </g>
-                                        <path d="M58 188C86 178 124 178 150 187" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="6" stroke-linecap="round"/>
-                                        <path d="M40 197C40 189 47 185 58 185H156C168 185 176 191 176 199C176 207 168 211 156 211H52C44 211 40 205 40 197Z" fill="#F8FAFC"/>
-                                        <path d="M44 205H172" stroke="#CBD5E1" stroke-width="3"/>
-                                        <rect x="52" y="232" width="96" height="22" rx="11" fill="#0B0D14" fill-opacity="0.72"/>
-                                        <text x="100" y="247" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="1.5" fill="#FFFFFF" font-family="Arial, sans-serif">AERO SPRINT</text>
-                                    </svg>
+                                    <picture>
+                                        <source srcset="/images/landing/sim-shoe.webp" type="image/webp">
+                                        <img src="/images/landing/sim-shoe.jpg" alt="کتانی ورزشی رانینگ AERO SPRINT" width="600" height="600" loading="lazy" decoding="async">
+                                    </picture>
                                 </div>
                                 <div class="sim-art" data-art="watch" hidden>
-                                    <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <defs>
-                                            <linearGradient id="watch-case" x1="58" y1="88" x2="142" y2="172" gradientUnits="userSpaceOnUse">
-                                                <stop stop-color="#475569"/>
-                                                <stop offset="1" stop-color="#0F172A"/>
-                                            </linearGradient>
-                                            <linearGradient id="watch-screen" x1="70" y1="100" x2="130" y2="160" gradientUnits="userSpaceOnUse">
-                                                <stop stop-color="#7C3AED"/>
-                                                <stop offset="1" stop-color="#06B6D4"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <ellipse cx="100" cy="244" rx="46" ry="8" fill="#0F172A" fill-opacity="0.45"/>
-                                        <path d="M78 24H122L119 96H81L78 24Z" fill="#1F2937"/>
-                                        <path d="M81 164H119L122 236H78L81 164Z" fill="#1F2937"/>
-                                        <path d="M81 34H119" stroke="#334155" stroke-width="3"/>
-                                        <path d="M81 226H119" stroke="#334155" stroke-width="3"/>
-                                        <rect x="58" y="88" width="84" height="84" rx="26" fill="url(#watch-case)"/>
-                                        <rect x="64" y="94" width="72" height="72" rx="21" fill="#0B0D14"/>
-                                        <rect x="70" y="100" width="60" height="60" rx="17" fill="url(#watch-screen)"/>
-                                        <rect x="140" y="118" width="9" height="24" rx="4.5" fill="#64748B"/>
-                                        <text x="100" y="124" text-anchor="middle" font-size="8" letter-spacing="3" fill="#E9D5FF" font-family="Arial, sans-serif">HALE</text>
-                                        <text x="100" y="146" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF" font-family="Arial, sans-serif">CHRONO X</text>
-                                    </svg>
+                                    <picture>
+                                        <source srcset="/images/landing/sim-watch.webp" type="image/webp">
+                                        <img src="/images/landing/sim-watch.jpg" alt="ساعت هوشمند لوکس CHRONO X" width="600" height="600" loading="lazy" decoding="async">
+                                    </picture>
                                 </div>
+                                <div class="sim-scene-overlay"></div>
                             </div>
 
                             <div class="sim-render-info">
@@ -642,6 +587,12 @@
             const simCard = document.getElementById('sim-card');
             simCard.classList.remove(...simSceneClasses);
             simCard.classList.add(`scene-${currentSim.style}`);
+
+            if (currentSim.format === '9:16') {
+                simCard.classList.add('format-9-16');
+            } else {
+                simCard.classList.remove('format-9-16');
+            }
 
             document.getElementById('sim-cost').textContent = currentSim.format === '9:16' ? '۸ Credit (تولید ویدیو)' : '۲ Credit (تولید تصویر)';
         };
