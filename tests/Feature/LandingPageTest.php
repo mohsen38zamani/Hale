@@ -168,6 +168,25 @@ class LandingPageTest extends TestCase
         }
     }
 
+    public function test_studio_simulator_shows_product_artwork_and_scenes(): void
+    {
+        $response = $this->get('/');
+        $response->assertOk();
+
+        // one inline SVG per sample product + the initial cinematic scene
+        foreach (['perfume', 'shoe', 'watch'] as $art) {
+            $response->assertSee('data-art="'.$art.'"', false, "Missing $art artwork in the simulator.");
+        }
+        $response->assertSee('class="sim-render-card scene-cinematic"', false);
+        $response->assertSee('<svg viewBox="0 0 200 260"', false);
+        $response->assertDontSee('sim-sample', false, 'The empty gradient placeholder box must be gone.');
+
+        $css = $this->landingCssSources();
+        foreach (['scene-cinematic', 'scene-minimal', 'scene-natural', 'scene-neon', '.sim-art svg'] as $token) {
+            $this->assertStringContainsString($token, $css, "Missing simulator scene rule: $token");
+        }
+    }
+
     /**
      * The landing page loads app.css + landing.css; landing-only rules may
      * live in either file after the stylesheet split.
