@@ -45,9 +45,60 @@ const setAuthMode = (mode) => {
 	}
 };
 
-document.querySelectorAll('[data-open-auth]').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.openAuth)));
-document.querySelectorAll('[data-close-auth]').forEach((button) => button.addEventListener('click', () => modal?.setAttribute('hidden', '')));
-document.querySelectorAll('[data-auth-tab]').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.authTab)));
+// --- modal accessibility: move focus in, close on Escape, trap Tab, restore ---
+let authOpener = null;
+
+const focusAuthField = () => {
+	const field = modal ? Array.from(modal.querySelectorAll('input')).find((el) => !el.closest('[hidden]')) : null;
+	(field || modal?.querySelector('.auth-panel'))?.focus();
+};
+
+const openAuth = (mode, opener) => {
+	authOpener = opener || document.activeElement;
+	setAuthMode(mode);
+	focusAuthField();
+};
+
+const closeAuth = () => {
+	if (!modal || modal.hasAttribute('hidden')) return;
+	modal.setAttribute('hidden', '');
+	if (authOpener && document.contains(authOpener)) authOpener.focus();
+	authOpener = null;
+};
+
+document.querySelectorAll('[data-open-auth]').forEach((button) => button.addEventListener('click', () => openAuth(button.dataset.openAuth, button)));
+document.querySelectorAll('[data-close-auth]').forEach((button) => button.addEventListener('click', closeAuth));
+document.querySelectorAll('[data-auth-tab]').forEach((button) => button.addEventListener('click', () => {
+	setAuthMode(button.dataset.authTab);
+	focusAuthField();
+}));
+
+document.addEventListener('keydown', (event) => {
+	if (!modal || modal.hasAttribute('hidden')) return;
+
+	if (event.key === 'Escape') {
+		closeAuth();
+		return;
+	}
+	if (event.key !== 'Tab') return;
+
+	const items = Array.from(modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+		.filter((el) => el.getClientRects().length > 0);
+	if (!items.length) return;
+
+	const first = items[0];
+	const last = items[items.length - 1];
+	if (event.shiftKey && document.activeElement === first) {
+		event.preventDefault();
+		last.focus();
+	} else if (!event.shiftKey && document.activeElement === last) {
+		event.preventDefault();
+		first.focus();
+	} else if (!modal.contains(document.activeElement)) {
+		event.preventDefault();
+		first.focus();
+	}
+});
 
 form?.addEventListener('submit', async (event) => {
 	event.preventDefault();

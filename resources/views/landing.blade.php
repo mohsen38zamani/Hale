@@ -81,6 +81,7 @@
     </script>
 </head>
 <body class="landing-page">
+    <a class="skip-link" href="#main">پرش به محتوای اصلی</a>
 
     {{-- ============ STRIPE AURORA GLOW BACKGROUND ============ --}}
     <div class="aurora-mesh" aria-hidden="true">
@@ -92,7 +93,7 @@
     {{-- ============ FRAMER FLOATING PILL NAVBAR ============ --}}
     <header class="framer-pill-nav">
         <a class="brand" href="/">H<span>•</span>le</a>
-        <nav class="nav-links">
+        <nav class="nav-links" aria-label="پیمایش اصلی">
             <a class="nav-link" href="#simulator">استودیوی تعاملی</a>
             <a class="nav-link" href="#compare">مقایسه کیفیت</a>
             <a class="nav-link" href="#features">امکانات</a>
@@ -105,7 +106,7 @@
         </button>
     </header>
 
-    <main>
+    <main id="main">
         {{-- ============ HERO SECTION ============ --}}
         <section class="hero-wrapper" id="top">
             <div class="badge-glow">
@@ -122,12 +123,12 @@
                 Hale عکس ساده موبایلی محصولت را می‌گیرد و تصویر لوکس استودیویی و ویدیوی آمادهٔ ریلز اینستاگرام تحویل می‌دهد. بدون عکاس، بدون دردسر هماهنگی، در چند ثانیه.
             </p>
 
-            <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; align-items: center; margin-bottom: 60px;">
-                <button class="btn-aurora" data-open-auth="register" style="padding: 14px 32px; font-size: 16px;">
+            <div class="hero-cta">
+                <button class="btn-aurora" data-open-auth="register">
                     <span>اولین خروجی‌ات را بساز</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
-                <a class="btn-glass" href="#simulator" style="padding: 14px 26px; font-size: 15px;">
+                <a class="btn-glass" href="#simulator">
                     <span>شبیه‌ساز استودیو</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
                 </a>
@@ -140,8 +141,8 @@
                         <span></span><span></span><span></span>
                     </div>
                     <div class="simulator-title">HALE STUDIO ENGINE — پیش‌نمایش تعاملی زنده</div>
-                    <span style="font-size: 12px; color: var(--accent-emerald); display: flex; align-items: center; gap: 6px;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-emerald); display: inline-block;"></span>
+                    <span class="sim-status">
+                        <span class="sim-status-dot"></span>
                         موتور فعال
                     </span>
                 </div>
@@ -176,12 +177,12 @@
                             </div>
                         </div>
 
-                        <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+                        <div class="sim-footer">
                             <div>
-                                <small style="color: var(--text-muted); display: block; font-size: 11px;">هزینه محاسبه‌شده:</small>
-                                <strong id="sim-cost" style="color: #FFFFFF; font-size: 15px;">۲ Credit (تولید تصویر)</strong>
+                                <small class="sim-cost-label">هزینه محاسبه‌شده:</small>
+                                <strong id="sim-cost" class="sim-cost">۲ Credit (تولید تصویر)</strong>
                             </div>
-                            <button class="btn-aurora" data-open-auth="register" style="padding: 8px 18px; font-size: 13px;">
+                            <button class="btn-aurora sim-cta" data-open-auth="register">
                                 ساخت همین محتوا ↗
                             </button>
                         </div>
@@ -191,24 +192,24 @@
                     <div class="simulator-display">
                         <div class="sim-render-card" id="sim-card">
                             <div class="sim-render-badge" id="sim-badge">
-                                <span style="color: #A855F7;">✦</span>
+                                <span class="spark">✦</span>
                                 <span id="sim-badge-text">سبک سینمایی لوکس</span>
                             </div>
 
                             {{-- Rendered Visual Element --}}
-                            <div id="sim-graphic" style="text-align: center; transform: scale(1.05); transition: all 0.3s ease;">
-                                <div style="width: 140px; height: 180px; margin: 0 auto; background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(139,92,246,0.3) 100%); border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
-                                    <span style="font-size: 10px; letter-spacing: 2px; color: #C084FC; font-weight: 700;">HALE</span>
-                                    <strong id="sim-graphic-title" style="font-size: 14px; color: #FFFFFF; font-weight: 800;">L'EAU NOIR</strong>
+                            <div id="sim-graphic" class="sim-graphic">
+                                <div class="sim-sample">
+                                    <span class="sim-sample-mark">HALE</span>
+                                    <strong id="sim-graphic-title" class="sim-sample-title">L'EAU NOIR</strong>
                                 </div>
                             </div>
 
                             <div class="sim-render-info">
                                 <div>
-                                    <strong id="sim-target-title" style="display: block; font-size: 14px; color: #FFFFFF;">عطر فرانسوی — زاویه روبرو</strong>
-                                    <small id="sim-target-meta" style="color: var(--text-muted); font-size: 12px;">نورپردازی حجمی · فرمت 1:1 اینستاگرام</small>
+                                    <strong id="sim-target-title">عطر فرانسوی — زاویه روبرو</strong>
+                                    <small id="sim-target-meta">نورپردازی حجمی · فرمت 1:1 اینستاگرام</small>
                                 </div>
-                                <span style="font-size: 11px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #C084FC; padding: 3px 10px; border-radius: 9999px;">
+                                <span class="sim-pill">
                                     Auto-Best
                                 </span>
                             </div>
@@ -220,14 +221,14 @@
 
         {{-- ============ FRAMER-STYLE BEFORE / AFTER SLIDER ============ --}}
         <section class="before-after-section" id="compare">
-            <div style="text-align: center; margin-bottom: 48px;">
-                <div class="badge-glow" style="margin-bottom: 12px;">
+            <div class="section-head">
+                <div class="badge-glow">
                     <span>تحول کیفیت عکس محصول</span>
                 </div>
-                <h2 style="font-size: clamp(28px, 4vw, 44px); font-weight: 800; margin: 0 0 16px;">
+                <h2 class="section-title">
                     عکس روی میز کار در برابر <span class="text-gradient">استودیوی هالیوودی</span>
                 </h2>
-                <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto; font-size: 15px;">
+                <p class="section-lead">
                     دستگیره وسط را به چپ و راست بکشید تا تفاوت عکس خام موبایلی را با خروجی پردازش‌شده توسط هوش مصنوعی Hale مقایسه کنید.
                 </p>
             </div>
@@ -235,14 +236,14 @@
             <div class="ba-slider-container" id="ba-container">
                 {{-- After Layer (AI Studio Result) --}}
                 <div class="ba-layer ba-layer-after">
-                    <div style="text-align: center; color: #FFFFFF; padding: 40px;">
-                        <div style="display: inline-block; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.5); padding: 6px 18px; border-radius: 9999px; font-size: 13px; font-weight: 700; color: #C084FC; margin-bottom: 20px;">
+                    <div class="ba-content">
+                        <div class="ba-pill">
                             ✦ خروجی هوش مصنوعی استودیو Hale
                         </div>
-                        <div style="font-size: 42px; font-weight: 900; letter-spacing: -1px; text-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+                        <div class="ba-headline">
                             نورپردازی سینمایی، سایه‌های واقعی و بافت غنی
                         </div>
-                        <p style="color: var(--text-secondary); font-size: 16px; margin-top: 14px;">
+                        <p class="ba-copy">
                             بدون پرده سبز، بدون سافت‌باکس و بدون هزینه میلیونی عکاسی
                         </p>
                     </div>
@@ -250,36 +251,38 @@
 
                 {{-- Before Layer (Raw Mobile Photo) --}}
                 <div class="ba-layer ba-layer-before" id="ba-before">
-                    <div style="text-align: center; color: #334155; padding: 40px; min-width: 800px;">
-                        <div style="display: inline-block; background: #CBD5E1; padding: 6px 18px; border-radius: 9999px; font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 20px;">
+                    <div class="ba-content">
+                        <div class="ba-pill">
                             عکس خام اولیه (با موبایل روی میز ساده)
                         </div>
-                        <div style="font-size: 38px; font-weight: 800; letter-spacing: -1px;">
+                        <div class="ba-headline">
                             نور نامناسب، پس‌زمینه شلوغ و بازتاب‌های مات
                         </div>
-                        <p style="color: #64748B; font-size: 16px; margin-top: 14px;">
+                        <p class="ba-copy">
                             عکسی که اسکرول اینستاگرام را متوقف نمی‌کند
                         </p>
                     </div>
                 </div>
 
-                {{-- Draggable Handle --}}
-                <div class="ba-handle" id="ba-handle">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>
+                {{-- Draggable Handle (pointer + keyboard, see script below) --}}
+                <div class="ba-handle" id="ba-handle" role="slider" tabindex="0"
+                     aria-label="مقایسه عکس قبل و بعد: با کلیدهای جهت‌دار حرکت دهید"
+                     aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>
                 </div>
             </div>
         </section>
 
         {{-- ============ ASYMMETRIC BENTO GRID SHOWCASE ============ --}}
         <section class="bento-section" id="features">
-            <div style="text-align: center; margin-bottom: 48px;">
-                <div class="badge-glow" style="margin-bottom: 12px;">
+            <div class="section-head">
+                <div class="badge-glow">
                     <span>مهندسی‌شده برای رشد فروش</span>
                 </div>
-                <h2 style="font-size: clamp(28px, 4vw, 44px); font-weight: 800; margin: 0 0 16px;">
+                <h2 class="section-title">
                     چرا فروشگاه‌ها <span class="text-gradient">Hale</span> را ترجیح می‌دهند؟
                 </h2>
-                <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto; font-size: 15px;">
+                <p class="section-lead">
                     پلتفرمی که صفر تا صد تولید محتوای شبکه‌های اجتماعی را اتوماتیک می‌کند.
                 </p>
             </div>
@@ -294,10 +297,10 @@
                             نه فقط تصویر؛ ویدیوهای تبلیغاتی متحرک و پویا با مدت‌های ۵، ۸ و ۱۰ ثانیه بسازید که الگوریتم اکسپلور اینستاگرام و تیک‌تاک عاشق آن است. حرکت دوربین، انیمیشن محصول و بازتاب‌های زنده بدون نیاز به افترافکت.
                         </p>
                     </div>
-                    <div style="margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap;">
-                        <span class="sim-chip active" style="font-size: 12px;">9:16 عمودی کامل</span>
-                        <span class="sim-chip" style="font-size: 12px;">خروجی MP4 کدک H.264</span>
-                        <span class="sim-chip" style="font-size: 12px;">پخش در ۶۰ فریم روان</span>
+                    <div class="bento-tags">
+                        <span class="sim-chip active">9:16 عمودی کامل</span>
+                        <span class="sim-chip">خروجی MP4 کدک H.264</span>
+                        <span class="sim-chip">پخش در ۶۰ فریم روان</span>
                     </div>
                 </div>
 
@@ -310,8 +313,8 @@
                             نیاز به پرامپت‌نویسی پیچیده انگلیسی ندارید. با یک کلیک، هوش مصنوعی ما بهترین پالت رنگ، سبک نورپردازی و زاویه را متناسب با دسته‌بندی محصولتان انتخاب می‌کند.
                         </p>
                     </div>
-                    <div style="margin-top: 24px;">
-                        <span style="font-size: 12px; color: var(--accent-cyan); font-weight: 600;">✦ تحلیل هوشمند دسته‌بندی و فرم کالا</span>
+                    <div class="bento-note">
+                        <span>✦ تحلیل هوشمند دسته‌بندی و فرم کالا</span>
                     </div>
                 </div>
 
@@ -335,7 +338,7 @@
                             سیستم توزیع‌شده با مقیاس‌پذیری آنی؛ حتی در زمان اوج ترافیک، پردازش‌های شما بدون افت کیفیت و در کسری از دقیقه آماده می‌شوند. در صورت هرگونه قطعی یا عدم رضایت از خروجی، اعتبار شما درجا و بدون کسر به حسابتان بازمی‌گردد.
                         </p>
                     </div>
-                    <div style="margin-top: 24px; display: flex; gap: 24px; color: var(--text-muted); font-size: 13px;">
+                    <div class="bento-checks">
                         <span>✓ صف اختصاصی Redis</span>
                         <span>✓ رزرو اتمیک Credit</span>
                         <span>✓ بازگشت آنی در خطا</span>
@@ -345,44 +348,46 @@
         </section>
 
         {{-- ============ SOCIAL PROOF NUMBERS ============ --}}
-        <section style="border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); background: rgba(255,255,255,0.01); padding: 48px 24px; margin-bottom: 100px;">
-            <div style="max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; text-align: center;">
+        <section class="stats-section" aria-label="آمار عملکرد">
+            <div class="stats-grid">
                 <div>
-                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">۱۰,۰۰۰+</div>
-                    <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">محتوای تبلیغاتی تولیدشده</div>
+                    <div class="stat-value">۱۰,۰۰۰+</div>
+                    <div class="stat-label">محتوای تبلیغاتی تولیدشده</div>
                 </div>
                 <div>
-                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">۵ برابر</div>
-                    <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">افزایش تعامل و کلیک در اینستاگرام</div>
+                    <div class="stat-value">۵ برابر</div>
+                    <div class="stat-label">افزایش تعامل و کلیک در اینستاگرام</div>
                 </div>
                 <div>
-                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">کمتر از ۲ دقیقه</div>
-                    <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">زمان میانگین تا دریافت خروجی</div>
+                    <div class="stat-value">کمتر از ۲ دقیقه</div>
+                    <div class="stat-label">زمان میانگین تا دریافت خروجی</div>
                 </div>
                 <div>
-                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">۴.۹ / ۵</div>
-                    <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">امتیاز رضایت فروشگاه‌های اینترنتی</div>
+                    <div class="stat-value">۴.۹ / ۵</div>
+                    <div class="stat-label">امتیاز رضایت فروشگاه‌های اینترنتی</div>
                 </div>
             </div>
         </section>
 
         {{-- ============ STRIPE-STYLE PRICING CARDS ============ --}}
         <section class="pricing-section" id="pricing">
-            <div class="badge-glow" style="margin-bottom: 12px;">
-                <span>پلن‌های شفاف و بدون هزینه مخفی</span>
+            <div class="section-head">
+                <div class="badge-glow">
+                    <span>پلن‌های شفاف و بدون هزینه مخفی</span>
+                </div>
+                <h2 class="section-title">
+                    تعرفه متناسب با <span class="text-gradient">اندازه کسب‌وکار شما</span>
+                </h2>
+                <p class="section-lead">
+                    همین حالا با ۳۰ کریدیت هدیه ثبت‌نام رایگان شروع کنید و در صورت نیاز ارتقا دهید.
+                </p>
             </div>
-            <h2 style="font-size: clamp(28px, 4vw, 44px); font-weight: 800; margin: 0 0 16px;">
-                تعرفه متناسب با <span class="text-gradient">اندازه کسب‌وکار شما</span>
-            </h2>
-            <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto; font-size: 15px;">
-                همین حالا با ۳۰ کریدیت هدیه ثبت‌نام رایگان شروع کنید و در صورت نیاز ارتقا دهید.
-            </p>
 
             <div class="pricing-grid">
                 {{-- Free Plan --}}
                 <div class="pricing-card">
                     <h3>پلن رایگان (شروع)</h3>
-                    <p style="color: var(--text-muted); font-size: 13px; margin: 0;">برای تست و شروع کسب‌وکارهای نوپا</p>
+                    <p>برای تست و شروع کسب‌وکارهای نوپا</p>
                     <div class="pricing-price">
                         ۰ <small>تومان / ماهانه</small>
                     </div>
@@ -392,7 +397,7 @@
                         <li><span class="check">✓</span> دسترسی به تمام سبک‌های تصویری</li>
                         <li><span class="check">✓</span> واترمارک نامحسوس Hale</li>
                     </ul>
-                    <button class="btn-glass" data-open-auth="register" style="width: 100%; justify-content: center;">
+                    <button class="btn-glass pricing-cta" data-open-auth="register">
                         شروع رایگان
                     </button>
                 </div>
@@ -400,7 +405,7 @@
                 {{-- Starter Plan --}}
                 <div class="pricing-card">
                     <h3>استارتر (حرفه‌ای)</h3>
-                    <p style="color: var(--text-muted); font-size: 13px; margin: 0;">مناسب برای پیج‌های فروشگاهی فعال</p>
+                    <p>مناسب برای پیج‌های فروشگاهی فعال</p>
                     <div class="pricing-price">
                         ۲۹۰,۰۰۰ <small>تومان / ماهانه</small>
                     </div>
@@ -411,7 +416,7 @@
                         <li><span class="check">✓</span> اولویت پردازش بالا در صف ابری</li>
                         <li><span class="check">✓</span> دانلود با بالاترین کیفیت 4K</li>
                     </ul>
-                    <button class="btn-aurora" data-open-auth="register" style="width: 100%; justify-content: center;">
+                    <button class="btn-aurora pricing-cta" data-open-auth="register">
                         انتخاب پلن استارتر
                     </button>
                 </div>
@@ -420,7 +425,7 @@
                 <div class="pricing-card featured">
                     <div class="pricing-badge">محبوب‌ترین انتخاب برندها</div>
                     <h3>کریتور (نامحدود تجاری)</h3>
-                    <p style="color: var(--text-muted); font-size: 13px; margin: 0;">برای آژانس‌ها و فروشگاه‌های پرتولید</p>
+                    <p>برای آژانس‌ها و فروشگاه‌های پرتولید</p>
                     <div class="pricing-price">
                         ۶۹۰,۰۰۰ <small>تومان / ماهانه</small>
                     </div>
@@ -432,7 +437,7 @@
                         <li><span class="check">✓</span> فاکتور رسمی با کد رهگیری مالیاتی</li>
                         <li><span class="check">✓</span> پشتیبانی اختصاصی تلگرام و تیکت</li>
                     </ul>
-                    <button class="btn-aurora" data-open-auth="register" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #EC4899, #8B5CF6);">
+                    <button class="btn-aurora pricing-cta" data-open-auth="register">
                         انتخاب پلن کریتور
                     </button>
                 </div>
@@ -440,41 +445,41 @@
         </section>
 
         {{-- ============ INTERACTIVE FAQ ACCORDION ============ --}}
-        <section class="faq-section" id="faq" style="max-width: 860px; margin: 0 auto 120px; padding: 0 24px;">
-            <div style="text-align: center; margin-bottom: 48px;">
-                <div class="badge-glow" style="margin-bottom: 12px;">
+        <section class="faq-section" id="faq">
+            <div class="section-head">
+                <div class="badge-glow">
                     <span>پاسخ به ابهامات متداول</span>
                 </div>
-                <h2 style="font-size: clamp(26px, 3.5vw, 40px); font-weight: 800; margin: 0;">
+                <h2 class="section-title">
                     پرسش‌های پرتکرار شما
                 </h2>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-                <details style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px 24px; cursor: pointer;" open>
-                    <summary style="font-weight: 700; font-size: 16px; color: #FFFFFF; outline: 0;">آیا نیاز به مهارت گرافیک یا نوشتن پرامپت دارم؟</summary>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.8; margin-top: 12px; margin-bottom: 0;">
+            <div class="faq-list">
+                <details class="faq-item" open>
+                    <summary>آیا نیاز به مهارت گرافیک یا نوشتن پرامپت دارم؟</summary>
+                    <p>
                         خیر، به هیچ وجه. پلتفرم Hale طوری طراحی شده که شما تنها عکس معمولی محصولتان را با موبایل آپلود کرده و سبک مد نظرتان را با لمس دکمه‌ها انتخاب می‌کنید. مهندسی پرامپت و پردازش‌های تخصصی تماماً توسط الگوریتم خودکار ما انجام می‌شود.
                     </p>
                 </details>
 
-                <details style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px 24px; cursor: pointer;">
-                    <summary style="font-weight: 700; font-size: 16px; color: #FFFFFF; outline: 0;">آیا خروجی‌ها برای چاپ کاتالوگ و سایت هم مناسب هستند؟</summary>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.8; margin-top: 12px; margin-bottom: 0;">
+                <details class="faq-item">
+                    <summary>آیا خروجی‌ها برای چاپ کاتالوگ و سایت هم مناسب هستند؟</summary>
+                    <p>
                         بله، فایل‌ها با رزولوشن استاندارد و وضوح بالا ذخیره می‌شوند و برای استفاده در سایت فروشگاهی (دیجی‌کالا، ترب، باسلام و فروشگاه شخصی) و همچنین چاپ با کیفیت عالی در دسترس هستند.
                     </p>
                 </details>
 
-                <details style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px 24px; cursor: pointer;">
-                    <summary style="font-weight: 700; font-size: 16px; color: #FFFFFF; outline: 0;">اگر از تصویر خروجی راضی نبودم چه اتفاقی می‌افتد؟</summary>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.8; margin-top: 12px; margin-bottom: 0;">
+                <details class="faq-item">
+                    <summary>اگر از تصویر خروجی راضی نبودم چه اتفاقی می‌افتد؟</summary>
+                    <p>
                         شما می‌توانید از کلید «تولید مجدد (Regenerate)» استفاده کنید تا همان سبک با زاویه یا نور تازه‌ای خلق شود. همچنین در صورت بروز خطای سیستمی، اعتبار کسرشده در همان لحظه به کیف پول شما برگشت داده می‌شود.
                     </p>
                 </details>
 
-                <details style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px 24px; cursor: pointer;">
-                    <summary style="font-weight: 700; font-size: 16px; color: #FFFFFF; outline: 0;">نحوه پرداخت و دریافت فاکتور رسمی چگونه است؟</summary>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.8; margin-top: 12px; margin-bottom: 0;">
+                <details class="faq-item">
+                    <summary>نحوه پرداخت و دریافت فاکتور رسمی چگونه است؟</summary>
+                    <p>
                         پرداخت با کلیه کارت‌های عضو شبکه شتاب از طریق درگاه امن زرین‌پال انجام می‌شود و پس از پرداخت، فاکتور رسمی دیجیتال دارای شماره یکتا بلافاصله در پنل شما قابل مشاهده، پرینت و دانلود است.
                     </p>
                 </details>
@@ -482,15 +487,15 @@
         </section>
 
         {{-- ============ BOTTOM CTA ============ --}}
-        <section style="max-width: 1000px; margin: 0 auto 120px; padding: 0 24px;">
-            <div style="background: radial-gradient(circle at top, rgba(139,92,246,0.3) 0%, rgba(15,18,28,0.9) 70%); border: 1px solid rgba(139,92,246,0.4); border-radius: 32px; padding: 60px 32px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
-                <h2 style="font-size: clamp(30px, 4.5vw, 52px); font-weight: 900; margin: 0 0 16px;">
+        <section class="cta-section">
+            <div class="cta-panel">
+                <h2 class="cta-title">
                     آماده‌اید فروش محصولتان را متحول کنید؟
                 </h2>
-                <p style="color: var(--text-secondary); font-size: 16px; max-width: 540px; margin: 0 auto 36px;">
+                <p class="cta-copy">
                     بدون نیاز به کارت بانکی ثبت‌نام کنید و ۳۰ کریدیت هدیه برای اولین تصاویر و ویدیوهای تبلیغاتی‌تان دریافت کنید.
                 </p>
-                <button class="btn-aurora" data-open-auth="register" style="padding: 16px 36px; font-size: 16px;">
+                <button class="btn-aurora cta-final" data-open-auth="register">
                     <span>شروع رایگان در کمتر از ۱ دقیقه</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
@@ -499,19 +504,19 @@
     </main>
 
     {{-- ============ MODERN FOOTER ============ --}}
-    <footer style="border-top: 1px solid var(--border-subtle); padding: 48px 24px; background: rgba(6,7,11,0.8); text-align: center;">
-        <div style="max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 20px;">
-            <a class="brand" href="/" style="font-size: 28px;">H<span>•</span>le</a>
-            <p style="color: var(--text-muted); font-size: 13px; max-width: 440px; margin: 0;">
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <a class="brand" href="/">H<span>•</span>le</a>
+            <p class="site-footer-note">
                 پلتفرم ابری هوش مصنوعی برای تولید محتوای تبلیغاتی محصولات فروشگاه‌ها
             </p>
-            <div style="display: flex; gap: 24px; font-size: 13px; color: var(--text-secondary);">
-                <a href="/terms" style="color: inherit; text-decoration: none;">شرایط استفاده</a>
-                <a href="/privacy" style="color: inherit; text-decoration: none;">حریم خصوصی</a>
-                <a href="#pricing" style="color: inherit; text-decoration: none;">تعرفه‌ها</a>
-                <a href="mailto:support@hale.ai" style="color: inherit; text-decoration: none;">پشتیبانی</a>
+            <div class="site-footer-links">
+                <a href="/terms">شرایط استفاده</a>
+                <a href="/privacy">حریم خصوصی</a>
+                <a href="#pricing">تعرفه‌ها</a>
+                <a href="mailto:support@hale.ai">پشتیبانی</a>
             </div>
-            <small style="color: var(--text-muted); font-size: 12px; margin-top: 12px;">
+            <small class="site-footer-copy">
                 © ۱۴۰۵ تمامی حقوق برای استودیو هوشمند Hale محفوظ است.
             </small>
         </div>
@@ -592,21 +597,25 @@
             });
         });
 
-        // 2. Framer-Style Interactive Drag Comparison Slider
+        // 2. Framer-Style Interactive Drag Comparison Slider (pointer + touch + keyboard)
         const baContainer = document.getElementById('ba-container');
         const baBefore = document.getElementById('ba-before');
         const baHandle = document.getElementById('ba-handle');
 
         if (baContainer && baBefore && baHandle) {
             let isDragging = false;
+            let sliderPercent = 50;
+
+            const applySlider = (percent) => {
+                sliderPercent = Math.min(97, Math.max(3, percent));
+                baBefore.style.width = (100 - sliderPercent) + '%';
+                baHandle.style.left = sliderPercent + '%';
+                baHandle.setAttribute('aria-valuenow', String(Math.round(sliderPercent)));
+            };
+
             const setSliderPos = (clientX) => {
                 const rect = baContainer.getBoundingClientRect();
-                let x = clientX - rect.left;
-                if (x < 20) x = 20;
-                if (x > rect.width - 20) x = rect.width - 20;
-                const percent = (x / rect.width) * 100;
-                baBefore.style.width = (100 - percent) + '%';
-                baHandle.style.left = percent + '%';
+                applySlider(((clientX - rect.left) / rect.width) * 100);
             };
 
             baContainer.addEventListener('mousedown', (e) => { isDragging = true; setSliderPos(e.clientX); });
@@ -616,6 +625,27 @@
             baContainer.addEventListener('touchstart', (e) => { isDragging = true; setSliderPos(e.touches[0].clientX); });
             window.addEventListener('touchend', () => { isDragging = false; });
             window.addEventListener('touchmove', (e) => { if (isDragging) setSliderPos(e.touches[0].clientX); });
+
+            baHandle.addEventListener('keydown', (e) => {
+                const step = 5;
+                let next = null;
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = sliderPercent - step;
+                else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = sliderPercent + step;
+                else if (e.key === 'Home') next = 3;
+                else if (e.key === 'End') next = 97;
+                if (next !== null) {
+                    e.preventDefault();
+                    applySlider(next);
+                }
+            });
+        }
+
+        // 3. Pill navbar compact state once the hero scrolls away
+        const pillNav = document.querySelector('.framer-pill-nav');
+        if (pillNav) {
+            const syncNav = () => pillNav.classList.toggle('is-scrolled', window.scrollY > 24);
+            syncNav();
+            window.addEventListener('scroll', syncNav, { passive: true });
         }
 
         if ('serviceWorker' in navigator) {

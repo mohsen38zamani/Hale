@@ -17,7 +17,44 @@ class LandingPageTest extends TestCase
         $response->assertSee('rel="icon"', false);
         $response->assertSee('id="simulator"', false);
         $response->assertSee('id="compare"', false);
-        $response->assertSee('flex-wrap: wrap', false, 'Hero CTAs must wrap on narrow phones.');
+
+        // hero CTA row moved from inline styles into .hero-cta
+        $response->assertSee('class="hero-cta"', false);
+        $this->assertStringContainsString('flex-wrap: wrap', $this->landingCssSources());
+    }
+
+    public function test_landing_accessibility_wiring(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk();
+        // skip link + main landmark
+        $response->assertSee('class="skip-link"', false);
+        $response->assertSee('<main id="main">', false);
+        // labelled navigation
+        $response->assertSee('<nav class="nav-links" aria-label=', false);
+        // keyboard-operable before/after slider
+        $response->assertSee('role="slider"', false);
+        $response->assertSee('aria-valuenow="50"', false);
+        $response->assertSee('tabindex="0"', false);
+
+        $css = $this->landingCssSources();
+        $this->assertStringContainsString('touch-action: none', $css, 'Slider drags must not scroll the page on touch devices.');
+        $this->assertStringContainsString('.skip-link', $css);
+        $this->assertStringContainsString('.faq-item', $css);
+        $this->assertStringContainsString('.site-footer', $css);
+    }
+
+    public function test_landing_moved_inline_styles_into_classes(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        $css = $this->landingCssSources();
+
+        // Every scaffolding class the rebuild introduced must be styled.
+        foreach (['section-head', 'section-title', 'section-lead', 'sim-status', 'sim-footer', 'ba-content', 'ba-pill', 'bento-tags', 'stats-grid', 'stat-value', 'pricing-cta', 'faq-list', 'cta-panel', 'site-footer-links'] as $class) {
+            $this->assertStringContainsString($class, $html, "Missing .$class markup on the landing page.");
+            $this->assertStringContainsString('.'.$class, $css, "Missing .$class rule in the landing stylesheets.");
+        }
     }
 
     public function test_aurora_text_gradient_variable_is_defined_in_source_css(): void
