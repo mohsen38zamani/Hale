@@ -6,6 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
     <meta name="theme-color" content="#06070B">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="manifest" href="/manifest.webmanifest">
     <title>Hale | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار</title>
     @vite(['resources/css/app.css', 'resources/css/landing.css', 'resources/js/app.js'])
 </head>
@@ -51,7 +53,7 @@
                 Hale عکس ساده موبایلی محصولت را می‌گیرد و تصویر لوکس استودیویی و ویدیوی آمادهٔ ریلز اینستاگرام تحویل می‌دهد. بدون عکاس، بدون دردسر هماهنگی، در چند ثانیه.
             </p>
 
-            <div style="display: flex; gap: 16px; justify-content: center; align-items: center; margin-bottom: 60px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; align-items: center; margin-bottom: 60px;">
                 <button class="btn-aurora" data-open-auth="register" style="padding: 14px 32px; font-size: 16px;">
                     <span>اولین خروجی‌ات را بساز</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -277,19 +279,19 @@
         <section style="border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); background: rgba(255,255,255,0.01); padding: 48px 24px; margin-bottom: 100px;">
             <div style="max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; text-align: center;">
                 <div>
-                    <div style="font-size: 42px; font-weight: 900; color: #FFFFFF;" class="text-gradient">۱۰,۰۰۰+</div>
+                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">۱۰,۰۰۰+</div>
                     <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">محتوای تبلیغاتی تولیدشده</div>
                 </div>
                 <div>
-                    <div style="font-size: 42px; font-weight: 900; color: #FFFFFF;" class="text-gradient">۵ برابر</div>
+                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">۵ برابر</div>
                     <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">افزایش تعامل و کلیک در اینستاگرام</div>
                 </div>
                 <div>
-                    <div style="font-size: 42px; font-weight: 900; color: #FFFFFF;" class="text-gradient">کمتر از ۲ دقیقه</div>
+                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">کمتر از ۲ دقیقه</div>
                     <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">زمان میانگین تا دریافت خروجی</div>
                 </div>
                 <div>
-                    <div style="font-size: 42px; font-weight: 900; color: #FFFFFF;" class="text-gradient">۴.۹ / ۵</div>
+                    <div style="font-size: clamp(26px, 6vw, 42px); font-weight: 900; color: #FFFFFF;" class="text-gradient">۴.۹ / ۵</div>
                     <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">امتیاز رضایت فروشگاه‌های اینترنتی</div>
                 </div>
             </div>
