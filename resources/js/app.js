@@ -451,38 +451,6 @@ if (builderForm) {
 	});
 }
 
-// ---- Landing hero 3D tilt (pointer + device orientation, desktop only) ----
-if (document.body.classList.contains('landing-page') && matchMedia('(hover: hover)').matches) {
-	const card = document.querySelector('[data-tilt]');
-	if (card) {
-		let raf = 0;
-		const apply = (rx, ry) => { card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`; };
-		const move = (px, py) => {
-			cancelAnimationFrame(raf);
-			raf = requestAnimationFrame(() => {
-				const ry = (px - 0.5) * 24;
-				const rx = (0.5 - py) * 16;
-				apply(rx, ry);
-				card.style.setProperty('--glow-x', `${px * 100}%`);
-				card.style.setProperty('--glow-y', `${py * 100}%`);
-			});
-		};
-		const onPointer = (event) => {
-			const rect = card.getBoundingClientRect();
-			move((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
-		};
-		window.addEventListener('pointermove', (event) => {
-			if (event.pointerType === 'touch') return;
-			onPointer(event);
-		});
-		window.addEventListener('deviceorientation', (event) => {
-			if (event.beta === null || event.gamma === null) return;
-			move(Math.min(1, Math.max(0, 0.5 + event.gamma / 60)), Math.min(1, Math.max(0, 0.5 + (event.beta - 45) / 60)));
-		});
-		window.addEventListener('pointerleave', () => apply(0, 0));
-	}
-}
-
 const generationPage = document.querySelector('[data-generation-id]');
 if (generationPage) {
 	const generationId = generationPage.dataset.generationId;

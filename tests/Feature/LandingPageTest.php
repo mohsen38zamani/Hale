@@ -22,7 +22,7 @@ class LandingPageTest extends TestCase
 
     public function test_aurora_text_gradient_variable_is_defined_in_source_css(): void
     {
-        $css = file_get_contents(resource_path('css/app.css'));
+        $css = $this->landingCssSources();
 
         $this->assertStringContainsString(
             '--aurora-text:',
@@ -33,7 +33,7 @@ class LandingPageTest extends TestCase
 
     public function test_mobile_navigation_hides_section_links_on_small_viewports(): void
     {
-        $css = file_get_contents(resource_path('css/app.css'));
+        $css = $this->landingCssSources();
 
         $this->assertMatchesRegularExpression(
             '/@media \(max-width: 768px\).*?\.nav-links\s*\{\s*display:\s*none;/s',
@@ -44,7 +44,7 @@ class LandingPageTest extends TestCase
 
     public function test_fixed_navbar_anchor_targets_clear_the_pill_height(): void
     {
-        $css = file_get_contents(resource_path('css/app.css'));
+        $css = $this->landingCssSources();
 
         $this->assertMatchesRegularExpression(
             '/\.landing-page \[id\]\s*\{\s*scroll-margin-top:\s*96px;/',
@@ -118,5 +118,26 @@ class LandingPageTest extends TestCase
         foreach ($faq['mainEntity'] as $question) {
             $this->assertStringContainsString($question['acceptedAnswer']['text'], $section[0]);
         }
+    }
+
+    public function test_only_the_landing_page_loads_the_landing_stylesheet(): void
+    {
+        $this->get('/')->assertOk()->assertSee('/build/assets/landing-', false);
+
+        foreach (['/dashboard', '/create', '/pricing', '/admin', '/terms'] as $uri) {
+            $this->get($uri)
+                ->assertOk()
+                ->assertDontSee('/build/assets/landing-', false, "$uri must not ship landing-only CSS.");
+        }
+    }
+
+    /**
+     * The landing page loads app.css + landing.css; landing-only rules may
+     * live in either file after the stylesheet split.
+     */
+    private function landingCssSources(): string
+    {
+        return file_get_contents(resource_path('css/app.css'))."\n"
+            .file_get_contents(resource_path('css/landing.css'));
     }
 }

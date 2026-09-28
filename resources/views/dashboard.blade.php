@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>میز کار استودیو | Hale</title>
-    @vite(['resources/css/app.css', 'resources/css/landing.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="dashboard-page">
     {{-- Ambient Glow --}}
