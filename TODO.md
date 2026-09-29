@@ -321,12 +321,13 @@
 
 ### استودیوی جامع تصویرسازی و تولید محتوای محصول (Advanced AI Product Studio)
 
-- [ ] **پیش‌نمایش زنده در صفحه استودیو (`/create` - Live Interactive Preview Canvas):**
-  - جایگزینی سایدبار متنی استاتیک فعلی با بوم پیش‌نمایش دوطرفه (Split Studio Canvas) مشابه Google Product Studio و Flair.ai.
-  - نمایش زنده تصویر کات‌اوت محصول انتخاب‌شده روی بوم به محض انتخاب از دراپ‌داون.
-  - هماهنگی خودکار نسبت ابعاد کادر (۱:۱ یا ۹:۱۶) روی بوم پیش‌نمایش متناسب با فرمت انتخابی.
-  - اعمال لایهٔ اتمسفر نوری، وینیِت و پس‌زمینهٔ موکاپ بر اساس سبک و محیط انتخابی برای اطمینان کاربر از خروجی پیش از مصرف اعتبار.
-  - نمایش زنده خلاصه پرامپت تولیدی هوش مصنوعی (Prompt Inspector) در پایین بوم.
+- [x] **پیش‌نمایش زنده در صفحه استودیو (`/create` - Live Interactive Preview Canvas):**
+  - جایگزینی سایدبار متنی با بوم استودیویی Split Canvas مدرن در [create.blade.php](file:///var/www/html/Hale'/resources/views/create.blade.php) و استایل‌های شیشه‌ای تاریک در [app.css](file:///var/www/html/Hale'/resources/css/app.css).
+  - نمایش زنده تصویر کات‌اوت محصول انتخاب‌شده به همراه لایه سایه سه‌بعدی و پایه (Pedestal / Grounding Shadow).
+  - هماهنگی خودکار نسبت ابعاد کادر (۱:۱ و ۹:۱۶) با ترنزیشن نرم CSS و نشانگر وضعیت و رزولوشن.
+  - اعمال اتمسفر نوری، وینیِت و پس‌زمینهٔ موکاپ بر اساس سبک و محیط انتخابی با CSS/Blend-mode بدون مصرف API.
+  - باکس بازرس زنده پرامپت (Prompt Inspector) زیر بوم با چیپ‌های تفکیک‌شده، هایلایت پرامپت دلخواه و دکمه کپی پرامپت.
+  - پوشش با تست ویژگی [StudioPreviewViewTest.php](file:///var/www/html/Hale'/tests/Feature/Generations/StudioPreviewViewTest.php) (۲۳۳ تست پاس‌شده).
 - [x] **باکس توضیحات و پرامپت دلخواه کاربر (Custom Text Prompt / Scene Description Box):**
   - افزودن فیلد چندخطی اختیاری با شمارنده زنده کاراکتر (`textarea[name="custom_prompt"]`) به فرم استودیو در [create.blade.php](file:///var/www/html/Hale'/resources/views/create.blade.php) و اتصال آن در [app.js](file:///var/www/html/Hale'/resources/js/app.js).
   - مایگریشن و ذخیره‌سازی در ستون `custom_prompt` جدول `creative_projects` و مدل [CreativeProject.php](file:///var/www/html/Hale'/app/Domains/Creative/Models/CreativeProject.php).

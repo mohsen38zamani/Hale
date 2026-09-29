@@ -395,13 +395,171 @@ if (notificationList) {
 
 const builderForm = document.querySelector('[data-builder-form]');
 if (builderForm) {
-	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok' };
+	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok', studio: 'استودیو', urban: 'شهری', nature: 'طبیعت', home: 'خانه و دکور', abstract: 'انتزاعی و مدرن' };
 	const select = document.querySelector('[data-product-select]');
 	const message = document.querySelector('[data-builder-message]');
 	const formatBox = document.querySelector('[data-formats]');
 	const durationField = document.querySelector('[data-duration-field]');
 	const duration = document.querySelector('[data-duration]');
 	const estimate = document.querySelector('[data-credit-estimate]');
+
+	// Live Studio Preview Canvas elements
+	const canvasStage = document.querySelector('[data-canvas-stage]');
+	const canvasAtmosphere = document.querySelector('[data-canvas-atmosphere]');
+	const canvasStyleBadge = document.querySelector('[data-canvas-style-badge]');
+	const canvasFormatChip = document.querySelector('[data-canvas-format-chip]');
+	const canvasProductImg = document.querySelector('[data-canvas-product-img]');
+	const canvasPlaceholder = document.querySelector('[data-canvas-placeholder]');
+	const canvasPlaceholderTitle = document.querySelector('[data-canvas-placeholder-title]');
+	const copyPromptBtn = document.querySelector('[data-copy-prompt]');
+	const inspectorCode = document.querySelector('[data-inspector-code]');
+	const chipProduct = document.querySelector('[data-chip-product]');
+	const chipGoal = document.querySelector('[data-chip-goal]');
+	const chipStyle = document.querySelector('[data-chip-style]');
+	const chipEnv = document.querySelector('[data-chip-env]');
+	const chipFormat = document.querySelector('[data-chip-format]');
+	const productsMap = new Map();
+	const cachedProductBlobUrls = new Map();
+
+	const aspectRatios = {
+		instagram_post: '1:1',
+		instagram_story: '9:16',
+		instagram_reel: '9:16',
+		tiktok: '9:16',
+	};
+
+	const updateProductArtwork = async (productId) => {
+		if (!productId || !productsMap.has(String(productId))) {
+			if (canvasProductImg) {
+				canvasProductImg.style.display = 'none';
+				canvasProductImg.src = '';
+			}
+			if (canvasPlaceholder) {
+				canvasPlaceholder.style.display = 'flex';
+				if (canvasPlaceholderTitle) canvasPlaceholderTitle.textContent = 'محصول را انتخاب کن';
+			}
+			return;
+		}
+
+		const product = productsMap.get(String(productId));
+		const primaryAsset = product.assets?.[0];
+
+		if (primaryAsset) {
+			try {
+				let blobUrl = cachedProductBlobUrls.get(primaryAsset.id);
+				if (!blobUrl) {
+					const response = await authFetch(`/api/products/${product.id}/assets/${primaryAsset.id}/download`, {
+						headers: { Accept: 'image/*' }
+					});
+					if (response.ok) {
+						const blob = await response.blob();
+						blobUrl = URL.createObjectURL(blob);
+						cachedProductBlobUrls.set(primaryAsset.id, blobUrl);
+					}
+				}
+
+				if (blobUrl && canvasProductImg) {
+					canvasProductImg.src = blobUrl;
+					canvasProductImg.alt = product.name;
+					canvasProductImg.style.display = 'block';
+					canvasProductImg.style.opacity = '1';
+					if (canvasPlaceholder) canvasPlaceholder.style.display = 'none';
+					return;
+				}
+			} catch (_) {}
+		}
+
+		if (canvasProductImg) {
+			canvasProductImg.style.display = 'none';
+			canvasProductImg.src = '';
+		}
+		if (canvasPlaceholder) {
+			canvasPlaceholder.style.display = 'flex';
+			if (canvasPlaceholderTitle) canvasPlaceholderTitle.textContent = product.name;
+		}
+	};
+
+	const updateCanvasState = () => {
+		const format = formatBox?.querySelector('input[name="format"]:checked')?.value || 'instagram_post';
+		const isVertical = ['instagram_story', 'instagram_reel', 'tiktok'].includes(format);
+		const style = builderForm.querySelector('input[name="style"]:checked')?.value || 'luxury';
+		const env = document.querySelector('[data-environment]')?.value || 'studio';
+		const goal = builderForm.querySelector('input[name="goal"]:checked')?.value || 'sales';
+		const selectedProductId = select.value;
+		const product = productsMap.get(String(selectedProductId));
+		const customPromptInput = document.querySelector('[data-custom-prompt]');
+		const customPromptText = (customPromptInput?.value || '').trim();
+
+		if (canvasStage) {
+			canvasStage.classList.toggle('ratio-1-1', !isVertical);
+			canvasStage.classList.toggle('ratio-9-16', isVertical);
+		}
+
+		if (canvasFormatChip) {
+			canvasFormatChip.textContent = isVertical ? '۹:۱۶ · عمودی (استوری / ریلز)' : '۱:۱ · مربعی (پست)';
+		}
+
+		if (canvasAtmosphere) {
+			canvasAtmosphere.className = `stage-atmosphere style-${style}`;
+		}
+
+		if (canvasStyleBadge) {
+			const styleLabel = labels[style] || style;
+			const envLabel = labels[env] || env;
+			canvasStyleBadge.textContent = `سبک: ${styleLabel} · محیط: ${envLabel}`;
+		}
+
+		if (chipProduct) chipProduct.textContent = `محصول: ${product ? product.name : 'انتخاب نشده'}`;
+		if (chipGoal) chipGoal.textContent = `هدف: ${labels[goal] || goal}`;
+		if (chipStyle) chipStyle.textContent = `سبک: ${labels[style] || style}`;
+		if (chipEnv) chipEnv.textContent = `محیط: ${labels[env] || env}`;
+		if (chipFormat) chipFormat.textContent = `فرمت: ${aspectRatios[format] || '۱:۱'}`;
+
+		if (inspectorCode) {
+			if (!product) {
+				inspectorCode.textContent = 'محصول مورد نظر را برای مشاهده پرامپت تولیدی انتخاب کنید...';
+				return;
+			}
+
+			const productName = product.name;
+			const formatRatio = aspectRatios[format] || '1:1';
+			const isVideo = ['instagram_reel', 'tiktok'].includes(format);
+
+			let cleanCustom = customPromptText
+				.replace(/<[^>]*>/g, '')
+				.replace(/[\x00-\x1F\x7F]/g, '')
+				.replace(/\s+/g, ' ')
+				.trim()
+				.replace(/[. ]+$/, '');
+
+			let customPart = cleanCustom ? ` Custom scene details: <mark>${cleanCustom}</mark>.` : '';
+			let videoPart = isVideo ? ' Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.' : '';
+
+			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}. Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${customPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
+
+			inspectorCode.innerHTML = assembledPrompt;
+		}
+	};
+
+	if (copyPromptBtn && inspectorCode) {
+		copyPromptBtn.addEventListener('click', async () => {
+			const text = inspectorCode.innerText || inspectorCode.textContent;
+			if (!text || text.includes('انتخاب کنید')) return;
+			try {
+				await navigator.clipboard.writeText(text);
+				const prev = copyPromptBtn.innerHTML;
+				copyPromptBtn.innerHTML = '✓ کپی شد!';
+				copyPromptBtn.style.color = '#10B981';
+				copyPromptBtn.style.borderColor = '#10B981';
+				setTimeout(() => {
+					copyPromptBtn.innerHTML = prev;
+					copyPromptBtn.style.color = '';
+					copyPromptBtn.style.borderColor = '';
+				}, 2000);
+			} catch (_) {}
+		});
+	}
+
 	const updateEstimate = async () => {
 		const format = formatBox.querySelector('input[name="format"]:checked')?.value;
 		if (!format) return;
@@ -417,13 +575,35 @@ if (builderForm) {
 		authFetch('/api/products?per_page=50', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
 		authFetch('/api/creative/options', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
 	]).then(([products, options]) => {
-		(products.data?.data || []).forEach((product) => { select.insertAdjacentHTML('beforeend', `<option value="${product.id}">${product.name}</option>`); });
+		(products.data?.data || []).forEach((product) => {
+			productsMap.set(String(product.id), product);
+			select.insertAdjacentHTML('beforeend', `<option value="${product.id}">${product.name}</option>`);
+		});
 		renderChoices(document.querySelector('[data-goals]'), options.data.goals, 'goal');
 		renderChoices(document.querySelector('[data-styles]'), options.data.styles, 'style');
 		renderChoices(formatBox, options.data.formats, 'format', true);
 		document.querySelector('[data-environment]').innerHTML = options.data.environments.map((item) => `<option value="${item}">${labels[item] || item}</option>`).join('');
 		duration.innerHTML = options.data.video_durations.map((item) => `<option value="${item}">${item} ثانیه</option>`).join('');
+
+		// Initialize default radio selections if needed
+		const defaultGoal = builderForm.querySelector('input[name="goal"]');
+		if (defaultGoal) defaultGoal.checked = true;
+		const defaultStyle = builderForm.querySelector('input[name="style"][value="luxury"]') || builderForm.querySelector('input[name="style"]');
+		if (defaultStyle) defaultStyle.checked = true;
+		const defaultFormat = builderForm.querySelector('input[name="format"][value="instagram_post"]') || builderForm.querySelector('input[name="format"]');
+		if (defaultFormat) defaultFormat.checked = true;
+
+		updateCanvasState();
 	}).catch(() => { message.textContent = 'دریافت گزینه‌ها انجام نشد. دوباره تلاش کن.'; });
+
+	select.addEventListener('change', () => {
+		updateProductArtwork(select.value);
+		updateCanvasState();
+	});
+	document.querySelector('[data-goals]')?.addEventListener('change', updateCanvasState);
+	document.querySelector('[data-styles]')?.addEventListener('change', updateCanvasState);
+	document.querySelector('[data-environment]')?.addEventListener('change', updateCanvasState);
+
 	const autoBestBtn = document.querySelector('[data-auto-best]');
 	if (autoBestBtn) {
 		autoBestBtn.addEventListener('click', async () => {
@@ -456,6 +636,8 @@ if (builderForm) {
 				message.className = 'form-message success-message';
 				message.textContent = `✨ پیشنهاد خودکار: سبک ${labels[data.style] || data.style} (${labels[data.format] || data.format})`;
 				await updateEstimate().catch(() => {});
+				updateProductArtwork(select.value);
+				updateCanvasState();
 			} catch (err) {
 				message.className = 'form-message error-message';
 				message.textContent = err.message;
@@ -472,10 +654,17 @@ if (builderForm) {
 			const len = customPromptInput.value.length;
 			customPromptCounter.textContent = `${len.toLocaleString('fa-IR')} / ۱۰۰۰`;
 		};
-		customPromptInput.addEventListener('input', updateCounter);
+		customPromptInput.addEventListener('input', () => {
+			updateCounter();
+			updateCanvasState();
+		});
 		updateCounter();
 	}
-	formatBox.addEventListener('change', (event) => { durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value); updateEstimate().catch(() => {}); });
+	formatBox.addEventListener('change', (event) => {
+		durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value);
+		updateEstimate().catch(() => {});
+		updateCanvasState();
+	});
 	duration.addEventListener('change', () => updateEstimate().catch(() => {}));
 	builderForm.addEventListener('submit', async (event) => {
 		event.preventDefault();

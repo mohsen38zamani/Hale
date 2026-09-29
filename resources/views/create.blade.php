@@ -141,26 +141,68 @@
                     </form>
                 </div>
 
-                {{-- Studio Guide / Preview Sidebar --}}
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <div class="builder-panel" style="background: rgba(139,92,246,0.05); border-color: rgba(139,92,246,0.2);">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                            <span style="font-size: 20px;">💡</span>
-                            <strong style="font-size: 15px; color: #FFFFFF;">نکات طلایی برای بهترین نتیجه:</strong>
+                {{-- Live Interactive Studio Preview Canvas --}}
+                <div class="builder-panel studio-canvas-panel" data-canvas-panel>
+                    {{-- Top Status Bar --}}
+                    <div class="canvas-topbar">
+                        <div class="canvas-status-indicator">
+                            <span class="live-dot" aria-hidden="true"></span>
+                            <span>بوم تعاملی استودیو · LIVE PREVIEW</span>
                         </div>
-                        <ul style="color: var(--text-secondary); font-size: 13px; line-height: 1.8; padding-right: 18px; margin: 0;">
-                            <li>عکس اولیه دارای پس‌زمینه ساده، خروجی‌های بسیار تمیزتری به همراه دارد.</li>
-                            <li>برای کالاهای لوکس (عطر، طلا، ساعت)، سبک <b>سینمایی یا لوکس</b> با نور ملایم بهترین کنتراست را ایجاد می‌کند.</li>
-                            <li>فرمت <b>۹:۱۶</b> به طور پیش‌فرض خروجی ویدیویی کوتاه تولید می‌کند که تعامل استوری و اکسپلور را تا ۳ برابر بالا می‌برد.</li>
-                            <li>در صورت هرگونه خطا در تولید، اعتبار رزروشده فوراً و اتوماتیک به حسابتان بازمی‌گردد.</li>
-                        </ul>
+                        <div class="canvas-format-chip" data-canvas-format-chip>۱:۱ · پست اینستاگرام</div>
                     </div>
 
-                    <div class="builder-panel" style="text-align: center; padding: 24px;">
-                        <span style="font-size: 28px;">⚡</span>
-                        <h4 style="font-size: 16px; margin: 8px 0 4px; color: #FFFFFF;">پردازش ابری بدون توقف</h4>
-                        <p style="color: var(--text-muted); font-size: 12px; line-height: 1.6; margin: 0;">
-                            پس از زدن دکمه ساخت، جاب شما بلافاصله وارد صف پردازش می‌شود و حتی با بستن تب، نتیجه آماده خواهد شد.
+                    {{-- Stage Viewport --}}
+                    <div class="studio-stage-wrapper">
+                        <div class="studio-stage ratio-1-1" data-canvas-stage>
+                            {{-- Dynamic Atmosphere & Lighting Layer --}}
+                            <div class="stage-atmosphere style-luxury" data-canvas-atmosphere></div>
+
+                            {{-- Style & Environment Indicator Badge --}}
+                            <div class="stage-badge" data-canvas-style-badge>سبک: لوکس · محیط: استودیو</div>
+
+                            {{-- 3D Pedestal / Grounding Shadow --}}
+                            <div class="stage-ground" data-canvas-ground></div>
+
+                            {{-- Product Staging Area --}}
+                            <div class="stage-product" data-canvas-product>
+                                <img data-canvas-product-img src="" alt="" style="display: none;">
+                                <div class="stage-placeholder" data-canvas-placeholder>
+                                    <div class="stage-placeholder-icon">✦</div>
+                                    <div class="stage-placeholder-title" data-canvas-placeholder-title>محصول را انتخاب کن</div>
+                                    <div class="stage-placeholder-sub">پیش‌نمایش زنده کات‌اوت، نورپردازی و تم صحنه در این کادر نمایش داده می‌شود.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Prompt Inspector Box --}}
+                    <div class="prompt-inspector" data-prompt-inspector>
+                        <div class="inspector-header">
+                            <div class="inspector-title">
+                                <span>🔍 بازرس پرامپت هوش مصنوعی (Prompt Inspector)</span>
+                            </div>
+                            <button type="button" class="btn-copy-prompt" data-copy-prompt title="کپی متن پرامپت">
+                                📋 کپی پرامپت
+                            </button>
+                        </div>
+                        <div class="inspector-chips" data-inspector-chips>
+                            <span class="inspector-chip" data-chip-product>محصول: انتخاب نشده</span>
+                            <span class="inspector-chip" data-chip-goal>هدف: معرفی محصول</span>
+                            <span class="inspector-chip" data-chip-style>سبک: لوکس</span>
+                            <span class="inspector-chip" data-chip-env>محیط: استودیو</span>
+                            <span class="inspector-chip" data-chip-format>فرمت: ۱:۱</span>
+                        </div>
+                        <div class="inspector-code" data-inspector-code>
+                            منتظر انتخاب محصول و تنظیمات صحنه...
+                        </div>
+                    </div>
+
+                    {{-- Compact Pro Tips Footer --}}
+                    <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 16px;">💡</span>
+                        <p style="margin: 0; font-size: 11px; line-height: 1.5; color: var(--text-muted);">
+                            نور و پس‌زمینهٔ این بوم به صورت ریل‌تایم با انتخاب‌های شما تغییر می‌کند تا قبل از مصرف اعتبار، کیفیت خروجی را بررسی کنید.
                         </p>
                     </div>
                 </div>
