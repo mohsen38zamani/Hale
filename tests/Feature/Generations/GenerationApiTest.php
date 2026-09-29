@@ -186,4 +186,59 @@ class GenerationApiTest extends TestCase
             ->assertHeader('Content-Type', 'image/png')
             ->assertDownload("generation-{$generation->id}.png");
     }
+
+    public function test_user_can_create_generation_with_custom_prompt(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر لوکس']);
+
+        $response = $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'environment' => 'studio',
+            'custom_prompt' => 'روی سنگ بازالت مرطوب با گل‌های صورتی ارکیده',
+        ])->assertAccepted();
+
+        $generationId = $response->json('data.id');
+        $generation = $user->generations()->with('creativeProject')->findOrFail($generationId);
+
+        $this->assertSame('روی سنگ بازالت مرطوب با گل‌های صورتی ارکیده', $generation->creativeProject->custom_prompt);
+        $this->assertSame('روی سنگ بازالت مرطوب با گل‌های صورتی ارکیده', $generation->creativeProject->brief['custom_prompt']);
+        $this->assertStringContainsString('Custom scene details: روی سنگ بازالت مرطوب با گل‌های صورتی ارکیده.', $generation->creativeProject->prompt);
+    }
+
+    public function test_custom_prompt_cannot_exceed_max_length(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر لوکس']);
+
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'custom_prompt' => str_repeat('س', 1001),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['custom_prompt' => 'توضیحات دلخواه نمی‌تواند بیش از ۱۰۰۰ کاراکتر باشد.']);
+    }
+
+    public function test_custom_prompt_is_moderated_and_rejected_if_inappropriate(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر لوکس']);
+
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'custom_prompt' => 'تصویر با پس‌زمینه پورنوگرافی و مستهجن',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['custom_prompt' => 'توضیحات دلخواه با قوانین محتوایی سازگار نیست.']);
+    }
 }

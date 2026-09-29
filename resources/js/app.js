@@ -465,6 +465,16 @@ if (builderForm) {
 			}
 		});
 	}
+	const customPromptInput = document.querySelector('[data-custom-prompt]');
+	const customPromptCounter = document.querySelector('[data-custom-prompt-counter]');
+	if (customPromptInput && customPromptCounter) {
+		const updateCounter = () => {
+			const len = customPromptInput.value.length;
+			customPromptCounter.textContent = `${len.toLocaleString('fa-IR')} / ۱۰۰۰`;
+		};
+		customPromptInput.addEventListener('input', updateCounter);
+		updateCounter();
+	}
 	formatBox.addEventListener('change', (event) => { durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value); updateEstimate().catch(() => {}); });
 	duration.addEventListener('change', () => updateEstimate().catch(() => {}));
 	builderForm.addEventListener('submit', async (event) => {
@@ -474,8 +484,10 @@ if (builderForm) {
 		button.disabled = true;
 		message.textContent = 'در حال آماده‌سازی...';
 		const isVideo = ['instagram_reel', 'tiktok'].includes(values.format);
+		const rawCustomPrompt = values.custom_prompt ? values.custom_prompt.trim() : null;
 		const payload = {
 			...values,
+			custom_prompt: rawCustomPrompt || null,
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null
 		};
 		try {
@@ -490,7 +502,14 @@ if (builderForm) {
 					message.innerHTML = `${result.error?.message || 'اعتبار کافی نیست.'} <a href="/pricing">مشاهده پلن‌ها</a>`;
 					return;
 				}
-				throw new Error(result.error?.message || 'ساخت محتوا انجام نشد.');
+				let errorMsg = result.error?.message || result.message;
+				if (result.errors) {
+					const firstKey = Object.keys(result.errors)[0];
+					if (firstKey && Array.isArray(result.errors[firstKey]) && result.errors[firstKey][0]) {
+						errorMsg = result.errors[firstKey][0];
+					}
+				}
+				throw new Error(errorMsg || 'ساخت محتوا انجام نشد.');
 			}
 			window.location.href = `/generations/${result.data.id}`;
 		} catch (error) {

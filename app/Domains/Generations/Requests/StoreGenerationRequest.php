@@ -2,6 +2,7 @@
 
 namespace App\Domains\Generations\Requests;
 
+use App\Domains\AI\Services\PromptModerator;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
@@ -24,8 +25,21 @@ class StoreGenerationRequest extends FormRequest
             'format' => ['required', Rule::enum(CreativeFormat::class)],
             'environment' => ['nullable', Rule::in(config('creative.environments'))],
             'video_duration_seconds' => [Rule::requiredIf(fn (): bool => in_array($this->input('format'), ['instagram_reel', 'tiktok'], true)), 'nullable', 'integer', Rule::in(config('creative.video_durations'))],
+            'custom_prompt' => ['nullable', 'string', 'max:1000'],
             'settings' => ['sometimes', 'array'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if ($this->filled('custom_prompt')) {
+                $moderator = app(PromptModerator::class);
+                if (! $moderator->passes((string) $this->input('custom_prompt'))) {
+                    $validator->errors()->add('custom_prompt', 'توضیحات دلخواه با قوانین محتوایی سازگار نیست.');
+                }
+            }
+        });
     }
 
     public function messages(): array
@@ -42,6 +56,8 @@ class StoreGenerationRequest extends FormRequest
             'environment.in' => 'محیط صحنه انتخاب‌شده نامعتبر است.',
             'video_duration_seconds.required' => 'برای تولید ویدیو، تعیین مدت زمان الزامی است.',
             'video_duration_seconds.in' => 'مدت زمان ویدیوی انتخاب‌شده معتبر نیست.',
+            'custom_prompt.string' => 'توضیحات دلخواه باید به صورت متن باشد.',
+            'custom_prompt.max' => 'توضیحات دلخواه نمی‌تواند بیش از ۱۰۰۰ کاراکتر باشد.',
             'settings.array' => 'تنظیمات باید به صورت ساختار معتبر ارسال شوند.',
         ];
     }

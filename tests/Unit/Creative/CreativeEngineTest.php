@@ -1,0 +1,126 @@
+<?php
+
+namespace Tests\Unit\Creative;
+
+use App\Domains\Creative\Enums\CreativeFormat;
+use App\Domains\Creative\Enums\CreativeGoal;
+use App\Domains\Creative\Enums\CreativeStyle;
+use App\Domains\Creative\Services\CreativeEngine;
+use App\Domains\Products\Models\Product;
+use Tests\TestCase;
+
+class CreativeEngineTest extends TestCase
+{
+    private CreativeEngine $engine;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->engine = new CreativeEngine;
+    }
+
+    public function test_auto_best_suggests_luxury_style_for_perfume(): void
+    {
+        $product = new Product(['name' => 'عطر دیور ساواژ', 'description' => 'عطر مردانه تلخ و خنک']);
+        $result = $this->engine->autoBest($product, CreativeGoal::Sales);
+
+        $this->assertSame(CreativeGoal::Sales->value, $result['goal']);
+        $this->assertSame(CreativeStyle::Colorful->value, $result['style']);
+        $this->assertSame('luxury', $result['environment']);
+    }
+
+    public function test_brief_includes_custom_prompt_when_provided(): void
+    {
+        $product = new Product(['name' => 'ساعت مچی', 'description' => 'ساعت کلاسیک عقربه‌ای']);
+        $brief = $this->engine->brief($product, [
+            'goal' => CreativeGoal::Branding->value,
+            'style' => CreativeStyle::Luxury->value,
+            'environment' => 'studio',
+            'format' => CreativeFormat::InstagramPost->value,
+            'custom_prompt' => 'روی سنگ مرمر مشکی با انعکاس نور طلایی',
+        ]);
+
+        $this->assertSame('ساعت مچی', $brief['product']);
+        $this->assertSame('روی سنگ مرمر مشکی با انعکاس نور طلایی', $brief['custom_prompt']);
+    }
+
+    public function test_brief_normalizes_empty_and_whitespace_custom_prompt_to_null(): void
+    {
+        $product = new Product(['name' => 'کفش ورزشی']);
+        $brief = $this->engine->brief($product, [
+            'goal' => CreativeGoal::Sales->value,
+            'style' => CreativeStyle::Colorful->value,
+            'environment' => 'urban',
+            'format' => CreativeFormat::InstagramPost->value,
+            'custom_prompt' => '   ',
+        ]);
+
+        $this->assertNull($brief['custom_prompt']);
+    }
+
+    public function test_prompt_generates_standard_prompt_without_custom_prompt(): void
+    {
+        $brief = [
+            'product' => 'عطر سلطنتی',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'custom_prompt' => null,
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.';
+
+        $this->assertSame($expected, $prompt);
+    }
+
+    public function test_prompt_cleanly_incorporates_custom_prompt(): void
+    {
+        $brief = [
+            'product' => 'عطر سلطنتی',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'custom_prompt' => 'روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی',
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). Custom scene details: روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی. High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.';
+
+        $this->assertSame($expected, $prompt);
+    }
+
+    public function test_prompt_sanitizes_custom_prompt_whitespace_and_html_tags(): void
+    {
+        $brief = [
+            'product' => 'کرم پوست',
+            'objective' => 'branding',
+            'visual_direction' => 'natural',
+            'environment' => 'nature',
+            'custom_prompt' => "  <b>روی برگ‌های مرطوب</b> \n  با نور خورشید..  ",
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString('Custom scene details: روی برگ‌های مرطوب با نور خورشید.', $prompt);
+        $this->assertStringNotContainsString('<b>', $prompt);
+    }
+
+    public function test_prompt_includes_video_motion_clause_for_video_format_with_custom_prompt(): void
+    {
+        $brief = [
+            'product' => 'عینک آفتابی',
+            'objective' => 'engagement',
+            'visual_direction' => 'cinematic',
+            'environment' => 'urban',
+            'custom_prompt' => 'در یک خیابان بارانی با انعکاس نور نئون مغازه‌ها',
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramReel);
+
+        $this->assertStringContainsString('Custom scene details: در یک خیابان بارانی با انعکاس نور نئون مغازه‌ها.', $prompt);
+        $this->assertStringContainsString('Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.', $prompt);
+    }
+}

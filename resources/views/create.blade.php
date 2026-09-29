@@ -106,6 +106,28 @@
                             <select name="video_duration_seconds" data-duration style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(236,72,153,0.3); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;"></select>
                         </div>
 
+                        {{-- Step 5: Custom Prompt / Scene Details (Optional) --}}
+                        <div style="margin-bottom: 24px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label for="custom_prompt" style="font-size: 13px; font-weight: 600; color: #FFFFFF;">
+                                    ✨ توضیحات و پرامپت دلخواه صحنه (اختیاری):
+                                </label>
+                                <span style="font-size: 11px; color: var(--text-muted);" data-custom-prompt-counter>۰ / ۱۰۰۰</span>
+                            </div>
+                            <textarea
+                                id="custom_prompt"
+                                name="custom_prompt"
+                                data-custom-prompt
+                                rows="3"
+                                maxlength="1000"
+                                placeholder="مثلاً: روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی و مه‌آلودگی ملایم با انعکاس نور..."
+                                style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 14px; color: #FFFFFF; font-size: 13px; outline: 0; resize: vertical; min-height: 84px; line-height: 1.6; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s;"
+                            ></textarea>
+                            <small style="display: block; color: var(--text-muted); font-size: 11px; margin-top: 6px; line-height: 1.5;">
+                                المان‌های محیطی، اشیاء مکمل، نور دلخواه یا تم صحنه را به فارسی یا انگلیسی بنویسید تا هوش مصنوعی آن را در صحنه تلفیق کند.
+                            </small>
+                        </div>
+
                         {{-- Credit Estimate Badge --}}
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 18px; margin-bottom: 20px;">
                             <p class="estimate-message" data-credit-estimate aria-live="polite" style="margin: 0; font-size: 13px; color: var(--text-secondary); font-weight: 600;"></p>

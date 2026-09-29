@@ -51,6 +51,10 @@ class CreativeEngine
 
     public function brief(Product $product, array $settings): array
     {
+        $customPrompt = isset($settings['custom_prompt']) && is_string($settings['custom_prompt'])
+            ? trim($settings['custom_prompt'])
+            : null;
+
         return [
             'product' => $product->name,
             'description' => $product->description,
@@ -58,6 +62,7 @@ class CreativeEngine
             'visual_direction' => $settings['style'],
             'environment' => $settings['environment'] ?? 'studio',
             'format' => $settings['format'],
+            'custom_prompt' => ($customPrompt !== null && $customPrompt !== '') ? $customPrompt : null,
             'audience' => 'Iranian social commerce shoppers',
             'generated_at' => now()->toIso8601String(),
         ];
@@ -65,14 +70,23 @@ class CreativeEngine
 
     public function prompt(array $brief, CreativeFormat $format): string
     {
+        $customPromptPart = '';
+        if (! empty($brief['custom_prompt']) && is_string($brief['custom_prompt'])) {
+            $sanitized = $this->sanitizeCustomPrompt($brief['custom_prompt']);
+            if ($sanitized !== '') {
+                $customPromptPart = sprintf(' Custom scene details: %s.', $sanitized);
+            }
+        }
+
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s). High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
+            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
             $brief['product'],
             $brief['objective'],
             $brief['visual_direction'],
             $brief['environment'],
             $format->aspectRatio(),
-            $format->value
+            $format->value,
+            $customPromptPart
         );
 
         if ($format->type() === 'video') {
@@ -80,5 +94,14 @@ class CreativeEngine
         }
 
         return $base;
+    }
+
+    public function sanitizeCustomPrompt(string $input): string
+    {
+        $stripped = strip_tags($input);
+        $clean = preg_replace('/[\x00-\x1F\x7F]/u', '', $stripped) ?? '';
+        $normalized = preg_replace('/\s+/u', ' ', $clean) ?? '';
+
+        return rtrim(trim($normalized), '. ');
     }
 }

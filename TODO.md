@@ -327,10 +327,12 @@
   - هماهنگی خودکار نسبت ابعاد کادر (۱:۱ یا ۹:۱۶) روی بوم پیش‌نمایش متناسب با فرمت انتخابی.
   - اعمال لایهٔ اتمسفر نوری، وینیِت و پس‌زمینهٔ موکاپ بر اساس سبک و محیط انتخابی برای اطمینان کاربر از خروجی پیش از مصرف اعتبار.
   - نمایش زنده خلاصه پرامپت تولیدی هوش مصنوعی (Prompt Inspector) در پایین بوم.
-- [ ] **باکس توضیحات و پرامپت دلخواه کاربر (Custom Text Prompt / Scene Description Box):**
-  - افزودن یک فیلد متن چندخطی اختیاری به فرم ساخت (`textarea[name="custom_prompt"]`) تا کاربر بتواند جزئیات دقیق صحنه مدنظرش را به زبان فارسی یا انگلیسی توصیف کند (مثلاً: *«روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی و مه‌آلودگی ملایم با انعکاس نور»*).
-  - گسترش `CreativeEngine::prompt()` برای ترکیب امن و هوشمند فیلد اختیاری کاربر با ساختار پرامپت پایه استودیو.
-  - عبور پرامپت دلخواه از فیلتر اعتبارسنجی و پالایش کلمات ممنوعه (`PromptModerator`).
+- [x] **باکس توضیحات و پرامپت دلخواه کاربر (Custom Text Prompt / Scene Description Box):**
+  - افزودن فیلد چندخطی اختیاری با شمارنده زنده کاراکتر (`textarea[name="custom_prompt"]`) به فرم استودیو در [create.blade.php](file:///var/www/html/Hale'/resources/views/create.blade.php) و اتصال آن در [app.js](file:///var/www/html/Hale'/resources/js/app.js).
+  - مایگریشن و ذخیره‌سازی در ستون `custom_prompt` جدول `creative_projects` و مدل [CreativeProject.php](file:///var/www/html/Hale'/app/Domains/Creative/Models/CreativeProject.php).
+  - اعتبارسنجی در [StoreGenerationRequest.php](file:///var/www/html/Hale'/app/Domains/Generations/Requests/StoreGenerationRequest.php) شامل بررسی طول (حداکثر ۱۰۰۰ کاراکتر) و فیلتر اخلاقی/امنیتی با [PromptModerator.php](file:///var/www/html/Hale'/app/Domains/AI/Services/PromptModerator.php).
+  - پالایش امن کاراکترها و تگ‌ها و ترکیب هوشمند با پرامپت پایه در [CreativeEngine.php](file:///var/www/html/Hale'/app/Domains/Creative/Services/CreativeEngine.php).
+  - پوشش کامل تست‌های واحد در [CreativeEngineTest.php](file:///var/www/html/Hale'/tests/Unit/Creative/CreativeEngineTest.php) و تست‌های Feature در [GenerationApiTest.php](file:///var/www/html/Hale'/tests/Feature/Generations/GenerationApiTest.php) (۲۳۱ تست پاس‌شده).
 - [ ] **کنترل‌های فیزیکی صحنه (Scene & Studio Controls - الهام‌گرفته از Flair.ai و Google Studio):**
   - **جنس سطح و پایه کالا (Surfaces & Pedestals):** سنگ مرمر لوکس (سفید رگه‌دار / مشکی طلا)، پایه چوب طبیعی روستیک، سکوی بتنی مینیمال، سطح آب با امواج زنده، آبسیدین صیقلی، ماسه کویر.
   - **آبجکت‌های مکمل و اکسسوری صحنه (Props & Accents):** ارگانیک و گیاهی (برگ انجیری، شاخه زیتون، گل ارکیده)، پاشش مایعات و قطرات معلق (Splash & Mist)، دود و مه ملایم، کریستال‌ها و المان‌های هندسی معلق.
