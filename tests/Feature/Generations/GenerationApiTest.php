@@ -241,4 +241,89 @@ class GenerationApiTest extends TestCase
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['custom_prompt' => 'توضیحات دلخواه با قوانین محتوایی سازگار نیست.']);
     }
+
+    public function test_user_can_create_generation_with_scene_controls(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'ساعت مچی لوکس']);
+
+        $response = $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'style' => 'minimal',
+            'format' => 'instagram_post',
+            'environment' => 'studio',
+            'surface' => 'marble',
+            'props' => 'botanical',
+            'camera_angle' => 'hero_shot',
+            'lighting_setup' => 'rim',
+        ])->assertAccepted();
+
+        $generationId = $response->json('data.id');
+        $generation = $user->generations()->with('creativeProject')->findOrFail($generationId);
+
+        $this->assertSame('marble', $generation->creativeProject->surface);
+        $this->assertSame('botanical', $generation->creativeProject->props);
+        $this->assertSame('hero_shot', $generation->creativeProject->camera_angle);
+        $this->assertSame('rim', $generation->creativeProject->lighting_setup);
+
+        $this->assertStringContainsString('Displayed on a luxury white veined Carrara marble pedestal with soft specular highlights.', $generation->creativeProject->prompt);
+        $this->assertStringContainsString('Accented with lush monstera leaves, olive branches, and delicate pink orchid petals.', $generation->creativeProject->prompt);
+        $this->assertStringContainsString('Camera perspective: powerful low-angle heroic viewpoint creating grand scale and presence.', $generation->creativeProject->prompt);
+        $this->assertStringContainsString('Lighting: dramatic high-contrast edge rim lighting sculpting the product contours against a moody backdrop.', $generation->creativeProject->prompt);
+    }
+
+    public function test_invalid_scene_controls_return_persian_validation_errors(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'محصول تست']);
+
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'minimal',
+            'format' => 'instagram_post',
+            'surface' => 'invalid_surface_name',
+            'props' => 'invalid_props_name',
+            'camera_angle' => 'invalid_camera_angle',
+            'lighting_setup' => 'invalid_lighting_setup',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'surface' => 'جنس سطح یا پایه انتخاب‌شده نامعتبر است.',
+                'props' => 'اکسسوری صحنه انتخاب‌شده نامعتبر است.',
+                'camera_angle' => 'زاویه دوربین انتخاب‌شده نامعتبر است.',
+                'lighting_setup' => 'نورپردازی انتخاب‌شده نامعتبر است.',
+            ]);
+    }
+
+    public function test_creative_options_endpoint_returns_scene_controls(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/creative/options')->assertOk();
+
+        $response->assertJsonStructure([
+            'data' => [
+                'goals',
+                'styles',
+                'formats',
+                'environments',
+                'surfaces' => [
+                    '*' => ['key', 'label', 'prompt', 'icon'],
+                ],
+                'props' => [
+                    '*' => ['key', 'label', 'prompt', 'icon'],
+                ],
+                'camera_angles' => [
+                    '*' => ['key', 'label', 'prompt', 'icon'],
+                ],
+                'lighting_setups' => [
+                    '*' => ['key', 'label', 'prompt', 'icon'],
+                ],
+            ],
+        ]);
+    }
 }

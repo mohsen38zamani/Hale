@@ -62,6 +62,10 @@ class CreativeEngine
             'visual_direction' => $settings['style'],
             'environment' => $settings['environment'] ?? 'studio',
             'format' => $settings['format'],
+            'surface' => $settings['surface'] ?? null,
+            'props' => $settings['props'] ?? null,
+            'camera_angle' => $settings['camera_angle'] ?? null,
+            'lighting_setup' => $settings['lighting_setup'] ?? null,
             'custom_prompt' => ($customPrompt !== null && $customPrompt !== '') ? $customPrompt : null,
             'audience' => 'Iranian social commerce shoppers',
             'generated_at' => now()->toIso8601String(),
@@ -70,6 +74,26 @@ class CreativeEngine
 
     public function prompt(array $brief, CreativeFormat $format): string
     {
+        $sceneParts = [];
+
+        if (! empty($brief['surface']) && ($surfacePrompt = config("creative.surfaces.{$brief['surface']}.prompt"))) {
+            $sceneParts[] = ucfirst($surfacePrompt).'.';
+        }
+
+        if (! empty($brief['props']) && ($propsPrompt = config("creative.props.{$brief['props']}.prompt"))) {
+            $sceneParts[] = ucfirst($propsPrompt).'.';
+        }
+
+        if (! empty($brief['camera_angle']) && ($cameraPrompt = config("creative.camera_angles.{$brief['camera_angle']}.prompt"))) {
+            $sceneParts[] = ucfirst($cameraPrompt).'.';
+        }
+
+        if (! empty($brief['lighting_setup']) && ($lightingPrompt = config("creative.lighting_setups.{$brief['lighting_setup']}.prompt"))) {
+            $sceneParts[] = ucfirst($lightingPrompt).'.';
+        }
+
+        $sceneClause = ! empty($sceneParts) ? ' '.implode(' ', $sceneParts) : '';
+
         $customPromptPart = '';
         if (! empty($brief['custom_prompt']) && is_string($brief['custom_prompt'])) {
             $sanitized = $this->sanitizeCustomPrompt($brief['custom_prompt']);
@@ -79,13 +103,14 @@ class CreativeEngine
         }
 
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
+            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
             $brief['product'],
             $brief['objective'],
             $brief['visual_direction'],
             $brief['environment'],
             $format->aspectRatio(),
             $format->value,
+            $sceneClause,
             $customPromptPart
         );
 

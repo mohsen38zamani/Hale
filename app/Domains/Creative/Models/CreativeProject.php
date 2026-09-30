@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CreativeProject extends Model
 {
-    protected $fillable = ['product_id', 'goal', 'style', 'format', 'environment', 'custom_prompt', 'video_duration_seconds', 'settings', 'brief', 'prompt'];
+    protected $fillable = ['product_id', 'goal', 'style', 'format', 'environment', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'video_duration_seconds', 'settings', 'brief', 'prompt'];
 
     protected function casts(): array
     {

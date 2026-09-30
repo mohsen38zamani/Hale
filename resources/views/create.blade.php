@@ -106,7 +106,43 @@
                             <select name="video_duration_seconds" data-duration style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(236,72,153,0.3); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;"></select>
                         </div>
 
-                        {{-- Step 5: Custom Prompt / Scene Details (Optional) --}}
+                        {{-- Step 5: Scene & Studio Physical Controls (Surfaces, Props, Angles, Lighting) --}}
+                        <div class="scene-controls-panel" data-scene-controls-panel>
+                            <div class="scene-controls-header" data-scene-toggle role="button" tabindex="0" aria-expanded="true">
+                                <h3>
+                                    <span>🎛️</span>
+                                    <span>کنترل‌های فیزیکی صحنه (اختیاری)</span>
+                                </h3>
+                                <span class="toggle-icon" data-scene-toggle-icon>▲</span>
+                            </div>
+                            <div class="scene-controls-body" data-scene-controls-body>
+                                {{-- 1. Surfaces & Pedestals --}}
+                                <div class="scene-control-group">
+                                    <label class="group-title">جنس سطح و پایه کالا (Surfaces & Pedestals):</label>
+                                    <div class="choice-grid compact-grid" data-surfaces></div>
+                                </div>
+
+                                {{-- 2. Props & Accents --}}
+                                <div class="scene-control-group">
+                                    <label class="group-title">آبجکت‌های مکمل و اکسسوری (Props & Accents):</label>
+                                    <div class="choice-grid compact-grid" data-props></div>
+                                </div>
+
+                                {{-- 3. Camera Angles --}}
+                                <div class="scene-control-group">
+                                    <label class="group-title">تنظیم زاویه دوربین (Camera Angles):</label>
+                                    <div class="choice-grid compact-grid" data-camera-angles></div>
+                                </div>
+
+                                {{-- 4. Lighting Setup --}}
+                                <div class="scene-control-group">
+                                    <label class="group-title">کنترل نورپردازی استودیو (Lighting Setup):</label>
+                                    <div class="choice-grid compact-grid" data-lighting-setups></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Step 6: Custom Prompt / Scene Details (Optional) --}}
                         <div style="margin-bottom: 24px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <label for="custom_prompt" style="font-size: 13px; font-weight: 600; color: #FFFFFF;">
@@ -191,6 +227,10 @@
                             <span class="inspector-chip" data-chip-goal>هدف: معرفی محصول</span>
                             <span class="inspector-chip" data-chip-style>سبک: لوکس</span>
                             <span class="inspector-chip" data-chip-env>محیط: استودیو</span>
+                            <span class="inspector-chip" data-chip-surface>پایه: استودیویی</span>
+                            <span class="inspector-chip" data-chip-props>اکسسوری: ساده</span>
+                            <span class="inspector-chip" data-chip-camera>دوربین: روبرو</span>
+                            <span class="inspector-chip" data-chip-lighting>نور: سافت‌باکس</span>
                             <span class="inspector-chip" data-chip-format>فرمت: ۱:۱</span>
                         </div>
                         <div class="inspector-code" data-inspector-code>

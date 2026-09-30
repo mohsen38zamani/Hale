@@ -411,6 +411,7 @@ if (builderForm) {
 	const canvasProductImg = document.querySelector('[data-canvas-product-img]');
 	const canvasPlaceholder = document.querySelector('[data-canvas-placeholder]');
 	const canvasPlaceholderTitle = document.querySelector('[data-canvas-placeholder-title]');
+	const canvasGround = document.querySelector('[data-canvas-ground]');
 	const copyPromptBtn = document.querySelector('[data-copy-prompt]');
 	const inspectorCode = document.querySelector('[data-inspector-code]');
 	const chipProduct = document.querySelector('[data-chip-product]');
@@ -418,8 +419,17 @@ if (builderForm) {
 	const chipStyle = document.querySelector('[data-chip-style]');
 	const chipEnv = document.querySelector('[data-chip-env]');
 	const chipFormat = document.querySelector('[data-chip-format]');
+	const chipSurface = document.querySelector('[data-chip-surface]');
+	const chipProps = document.querySelector('[data-chip-props]');
+	const chipCamera = document.querySelector('[data-chip-camera]');
+	const chipLighting = document.querySelector('[data-chip-lighting]');
 	const productsMap = new Map();
 	const cachedProductBlobUrls = new Map();
+
+	let surfacesData = [];
+	let propsData = [];
+	let cameraAnglesData = [];
+	let lightingSetupsData = [];
 
 	const aspectRatios = {
 		instagram_post: '1:1',
@@ -485,14 +495,22 @@ if (builderForm) {
 		const style = builderForm.querySelector('input[name="style"]:checked')?.value || 'luxury';
 		const env = document.querySelector('[data-environment]')?.value || 'studio';
 		const goal = builderForm.querySelector('input[name="goal"]:checked')?.value || 'sales';
+		const surface = builderForm.querySelector('input[name="surface"]:checked')?.value || 'default';
+		const props = builderForm.querySelector('input[name="props"]:checked')?.value || 'none';
+		const cameraAngle = builderForm.querySelector('input[name="camera_angle"]:checked')?.value || 'eye_level';
+		const lighting = builderForm.querySelector('input[name="lighting_setup"]:checked')?.value || 'softbox';
+
 		const selectedProductId = select.value;
 		const product = productsMap.get(String(selectedProductId));
 		const customPromptInput = document.querySelector('[data-custom-prompt]');
 		const customPromptText = (customPromptInput?.value || '').trim();
 
 		if (canvasStage) {
-			canvasStage.classList.toggle('ratio-1-1', !isVertical);
-			canvasStage.classList.toggle('ratio-9-16', isVertical);
+			canvasStage.className = `studio-stage ${isVertical ? 'ratio-9-16' : 'ratio-1-1'} light-${lighting}`;
+		}
+
+		if (canvasGround) {
+			canvasGround.className = `stage-ground pedestal-${surface}`;
 		}
 
 		if (canvasFormatChip) {
@@ -509,10 +527,19 @@ if (builderForm) {
 			canvasStyleBadge.textContent = `سبک: ${styleLabel} · محیط: ${envLabel}`;
 		}
 
+		const surfaceObj = surfacesData.find((s) => s.key === surface);
+		const propsObj = propsData.find((p) => p.key === props);
+		const cameraObj = cameraAnglesData.find((c) => c.key === cameraAngle);
+		const lightingObj = lightingSetupsData.find((l) => l.key === lighting);
+
 		if (chipProduct) chipProduct.textContent = `محصول: ${product ? product.name : 'انتخاب نشده'}`;
 		if (chipGoal) chipGoal.textContent = `هدف: ${labels[goal] || goal}`;
 		if (chipStyle) chipStyle.textContent = `سبک: ${labels[style] || style}`;
 		if (chipEnv) chipEnv.textContent = `محیط: ${labels[env] || env}`;
+		if (chipSurface) chipSurface.textContent = `پایه: ${surfaceObj?.label || 'استودیویی'}`;
+		if (chipProps) chipProps.textContent = `اکسسوری: ${propsObj?.label || 'ساده'}`;
+		if (chipCamera) chipCamera.textContent = `دوربین: ${cameraObj?.label || 'روبرو'}`;
+		if (chipLighting) chipLighting.textContent = `نور: ${lightingObj?.label || 'سافت‌باکس'}`;
 		if (chipFormat) chipFormat.textContent = `فرمت: ${aspectRatios[format] || '۱:۱'}`;
 
 		if (inspectorCode) {
@@ -525,6 +552,14 @@ if (builderForm) {
 			const formatRatio = aspectRatios[format] || '1:1';
 			const isVideo = ['instagram_reel', 'tiktok'].includes(format);
 
+			const capitalize = (str) => (str ? str.charAt(0).toUpperCase() + str.slice(1) : '');
+			const sceneParts = [];
+			if (surfaceObj?.prompt) sceneParts.push(capitalize(surfaceObj.prompt) + '.');
+			if (propsObj?.prompt) sceneParts.push(capitalize(propsObj.prompt) + '.');
+			if (cameraObj?.prompt) sceneParts.push(capitalize(cameraObj.prompt) + '.');
+			if (lightingObj?.prompt) sceneParts.push(capitalize(lightingObj.prompt) + '.');
+			const sceneClause = sceneParts.length ? ' ' + sceneParts.join(' ') : '';
+
 			let cleanCustom = customPromptText
 				.replace(/<[^>]*>/g, '')
 				.replace(/[\x00-\x1F\x7F]/g, '')
@@ -535,7 +570,7 @@ if (builderForm) {
 			let customPart = cleanCustom ? ` Custom scene details: <mark>${cleanCustom}</mark>.` : '';
 			let videoPart = isVideo ? ' Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.' : '';
 
-			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}. Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${customPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
+			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}. Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
 
 			inspectorCode.innerHTML = assembledPrompt;
 		}
@@ -560,6 +595,18 @@ if (builderForm) {
 		});
 	}
 
+	const sceneToggle = document.querySelector('[data-scene-toggle]');
+	const sceneBody = document.querySelector('[data-scene-controls-body]');
+	const sceneToggleIcon = document.querySelector('[data-scene-toggle-icon]');
+	if (sceneToggle && sceneBody) {
+		sceneToggle.addEventListener('click', () => {
+			const isHidden = sceneBody.style.display === 'none';
+			sceneBody.style.display = isHidden ? 'flex' : 'none';
+			if (sceneToggleIcon) sceneToggleIcon.textContent = isHidden ? '▲' : '▼';
+			sceneToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+		});
+	}
+
 	const updateEstimate = async () => {
 		const format = formatBox.querySelector('input[name="format"]:checked')?.value;
 		if (!format) return;
@@ -570,7 +617,15 @@ if (builderForm) {
 		estimate.textContent = result.data.sufficient ? `هزینه: ${result.data.cost} Credit | موجودی: ${result.data.balance} Credit` : `اعتبار کافی نیست (${result.data.balance} از ${result.data.cost} Credit) | خرید اعتبار`;
 		estimate.dataset.insufficient = result.data.sufficient ? 'false' : 'true';
 	};
-	const renderChoices = (target, values, name, withType = false) => { target.innerHTML = values.map((item) => { const key = withType ? item.key : item; return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${labels[key] || key}${withType ? `<small>${item.aspect_ratio}</small>` : ''}</span></label>`; }).join(''); };
+	const renderChoices = (target, values, name, withType = false, isObject = false) => {
+		if (!target) return;
+		target.innerHTML = values.map((item) => {
+			const key = isObject ? item.key : (withType ? item.key : item);
+			const label = isObject ? `${item.icon ? `${item.icon} ` : ''}${item.label}` : (labels[key] || key);
+			const extra = withType ? `<small>${item.aspect_ratio}</small>` : '';
+			return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${label}${extra}</span></label>`;
+		}).join('');
+	};
 	Promise.all([
 		authFetch('/api/products?per_page=50', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
 		authFetch('/api/creative/options', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
@@ -585,6 +640,16 @@ if (builderForm) {
 		document.querySelector('[data-environment]').innerHTML = options.data.environments.map((item) => `<option value="${item}">${labels[item] || item}</option>`).join('');
 		duration.innerHTML = options.data.video_durations.map((item) => `<option value="${item}">${item} ثانیه</option>`).join('');
 
+		surfacesData = options.data.surfaces || [];
+		propsData = options.data.props || [];
+		cameraAnglesData = options.data.camera_angles || [];
+		lightingSetupsData = options.data.lighting_setups || [];
+
+		renderChoices(document.querySelector('[data-surfaces]'), surfacesData, 'surface', false, true);
+		renderChoices(document.querySelector('[data-props]'), propsData, 'props', false, true);
+		renderChoices(document.querySelector('[data-camera-angles]'), cameraAnglesData, 'camera_angle', false, true);
+		renderChoices(document.querySelector('[data-lighting-setups]'), lightingSetupsData, 'lighting_setup', false, true);
+
 		// Initialize default radio selections if needed
 		const defaultGoal = builderForm.querySelector('input[name="goal"]');
 		if (defaultGoal) defaultGoal.checked = true;
@@ -592,6 +657,15 @@ if (builderForm) {
 		if (defaultStyle) defaultStyle.checked = true;
 		const defaultFormat = builderForm.querySelector('input[name="format"][value="instagram_post"]') || builderForm.querySelector('input[name="format"]');
 		if (defaultFormat) defaultFormat.checked = true;
+
+		const defaultSurface = builderForm.querySelector('input[name="surface"][value="default"]') || builderForm.querySelector('input[name="surface"]');
+		if (defaultSurface) defaultSurface.checked = true;
+		const defaultProps = builderForm.querySelector('input[name="props"][value="none"]') || builderForm.querySelector('input[name="props"]');
+		if (defaultProps) defaultProps.checked = true;
+		const defaultCamera = builderForm.querySelector('input[name="camera_angle"][value="eye_level"]') || builderForm.querySelector('input[name="camera_angle"]');
+		if (defaultCamera) defaultCamera.checked = true;
+		const defaultLighting = builderForm.querySelector('input[name="lighting_setup"][value="softbox"]') || builderForm.querySelector('input[name="lighting_setup"]');
+		if (defaultLighting) defaultLighting.checked = true;
 
 		updateCanvasState();
 	}).catch(() => { message.textContent = 'دریافت گزینه‌ها انجام نشد. دوباره تلاش کن.'; });
@@ -603,6 +677,10 @@ if (builderForm) {
 	document.querySelector('[data-goals]')?.addEventListener('change', updateCanvasState);
 	document.querySelector('[data-styles]')?.addEventListener('change', updateCanvasState);
 	document.querySelector('[data-environment]')?.addEventListener('change', updateCanvasState);
+	document.querySelector('[data-surfaces]')?.addEventListener('change', updateCanvasState);
+	document.querySelector('[data-props]')?.addEventListener('change', updateCanvasState);
+	document.querySelector('[data-camera-angles]')?.addEventListener('change', updateCanvasState);
+	document.querySelector('[data-lighting-setups]')?.addEventListener('change', updateCanvasState);
 
 	const autoBestBtn = document.querySelector('[data-auto-best]');
 	if (autoBestBtn) {
@@ -676,6 +754,10 @@ if (builderForm) {
 		const rawCustomPrompt = values.custom_prompt ? values.custom_prompt.trim() : null;
 		const payload = {
 			...values,
+			surface: values.surface || null,
+			props: values.props || null,
+			camera_angle: values.camera_angle || null,
+			lighting_setup: values.lighting_setup || null,
 			custom_prompt: rawCustomPrompt || null,
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null
 		};

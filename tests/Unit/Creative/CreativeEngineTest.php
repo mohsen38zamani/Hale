@@ -123,4 +123,68 @@ class CreativeEngineTest extends TestCase
         $this->assertStringContainsString('Custom scene details: در یک خیابان بارانی با انعکاس نور نئون مغازه‌ها.', $prompt);
         $this->assertStringContainsString('Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.', $prompt);
     }
+
+    public function test_brief_includes_scene_controls_when_provided(): void
+    {
+        $product = new Product(['name' => 'ادکلن خنک']);
+        $brief = $this->engine->brief($product, [
+            'goal' => CreativeGoal::Branding->value,
+            'style' => CreativeStyle::Luxury->value,
+            'environment' => 'studio',
+            'format' => CreativeFormat::InstagramPost->value,
+            'surface' => 'marble',
+            'props' => 'botanical',
+            'camera_angle' => 'hero_shot',
+            'lighting_setup' => 'rim',
+        ]);
+
+        $this->assertSame('marble', $brief['surface']);
+        $this->assertSame('botanical', $brief['props']);
+        $this->assertSame('hero_shot', $brief['camera_angle']);
+        $this->assertSame('rim', $brief['lighting_setup']);
+    }
+
+    public function test_prompt_cleanly_incorporates_scene_controls(): void
+    {
+        $brief = [
+            'product' => 'عطر لوکس',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'surface' => 'obsidian',
+            'props' => 'crystals',
+            'camera_angle' => 'macro',
+            'lighting_setup' => 'neon',
+            'custom_prompt' => 'جلوه بسیار درخشان',
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString('Elevated on a glossy black obsidian mirror surface with sharp glossy ground reflections.', $prompt);
+        $this->assertStringContainsString('Flanked by floating geometric glass prisms and translucent crystal shards scattering spectrum colors.', $prompt);
+        $this->assertStringContainsString('Camera perspective: intimate ultra-close macro detail shot highlighting premium texture and craftsmanship.', $prompt);
+        $this->assertStringContainsString('Lighting: futuristic duotone cyber neon backlight with subtle magenta and cyan ambient glow.', $prompt);
+        $this->assertStringContainsString('Custom scene details: جلوه بسیار درخشان.', $prompt);
+    }
+
+    public function test_prompt_skips_default_or_none_scene_controls(): void
+    {
+        $brief = [
+            'product' => 'عطر لوکس',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'surface' => 'default',
+            'props' => 'none',
+            'camera_angle' => null,
+            'lighting_setup' => null,
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $this->assertStringNotContainsString('Surface pedestal:', $prompt);
+        $this->assertStringNotContainsString('Accents and props:', $prompt);
+        $this->assertStringNotContainsString('Camera composition:', $prompt);
+        $this->assertStringNotContainsString('Studio lighting:', $prompt);
+    }
 }

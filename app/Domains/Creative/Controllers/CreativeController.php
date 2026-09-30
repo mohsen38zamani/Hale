@@ -19,7 +19,17 @@ class CreativeController extends Controller
 
     public function options(): JsonResponse
     {
-        return $this->success(['goals' => array_column(CreativeGoal::cases(), 'value'), 'styles' => array_column(CreativeStyle::cases(), 'value'), 'formats' => array_map(fn (CreativeFormat $format) => ['key' => $format->value, 'type' => $format->type(), 'aspect_ratio' => $format->aspectRatio()], CreativeFormat::cases()), 'environments' => config('creative.environments'), 'video_durations' => config('creative.video_durations')]);
+        return $this->success([
+            'goals' => array_column(CreativeGoal::cases(), 'value'),
+            'styles' => array_column(CreativeStyle::cases(), 'value'),
+            'formats' => array_map(fn (CreativeFormat $format) => ['key' => $format->value, 'type' => $format->type(), 'aspect_ratio' => $format->aspectRatio()], CreativeFormat::cases()),
+            'environments' => config('creative.environments'),
+            'video_durations' => config('creative.video_durations'),
+            'surfaces' => array_values(config('creative.surfaces')),
+            'props' => array_values(config('creative.props')),
+            'camera_angles' => array_values(config('creative.camera_angles')),
+            'lighting_setups' => array_values(config('creative.lighting_setups')),
+        ]);
     }
 
     public function preview(PreviewCreativeRequest $request, CreativeEngine $engine, CreditEstimator $estimator): JsonResponse

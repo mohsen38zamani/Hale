@@ -334,11 +334,18 @@
   - اعتبارسنجی در [StoreGenerationRequest.php](file:///var/www/html/Hale'/app/Domains/Generations/Requests/StoreGenerationRequest.php) شامل بررسی طول (حداکثر ۱۰۰۰ کاراکتر) و فیلتر اخلاقی/امنیتی با [PromptModerator.php](file:///var/www/html/Hale'/app/Domains/AI/Services/PromptModerator.php).
   - پالایش امن کاراکترها و تگ‌ها و ترکیب هوشمند با پرامپت پایه در [CreativeEngine.php](file:///var/www/html/Hale'/app/Domains/Creative/Services/CreativeEngine.php).
   - پوشش کامل تست‌های واحد در [CreativeEngineTest.php](file:///var/www/html/Hale'/tests/Unit/Creative/CreativeEngineTest.php) و تست‌های Feature در [GenerationApiTest.php](file:///var/www/html/Hale'/tests/Feature/Generations/GenerationApiTest.php) (۲۳۱ تست پاس‌شده).
-- [ ] **کنترل‌های فیزیکی صحنه (Scene & Studio Controls - الهام‌گرفته از Flair.ai و Google Studio):**
-  - **جنس سطح و پایه کالا (Surfaces & Pedestals):** سنگ مرمر لوکس (سفید رگه‌دار / مشکی طلا)، پایه چوب طبیعی روستیک، سکوی بتنی مینیمال، سطح آب با امواج زنده، آبسیدین صیقلی، ماسه کویر.
-  - **آبجکت‌های مکمل و اکسسوری صحنه (Props & Accents):** ارگانیک و گیاهی (برگ انجیری، شاخه زیتون، گل ارکیده)، پاشش مایعات و قطرات معلق (Splash & Mist)، دود و مه ملایم، کریستال‌ها و المان‌های هندسی معلق.
-  - **تنظیم زوایای دوربین (Camera Angles):** زاویه روبرو (Eye-Level)، عکاسی از بالا (Flat-Lay / Top-Down برای پوشاک و غذا)، زاویه پایین حماسی (Low-Angle Hero Shot)، نمای کلوزآپ/ماکرو (Macro Detail).
-  - **کنترل نورپردازی (Lighting Setup):** نور پنجره طبیعی خورشید، سافت‌باکس استودیویی یکدست، نور لبه‌ای دراماتیک (Rim Light)، نور نئون سایبرنتیک.
+- [x] **کنترل‌های فیزیکی صحنه (Scene & Studio Controls - الهام‌گرفته از Flair.ai و Google Studio):**
+  - **جنس سطح و پایه کالا (Surfaces & Pedestals):** پایه مرمر لوکس (Carrara Marble)، پایه چوب طبیعی روستیک، سکوی بتنی صنعتی/مینیمال، پایه آب بازتابنده، آبسیدین سیاه صیقلی، ماسه کویر طلایی و حالت استاندارد؛ با استایل‌های ۳ بعدی CSS پایه (`.pedestal-*`) در بوم پیش‌نمایش زنده.
+  - **آبجکت‌های مکمل و اکسسوری صحنه (Props & Accents):** شاخه زیتون و برگ‌های ارگانیک (Botanical)، قطرات معلق و پاشش آب (Splash & Mist)، مه و اتمسفر ملایم (Smoke/Mist)، کریستال‌ها و منشورهای نوری منکسرکننده (Crystals)، و حالت بدون اکسسوری.
+  - **تنظیم زوایای دوربین (Camera Angles):** روبرو (Eye-Level)، چیدمان تخت از بالا (Flat-Lay)، زاویه پرابهت از پایین (Low-Angle Hero Shot)، نمای کلوزآپ ماکرو (Macro Detail).
+  - **کنترل نورپردازی (Lighting Setup):** سافت‌باکس استودیویی ملایم، نور طبیعی آفتاب پنجره، نور لبه‌ای دراماتیک (Rim Lighting)، نور نئون سایبرپانک دو رنگ؛ همراه با جلوه‌های نوری استیج در بوم پیش‌نمایش زنده (`.light-*`).
+  - **پیاده‌سازی فنی و معماری:**
+    - مایگریشن `2026_09_30_100000_add_scene_controls_to_creative_projects_table.php` و فیلدهای `surface`, `props`, `camera_angle`, `lighting_setup` در مدل [CreativeProject.php](file:///var/www/html/Hale'/app/Domains/Creative/Models/CreativeProject.php).
+    - تعاریف ساختاریافته شامل نام فارسی، کلید، آیکون SVG و توصیف فوتورئال در [creative.php](file:///var/www/html/Hale'/config/creative.php) و اکسپوز در اندپوینت `/api/creative/options`.
+    - اعتبارسنجی ورودی‌ها با قوانین `Rule::in` و پیام‌های خطای فارسی در [StoreGenerationRequest.php](file:///var/www/html/Hale'/app/Domains/Generations/Requests/StoreGenerationRequest.php).
+    - تزریق طبیعی عبارات عکاسی و فیزیکی در متد `prompt()` و ذخیره در `brief()` کلاس [CreativeEngine.php](file:///var/www/html/Hale'/app/Domains/Creative/Services/CreativeEngine.php).
+    - پنل آکاردئونی تاشو با انتخابگرهای کارت‌های شیشه‌ای در [create.blade.php](file:///var/www/html/Hale'/resources/views/create.blade.php)، به‌روزرسانی آنی پایه، نور و چیپ‌های بازرس پرامپت در [app.js](file:///var/www/html/Hale'/resources/js/app.js) و استایل‌های متناسب در [app.css](file:///var/www/html/Hale'/resources/css/app.css).
+    - پوشش کامل با تست‌های واحد و Feature در [CreativeEngineTest.php](file:///var/www/html/Hale'/tests/Unit/Creative/CreativeEngineTest.php)، [GenerationApiTest.php](file:///var/www/html/Hale'/tests/Feature/Generations/GenerationApiTest.php) و [StudioPreviewViewTest.php](file:///var/www/html/Hale'/tests/Feature/Generations/StudioPreviewViewTest.php) (۲۳۹ تست پاس‌شده، ۱۱۴۹ assertion).
 - [ ] **تم‌های فصلی و کمپین‌های مناسبتی (Seasonal & Campaign Packs):**
   - تم‌های آماده تقویمی: نوروز و بهار، شب یلدا (تم انار و نور گرم)، حراج بزرگ / بلک فرایدی (مشکی و نئون طلایی)، ولنتاین، تابستانه ساحلی و پاییزی بارانی.
 - [ ] **ابزارهای کمکی هوش مصنوعی (AI Utility Tools - الهام‌گرفته از Photoroom):**

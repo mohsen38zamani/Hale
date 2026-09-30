@@ -26,6 +26,10 @@ class StoreGenerationRequest extends FormRequest
             'environment' => ['nullable', Rule::in(config('creative.environments'))],
             'video_duration_seconds' => [Rule::requiredIf(fn (): bool => in_array($this->input('format'), ['instagram_reel', 'tiktok'], true)), 'nullable', 'integer', Rule::in(config('creative.video_durations'))],
             'custom_prompt' => ['nullable', 'string', 'max:1000'],
+            'surface' => ['nullable', 'string', Rule::in(array_keys(config('creative.surfaces')))],
+            'props' => ['nullable', 'string', Rule::in(array_keys(config('creative.props')))],
+            'camera_angle' => ['nullable', 'string', Rule::in(array_keys(config('creative.camera_angles')))],
+            'lighting_setup' => ['nullable', 'string', Rule::in(array_keys(config('creative.lighting_setups')))],
             'settings' => ['sometimes', 'array'],
         ];
     }
@@ -58,6 +62,10 @@ class StoreGenerationRequest extends FormRequest
             'video_duration_seconds.in' => 'مدت زمان ویدیوی انتخاب‌شده معتبر نیست.',
             'custom_prompt.string' => 'توضیحات دلخواه باید به صورت متن باشد.',
             'custom_prompt.max' => 'توضیحات دلخواه نمی‌تواند بیش از ۱۰۰۰ کاراکتر باشد.',
+            'surface.in' => 'جنس سطح یا پایه انتخاب‌شده نامعتبر است.',
+            'props.in' => 'اکسسوری صحنه انتخاب‌شده نامعتبر است.',
+            'camera_angle.in' => 'زاویه دوربین انتخاب‌شده نامعتبر است.',
+            'lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
             'settings.array' => 'تنظیمات باید به صورت ساختار معتبر ارسال شوند.',
         ];
     }

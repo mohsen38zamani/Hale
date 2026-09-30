@@ -920,7 +920,135 @@ button, a {
   filter: blur(5px);
   pointer-events: none;
   z-index: 2;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 3D Pedestal variations */
+.stage-ground.pedestal-marble {
+  height: 30px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 40%, #94a3b8 100%);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  filter: none;
+}
+
+.stage-ground.pedestal-wood {
+  height: 30px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #78350f 0%, #92400e 50%, #451a03 100%);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(251, 191, 36, 0.35);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  filter: none;
+}
+
+.stage-ground.pedestal-concrete {
+  height: 30px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #64748b 0%, #475569 50%, #334155 100%);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  filter: none;
+}
+
+.stage-ground.pedestal-water {
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.45) 0%, rgba(14, 165, 233, 0.2) 60%, transparent 85%);
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+  filter: blur(2px);
+}
+
+.stage-ground.pedestal-obsidian {
+  height: 30px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(192, 132, 252, 0.4);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  filter: none;
+}
+
+.stage-ground.pedestal-sand {
+  height: 28px;
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #78350f 100%);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.65);
+  filter: blur(1px);
+}
+
+/* Lighting Setup Variations on Stage */
+.studio-stage.light-sunlight {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(245, 158, 11, 0.25);
+}
+
+.studio-stage.light-rim {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(236, 72, 153, 0.3);
+}
+
+.studio-stage.light-neon {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 45px rgba(168, 85, 247, 0.35);
+}
+
+.studio-stage.light-softbox {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(255, 255, 255, 0.15);
+}
+
+/* Scene Controls Form Styles */
+.scene-controls-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-bottom: 24px;
+}
+
+.scene-controls-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.scene-controls-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scene-controls-header .toggle-icon {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.scene-controls-body {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.scene-control-group label.group-title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.choice-grid.compact-grid {
+  gap: 8px;
+}
+
+.choice-grid.compact-grid .choice span {
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 10px;
 }
 
 .stage-product {
