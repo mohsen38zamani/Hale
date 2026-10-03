@@ -575,6 +575,65 @@ if (pushButton && 'serviceWorker' in navigator && 'PushManager' in window && 'No
 	});
 }
 
+// --- Brand Kit: load the identity once, PUT it back on save ---
+const brandKitBox = document.querySelector('[data-brand-kit]');
+if (brandKitBox) {
+	const brandName = brandKitBox.querySelector('[data-brand-name]');
+	const brandFont = brandKitBox.querySelector('[data-brand-font]');
+	const brandTone = brandKitBox.querySelector('[data-brand-tone]');
+	const brandTagline = brandKitBox.querySelector('[data-brand-tagline]');
+	const brandColors = [...brandKitBox.querySelectorAll('[data-brand-color]')];
+	const brandSave = brandKitBox.querySelector('[data-brand-save]');
+	const brandMessage = brandKitBox.querySelector('[data-brand-message]');
+
+	const fillBrandForm = (kit) => {
+		if (!kit) return;
+		if (brandName && kit.name) brandName.value = kit.name;
+		if (brandFont) brandFont.value = kit.font_family || '';
+		if (brandTone) brandTone.value = kit.tone || '';
+		if (brandTagline) brandTagline.value = kit.tagline || '';
+		brandColors.forEach((input) => {
+			const value = kit[input.dataset.brandColor];
+			if (value) input.value = value;
+		});
+	};
+
+	authFetch('/api/brand-kit', { headers: { Accept: 'application/json' } })
+		.then((response) => (response.ok ? response.json() : null))
+		.then((result) => fillBrandForm(result?.data))
+		.catch(() => {});
+
+	brandSave?.addEventListener('click', async () => {
+		brandSave.disabled = true;
+		brandMessage.className = 'form-message';
+		brandMessage.textContent = '';
+		try {
+			const payload = {
+				// Omitting an empty name keeps the stored one (partial PUT).
+				name: brandName?.value.trim() || undefined,
+				font_family: brandFont?.value.trim() || null,
+				tone: brandTone?.value.trim() || null,
+				tagline: brandTagline?.value.trim() || null,
+			};
+			brandColors.forEach((input) => { payload[input.dataset.brandColor] = input.value; });
+			const response = await authFetch('/api/brand-kit', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+				body: JSON.stringify(payload),
+			});
+			const result = await response.json();
+			if (!response.ok) throw new Error(result.error?.message || 'ذخیرهٔ کیت برند انجام نشد.');
+			brandMessage.className = 'form-message success-message';
+			brandMessage.textContent = '✓ کیت برند ذخیره شد و در تولیدهای بعدی اعمال می‌شود.';
+		} catch (error) {
+			brandMessage.className = 'form-message error-message';
+			brandMessage.textContent = error.message;
+		} finally {
+			brandSave.disabled = false;
+		}
+	});
+}
+
 const builderForm = document.querySelector('[data-builder-form]');
 if (builderForm) {
 	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok', studio: 'استودیو', urban: 'شهری', nature: 'طبیعت', home: 'خانه و دکور', abstract: 'انتزاعی و مدرن' };
@@ -926,6 +985,141 @@ if (builderForm) {
 		updateCanvasState();
 	});
 	duration.addEventListener('change', () => updateEstimate().catch(() => {}));
+
+	// --- Studio templates: save the current preset, apply saved presets ---
+	const templateChips = document.querySelector('[data-template-chips]');
+	const templateSaveBtn = document.querySelector('[data-template-save]');
+	const templateSaveRow = document.querySelector('[data-template-save-row]');
+	const templateNameInput = document.querySelector('[data-template-name]');
+	const templateConfirm = document.querySelector('[data-template-confirm]');
+	const templateCancel = document.querySelector('[data-template-cancel]');
+	const templateMessage = document.querySelector('[data-template-message]');
+	const TEMPLATE_KEYS = ['goal', 'style', 'format', 'environment', 'surface', 'props', 'camera_angle', 'lighting_setup', 'video_duration_seconds', 'custom_prompt'];
+	let templatesCache = [];
+
+	const renderTemplates = () => {
+		if (!templateChips) return;
+		templateChips.innerHTML = templatesCache.length
+			? templatesCache.map((template) => `<button class="template-chip" type="button" data-template-apply="${template.id}" title="اعمال این قالب روی فرم">${escapeHtml(template.name)}</button><button class="template-chip-delete" type="button" data-template-remove="${template.id}" aria-label="حذف قالب" title="حذف قالب">×</button>`).join('')
+			: '<small data-template-empty style="color: var(--text-muted); font-size: 12px;">هنوز قالبی نداری؛ ترکیب دلخواهت را بساز و ذخیره کن تا بعداً با یک کلیک اعمال شود.</small>';
+	};
+
+	const applyTemplate = (template) => {
+		const settings = template.settings || {};
+		const setRadio = (name, value) => {
+			const radio = builderForm.querySelector(`input[name="${name}"][value="${value}"]`);
+			if (radio) {
+				radio.checked = true;
+				// Bubbles to the choice-grid / format listeners so the canvas,
+				// duration field and credit estimate all refresh.
+				radio.dispatchEvent(new Event('change', { bubbles: true }));
+			}
+		};
+		['goal', 'style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup'].forEach((key) => {
+			if (settings[key] !== undefined && settings[key] !== null) setRadio(key, String(settings[key]));
+		});
+		const envSelect = document.querySelector('[data-environment]');
+		if (settings.environment && envSelect) {
+			envSelect.value = settings.environment;
+			envSelect.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+		if (settings.video_duration_seconds && duration) {
+			duration.value = String(settings.video_duration_seconds);
+			duration.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+		const customPromptInput = document.querySelector('[data-custom-prompt]');
+		if (customPromptInput && settings.custom_prompt !== undefined && settings.custom_prompt !== null) {
+			customPromptInput.value = settings.custom_prompt;
+			customPromptInput.dispatchEvent(new Event('input', { bubbles: true }));
+		}
+	};
+
+	templateChips?.addEventListener('click', async (event) => {
+		const removeBtn = event.target.closest('[data-template-remove]');
+		if (removeBtn) {
+			try {
+				const response = await authFetch(`/api/templates/${removeBtn.dataset.templateRemove}`, { method: 'DELETE', headers: { Accept: 'application/json' } });
+				if (!response.ok) throw new Error('حذف قالب انجام نشد.');
+				templatesCache = templatesCache.filter((template) => String(template.id) !== removeBtn.dataset.templateRemove);
+				renderTemplates();
+				templateMessage.className = 'form-message';
+				templateMessage.textContent = 'قالب حذف شد.';
+			} catch (error) {
+				templateMessage.className = 'form-message error-message';
+				templateMessage.textContent = error.message;
+			}
+			return;
+		}
+		const applyBtn = event.target.closest('[data-template-apply]');
+		const template = applyBtn ? templatesCache.find((item) => String(item.id) === applyBtn.dataset.templateApply) : null;
+		if (template) {
+			applyTemplate(template);
+			templateMessage.className = 'form-message success-message';
+			templateMessage.textContent = `قالب «${template.name}» روی فرم اعمال شد.`;
+		}
+	});
+
+	templateSaveBtn?.addEventListener('click', () => {
+		if (templateSaveRow) templateSaveRow.hidden = false;
+		templateNameInput?.focus();
+	});
+	templateCancel?.addEventListener('click', () => {
+		if (templateSaveRow) templateSaveRow.hidden = true;
+		if (templateNameInput) templateNameInput.value = '';
+		if (templateMessage) templateMessage.textContent = '';
+	});
+	templateConfirm?.addEventListener('click', async () => {
+		const name = templateNameInput?.value.trim();
+		if (!name) {
+			templateMessage.className = 'form-message error-message';
+			templateMessage.textContent = 'برای قالب یک نام بنویس.';
+			return;
+		}
+		const values = Object.fromEntries(new FormData(builderForm));
+		const isVideo = ['instagram_reel', 'tiktok'].includes(values.format);
+		const settings = {};
+		TEMPLATE_KEYS.forEach((key) => {
+			let value = values[key];
+			if (value === undefined || value === null || value === '') return;
+			if (key === 'video_duration_seconds') {
+				if (!isVideo) return;
+				value = Number(value);
+			}
+			settings[key] = value;
+		});
+		// Templates never bind to a specific product.
+		delete settings.product_id;
+		templateConfirm.disabled = true;
+		try {
+			const response = await authFetch('/api/templates', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+				body: JSON.stringify({ name, settings }),
+			});
+			const result = await response.json();
+			if (!response.ok) throw new Error(result.error?.message || 'ذخیرهٔ قالب انجام نشد.');
+			templatesCache = [result.data, ...templatesCache];
+			renderTemplates();
+			if (templateSaveRow) templateSaveRow.hidden = true;
+			if (templateNameInput) templateNameInput.value = '';
+			templateMessage.className = 'form-message success-message';
+			templateMessage.textContent = `✓ قالب «${name}» ذخیره شد.`;
+		} catch (error) {
+			templateMessage.className = 'form-message error-message';
+			templateMessage.textContent = error.message;
+		} finally {
+			templateConfirm.disabled = false;
+		}
+	});
+
+	authFetch('/api/templates?per_page=50', { headers: { Accept: 'application/json' } })
+		.then((response) => (response.ok ? response.json() : null))
+		.then((result) => {
+			templatesCache = result?.data?.data || [];
+			renderTemplates();
+		})
+		.catch(() => {});
+
 	builderForm.addEventListener('submit', async (event) => {
 		event.preventDefault();
 		const values = Object.fromEntries(new FormData(builderForm));
