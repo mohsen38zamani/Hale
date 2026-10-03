@@ -6,6 +6,8 @@ use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Notifications\Notifications\GenerationStatusNotification;
+use App\Domains\Products\Models\Product;
+use App\Domains\Search\Services\SearchIndexer;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -70,3 +72,19 @@ Artisan::command('ai:check-budget-alert {--threshold=80 : Percentage threshold t
         $this->info('AI budget is within normal limits or alert was already sent for today.');
     }
 })->purpose('Check daily AI budget usage and notify administrators if threshold is reached');
+
+Artisan::command('search:reindex', function (SearchIndexer $indexer): void {
+    $products = 0;
+    Product::query()->chunkById(200, function ($chunk) use ($indexer, &$products): void {
+        $indexer->pushProducts($chunk);
+        $products += $chunk->count();
+    });
+
+    $generations = 0;
+    Generation::query()->with('creativeProject.product')->chunkById(200, function ($chunk) use ($indexer, &$generations): void {
+        $indexer->pushGenerations($chunk);
+        $generations += $chunk->count();
+    });
+
+    $this->info("Indexed {$products} products and {$generations} generations.");
+})->purpose('Push all products and generations into the Meilisearch indexes');

@@ -9,6 +9,7 @@ use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Services\WatermarkService;
 use App\Domains\Notifications\Notifications\GenerationStatusNotification;
+use App\Domains\Search\Services\SearchIndexer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
@@ -41,10 +42,11 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
         return (string) $this->generationId;
     }
 
-    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null): void
+    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null, ?SearchIndexer $searchIndexer = null): void
     {
         $watermarks ??= app(WatermarkService::class);
         $circuitBreaker ??= app(CircuitBreaker::class);
+        $searchIndexer ??= app(SearchIndexer::class);
 
         $claimed = DB::transaction(function (): ?array {
             $generation = Generation::query()->whereKey($this->generationId)->lockForUpdate()->firstOrFail();
@@ -128,6 +130,9 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
             } catch (Throwable $notificationException) {
                 report($notificationException);
             }
+            // Keep the search index fresh; failures are logged inside the
+            // indexer and must never fail a settled generation.
+            $searchIndexer->indexGeneration($generation->fresh());
         } catch (Throwable $exception) {
             if (! empty($fileStored) && isset($disk, $path)) {
                 try {
