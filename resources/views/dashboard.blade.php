@@ -103,6 +103,7 @@
                         <p style="color: var(--text-muted); font-size: 13px; margin: 0;">محصولات ذخیره‌شده جهت تولید نامحدود محتوا</p>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="small-button" type="button" data-products-favorite-filter aria-pressed="false" title="نمایش فقط محصولات موردعلاقه">★ موردعلاقه‌ها</button>
                         <input class="glass-input" data-product-search type="search" placeholder="جستجوی محصول..." aria-label="جستجوی محصول" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 14px; font-size: 13px; color: #FFFFFF; outline: 0; min-width: 200px;">
                         <button class="btn-aurora" data-open-product style="padding: 8px 16px; font-size: 13px;">
                             + افزودن کالا
@@ -131,6 +132,26 @@
                     <a class="btn-glass" href="/create" style="padding: 6px 14px; font-size: 12px;">
                         + ساخت جدید
                     </a>
+                </div>
+
+                <div class="filter-bar" data-history-filters role="group" aria-label="فیلتر تاریخچه خروجی‌ها">
+                    <select class="filter-select" data-history-type aria-label="نوع خروجی">
+                        <option value="">همه نوع‌ها</option>
+                        <option value="image">تصویر</option>
+                        <option value="video">ویدیو</option>
+                    </select>
+                    <select class="filter-select" data-history-status aria-label="وضعیت خروجی">
+                        <option value="">همه وضعیت‌ها</option>
+                        <option value="completed">آماده</option>
+                        <option value="processing">در حال ساخت</option>
+                        <option value="queued">در صف</option>
+                        <option value="failed">ناموفق</option>
+                        <option value="cancelled">لغو شد</option>
+                    </select>
+                    <input class="filter-date" type="date" data-history-from aria-label="از تاریخ">
+                    <input class="filter-date" type="date" data-history-to aria-label="تا تاریخ">
+                    <button class="small-button" type="button" data-history-favorite aria-pressed="false" title="نمایش فقط خروجی‌های موردعلاقه">★ موردعلاقه‌ها</button>
+                    <button class="small-button" type="button" data-history-reset>پاک‌کردن فیلترها</button>
                 </div>
 
                 <div class="generation-list" data-generation-list>

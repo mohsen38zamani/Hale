@@ -143,4 +143,19 @@ class FavoriteHistoryFilterTest extends TestCase
         $this->assertDatabaseMissing('favorites', ['favoritable_id' => $product->id]);
         $this->getJson('/api/favorites?type=product')->assertOk()->assertJsonPath('data.data', []);
     }
+
+    public function test_dashboard_exposes_favorite_and_history_filter_controls(): void
+    {
+        $response = $this->get('/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('data-products-favorite-filter', false);
+        $response->assertSee('data-history-filters', false);
+        $response->assertSee('data-history-type', false);
+        $response->assertSee('data-history-status', false);
+        $response->assertSee('data-history-from', false);
+        $response->assertSee('data-history-to', false);
+        $response->assertSee('data-history-favorite', false);
+        $response->assertSee('data-history-reset', false);
+    }
 }

@@ -686,6 +686,68 @@ button, a {
   color: #FFFFFF;
 }
 
+.small-button[aria-pressed="true"] {
+  background: rgba(139, 92, 246, 0.28);
+  border-color: rgba(167, 139, 250, 0.55);
+  color: #FFFFFF;
+}
+
+/* Favorites + history filters (dashboard) */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filter-select,
+.filter-date {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #FFFFFF;
+  outline: 0;
+  font-family: inherit;
+}
+
+.filter-select option {
+  background: #0B0D14;
+  color: #FFFFFF;
+}
+
+.filter-select:focus-visible,
+.filter-date:focus-visible,
+.favorite-star:focus-visible {
+  border-color: var(--primary);
+}
+
+.favorite-star {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  min-width: 32px;
+  padding: 6px 8px;
+  font-size: 14px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.favorite-star:hover {
+  color: #FBBF24;
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.favorite-star[aria-pressed="true"] {
+  color: #FBBF24;
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
 /* ==========================================================================
    CREATIVE BUILDER STUDIO (LOVABLE-STYLE CANVAS)
    ========================================================================== */
