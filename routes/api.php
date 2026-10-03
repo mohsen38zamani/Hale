@@ -7,6 +7,7 @@ use App\Domains\Billing\Services\SubscriptionService;
 use App\Domains\Creative\Controllers\CreativeController;
 use App\Domains\Credits\Controllers\CreditController;
 use App\Domains\Credits\Services\CreditService;
+use App\Domains\Favorites\Controllers\FavoriteController;
 use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
 use App\Domains\Notifications\Controllers\NotificationController;
@@ -62,6 +63,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/products/{product}/assets', [ProductAssetController::class, 'store']);
     Route::get('/products/{product}/assets/{asset}/download', [ProductAssetController::class, 'download']);
     Route::delete('/products/{product}/assets/{asset}', [ProductAssetController::class, 'destroy']);
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
     Route::get('/creative/options', [CreativeController::class, 'options']);
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
     Route::get('/generations', [GenerationController::class, 'index']);

@@ -10,6 +10,7 @@ use App\Domains\Credits\Exceptions\PlanLimitReached;
 use App\Domains\Credits\Services\CreditEstimator;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Credits\Services\PlanLimitService;
+use App\Domains\Favorites\Services\FavoriteService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Generations\Requests\StoreGenerationRequest;
@@ -26,15 +27,19 @@ class GenerationController extends Controller
 {
     use ApiResponse;
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, FavoriteService $favorites): JsonResponse
     {
         $data = $request->validate([
             'type' => ['nullable', 'in:image,video'],
+            'status' => ['nullable', 'in:queued,processing,completed,failed,cancelled'],
+            'favorite' => ['nullable', 'boolean'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ], [
             'type.in' => 'نوع خروجی باید تصویر یا ویدیو باشد.',
+            'status.in' => 'وضعیت انتخاب‌شده نامعتبر است.',
+            'favorite.boolean' => 'فیلتر موردعلاقه نامعتبر است.',
             'from.date' => 'تاریخ شروع فیلتر نامعتبر است.',
             'to.date' => 'تاریخ پایان فیلتر نامعتبر است.',
             'to.after_or_equal' => 'تاریخ پایان باید بعد یا مساوی تاریخ شروع باشد.',
@@ -43,13 +48,19 @@ class GenerationController extends Controller
             'per_page.max' => 'حداکثر تعداد در صفحه ۵۰ است.',
         ]);
 
-        return $this->success($request->user()->generations()
+        $generations = $request->user()->generations()
             ->with(['creativeProject.product', 'outputMedia'])
             ->when($data['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
+            ->when($data['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($data['favorite'] ?? false, fn ($query) => $query->whereIn('generations.id', $favorites->ids($request->user(), 'generation')))
             ->when($data['from'] ?? null, fn ($query, $from) => $query->whereDate('created_at', '>=', $from))
             ->when($data['to'] ?? null, fn ($query, $to) => $query->whereDate('created_at', '<=', $to))
             ->latest()
-            ->paginate($data['per_page'] ?? 15));
+            ->paginate($data['per_page'] ?? 15);
+
+        $favorites->mark($generations->items(), $request->user(), 'generation');
+
+        return $this->success($generations);
     }
 
     public function store(StoreGenerationRequest $request, CreativeEngine $engine, PromptModerator $moderator, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse

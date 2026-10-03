@@ -2,6 +2,7 @@
 
 namespace App\Domains\Products\Controllers;
 
+use App\Domains\Favorites\Services\FavoriteService;
 use App\Domains\Media\Services\MediaUploadService;
 use App\Domains\Products\Models\Product;
 use App\Domains\Products\Requests\StoreProductRequest;
@@ -15,13 +16,16 @@ class ProductController extends Controller
 {
     use ApiResponse;
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, FavoriteService $favorites): JsonResponse
     {
         $products = $request->user()->products()
             ->with(['assets' => fn ($query) => $query->wherePivot('is_primary', true)])
             ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%'))
+            ->when($request->boolean('favorite'), fn ($query) => $query->whereIn('products.id', $favorites->ids($request->user(), 'product')))
             ->latest()
             ->paginate(min($request->integer('per_page', 15), 50));
+
+        $favorites->mark($products->items(), $request->user(), 'product');
 
         return $this->success($products);
     }
@@ -48,12 +52,13 @@ class ProductController extends Controller
         return $this->success($product->fresh('assets'));
     }
 
-    public function destroy(Request $request, Product $product, MediaUploadService $media): JsonResponse
+    public function destroy(Request $request, Product $product, MediaUploadService $media, FavoriteService $favorites): JsonResponse
     {
         $this->ensureOwner($request, $product);
         $assets = $product->assets()->get();
         $product->assets()->detach();
         $product->delete();
+        $favorites->forget($request->user(), 'product', (int) $product->getKey());
 
         foreach ($assets as $asset) {
             if (! $asset->products()->exists()) {
