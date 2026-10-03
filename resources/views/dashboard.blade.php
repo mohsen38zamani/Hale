@@ -135,6 +135,7 @@
                 </div>
 
                 <div class="filter-bar" data-history-filters role="group" aria-label="فیلتر تاریخچه خروجی‌ها">
+                    <input class="filter-search" type="search" data-history-search placeholder="جستجو در نام محصول یا پرامپت..." aria-label="جستجو در تاریخچه">
                     <select class="filter-select" data-history-type aria-label="نوع خروجی">
                         <option value="">همه نوع‌ها</option>
                         <option value="image">تصویر</option>

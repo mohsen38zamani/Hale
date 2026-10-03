@@ -22,6 +22,36 @@ const authFetch = async (url, options = {}) => {
 	return response;
 };
 
+// --- shared helpers: debounce, safe HTML, search-term highlighting ---
+
+const debounce = (fn, wait = 300) => {
+	let timer = null;
+	return (...args) => {
+		clearTimeout(timer);
+		timer = setTimeout(() => fn(...args), wait);
+	};
+};
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+
+// Escape first, then wrap every occurrence of the term in <mark>; without a
+// term this is just an escaped string, so user data stays inert markup.
+const highlight = (value, term) => {
+	const text = escapeHtml(value);
+	const needle = escapeHtml(String(term ?? '').trim());
+	if (!needle) return text;
+	const needleLower = needle.toLowerCase();
+	let result = '';
+	let rest = text;
+	let at = rest.toLowerCase().indexOf(needleLower);
+	while (at !== -1) {
+		result += rest.slice(0, at) + '<mark class="search-hit">' + rest.slice(at, at + needle.length) + '</mark>';
+		rest = rest.slice(at + needle.length);
+		at = rest.toLowerCase().indexOf(needleLower);
+	}
+	return result + rest;
+};
+
 const setAuthMode = (mode) => {
 	authMode = mode;
 	modal?.removeAttribute('hidden');
@@ -295,7 +325,7 @@ const loadProducts = async () => {
 		productGrid.innerHTML = products.length ? products.map((product) => {
 			const primary = product.assets?.[0];
 			const loved = Boolean(product.is_favorite);
-			return `<article class="product-tile"><div class="product-tile-art ${primary ? 'skeleton-shimmer is-loading' : ''}">${primary ? `<img data-product-asset="${primary.id}" alt="${product.name}" style="opacity: 0;">` : '<b>H</b>'}</div><strong>${product.name}</strong><small>${product.description || 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="favorite-star" type="button" data-favorite-product="${product.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`;
+			return `<article class="product-tile"><div class="product-tile-art ${primary ? 'skeleton-shimmer is-loading' : ''}">${primary ? `<img data-product-asset="${primary.id}" alt="${escapeHtml(product.name)}" style="opacity: 0;">` : '<b>H</b>'}</div><strong>${highlight(product.name, productSearch?.value)}</strong><small>${product.description ? highlight(product.description, productSearch?.value) : 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="favorite-star" type="button" data-favorite-product="${product.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`;
 		}).join('') : `<p class="empty-state">${productsFavoriteOnly ? 'هنوز محصولی به موردعلاقه‌ها اضافه نکرده‌ای.' : 'محصولی با این مشخصات پیدا نشد.'}</p>`;
 
 		await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => {
@@ -337,7 +367,7 @@ productsFavoriteFilter?.addEventListener('click', () => {
 	productPageNumber = 1;
 	loadProducts();
 });
-productSearch?.addEventListener('input', () => { productPageNumber = 1; loadProducts(); });
+productSearch?.addEventListener('input', debounce(() => { productPageNumber = 1; loadProducts(); }));
 productPrev?.addEventListener('click', () => { if (productPageNumber > 1) { productPageNumber -= 1; loadProducts(); } });
 productNext?.addEventListener('click', () => { productPageNumber += 1; loadProducts(); });
 productGrid?.addEventListener('click', async (event) => {
@@ -408,6 +438,7 @@ loadProducts().catch(() => {
 });
 
 const generationList = document.querySelector('[data-generation-list]');
+const historySearch = document.querySelector('[data-history-search]');
 const historyType = document.querySelector('[data-history-type]');
 const historyStatus = document.querySelector('[data-history-status]');
 const historyFrom = document.querySelector('[data-history-from]');
@@ -426,7 +457,7 @@ if (generationList) {
 		historyLoading = true;
 		try {
 			const query = new URLSearchParams();
-			const filters = { type: historyType?.value, status: historyStatus?.value, from: historyFrom?.value, to: historyTo?.value };
+			const filters = { type: historyType?.value, status: historyStatus?.value, search: historySearch?.value.trim(), from: historyFrom?.value, to: historyTo?.value };
 			Object.entries(filters).forEach(([key, value]) => { if (value) query.set(key, value); });
 			if (historyFavoriteActive()) query.set('favorite', '1');
 			const hasFilter = Boolean(Object.values(filters).some((value) => value) || historyFavoriteActive());
@@ -438,7 +469,7 @@ if (generationList) {
 			const generations = result.data?.data || [];
 			generationList.innerHTML = generations.length ? generations.map((generation) => {
 				const loved = Boolean(generation.is_favorite);
-				return `<div class="generation-row"><span class="generation-icon ${generation.status}">${generation.type === 'video' ? '▶' : '✦'}</span><strong>${generation.creative_project?.product?.name || 'محصول'}</strong><span>${historyStatusLabel[generation.status] || generation.status}</span><small>${generation.created_at ? new Date(generation.created_at).toLocaleDateString('fa-IR') : ''}</small><button class="favorite-star" type="button" data-favorite-generation="${generation.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button></div>`;
+				return `<div class="generation-row"><span class="generation-icon ${generation.status}">${generation.type === 'video' ? '▶' : '✦'}</span><strong>${highlight(generation.creative_project?.product?.name || 'محصول', historySearch?.value)}</strong><span>${historyStatusLabel[generation.status] || generation.status}</span><small>${generation.created_at ? new Date(generation.created_at).toLocaleDateString('fa-IR') : ''}</small><button class="favorite-star" type="button" data-favorite-generation="${generation.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button></div>`;
 			}).join('') : `<p class="empty-state">${hasFilter ? 'خروجی‌ای با این فیلترها پیدا نشد.' : 'هنوز محتوایی نساخته‌ای.'}</p>`;
 		} catch {
 			generationList.innerHTML = '<p class="empty-state">تاریخچه فعلاً در دسترس نیست.</p>';
@@ -448,12 +479,14 @@ if (generationList) {
 	};
 
 	[historyType, historyStatus, historyFrom, historyTo].forEach((element) => element?.addEventListener('change', loadHistory));
+	historySearch?.addEventListener('input', debounce(loadHistory, 300));
 	historyFavorite?.addEventListener('click', () => {
 		historyFavorite.setAttribute('aria-pressed', String(!historyFavoriteActive()));
 		loadHistory();
 	});
 	historyReset?.addEventListener('click', () => {
 		[historyType, historyStatus, historyFrom, historyTo].forEach((element) => { if (element) element.value = ''; });
+		if (historySearch) historySearch.value = '';
 		historyFavorite?.setAttribute('aria-pressed', 'false');
 		loadHistory();
 	});

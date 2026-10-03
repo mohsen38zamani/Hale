@@ -702,7 +702,8 @@ button, a {
 }
 
 .filter-select,
-.filter-date {
+.filter-date,
+.filter-search {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
@@ -713,6 +714,11 @@ button, a {
   font-family: inherit;
 }
 
+.filter-search {
+  min-width: 220px;
+  flex: 1;
+}
+
 .filter-select option {
   background: #0B0D14;
   color: #FFFFFF;
@@ -720,8 +726,16 @@ button, a {
 
 .filter-select:focus-visible,
 .filter-date:focus-visible,
+.filter-search:focus-visible,
 .favorite-star:focus-visible {
   border-color: var(--primary);
+}
+
+mark.search-hit {
+  background: rgba(251, 191, 36, 0.25);
+  color: #FDE68A;
+  border-radius: 3px;
+  padding: 0 2px;
 }
 
 .favorite-star {

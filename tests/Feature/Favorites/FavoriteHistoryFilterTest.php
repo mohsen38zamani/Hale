@@ -151,6 +151,7 @@ class FavoriteHistoryFilterTest extends TestCase
         $response->assertOk();
         $response->assertSee('data-products-favorite-filter', false);
         $response->assertSee('data-history-filters', false);
+        $response->assertSee('data-history-search', false);
         $response->assertSee('data-history-type', false);
         $response->assertSee('data-history-status', false);
         $response->assertSee('data-history-from', false);
