@@ -4,6 +4,7 @@ namespace App\Domains\Generations\Controllers;
 
 use App\Domains\AI\Services\PromptModerator;
 use App\Domains\Creative\Enums\CreativeFormat;
+use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Services\CreativeEngine;
 use App\Domains\Credits\Exceptions\InsufficientCredits;
 use App\Domains\Credits\Exceptions\PlanLimitReached;
@@ -13,6 +14,7 @@ use App\Domains\Credits\Services\PlanLimitService;
 use App\Domains\Favorites\Services\FavoriteService;
 use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Domains\Generations\Models\Generation;
+use App\Domains\Generations\Requests\BulkGenerationRequest;
 use App\Domains\Generations\Requests\StoreGenerationRequest;
 use App\Domains\Generations\Services\RetryGeneration;
 use App\Domains\Products\Models\Product;
@@ -100,6 +102,118 @@ class GenerationController extends Controller
         ProcessGeneration::dispatch($generation->id)->onQueue('generations');
 
         return $this->success($generation->load('creativeProject'), 202);
+    }
+
+    /**
+     * Bulk catalog processing: queue a generation for every selected product
+     * with one shared preset. Missing settings fall back to autoBest() per
+     * product, the total cost is checked before anything is created and the
+     * loop keeps partial results when a plan/credit limit trips mid-batch.
+     */
+    public function bulk(BulkGenerationRequest $request, CreativeEngine $engine, PromptModerator $moderator, CreditEstimator $estimator, CreditService $credits, PlanLimitService $limits): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+        $requestedIds = array_map('intval', (array) $validated['product_ids']);
+        unset($validated['product_ids']);
+
+        $products = $user->products()->whereKey($requestedIds)->get();
+        if ($products->count() !== count($requestedIds)) {
+            return $this->failure('INVALID_PRODUCTS', 'برخی محصولات انتخاب‌شده یافت نشدند.', 422);
+        }
+
+        // Only these keys exist as creative_projects columns; everything else
+        // from autoBest (aspect_ratio, ...) stays out of the insert.
+        $persistable = ['goal', 'style', 'format', 'environment', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup'];
+        $provided = array_filter($validated, fn ($value): bool => $value !== null && $value !== '');
+        $goal = CreativeGoal::from($provided['goal'] ?? CreativeGoal::Introduction->value);
+
+        $plans = $products->map(function (Product $product) use ($engine, $provided, $goal, $persistable): array {
+            $settings = array_merge($engine->autoBest($product, $goal), $provided);
+            $format = CreativeFormat::from($settings['format']);
+
+            return [
+                'product' => $product,
+                'settings' => $settings,
+                'db_settings' => array_intersect_key($settings, array_flip($persistable)),
+                'format' => $format,
+                'type' => $format->type(),
+                'duration' => $settings['video_duration_seconds'] ?? null,
+            ];
+        });
+
+        $totalCost = (int) $plans->sum(fn (array $plan): int => $estimator->estimate($plan['type'], $plan['duration']));
+        $balance = $credits->account($user)->balance;
+        if ($totalCost > $balance) {
+            return $this->failure(
+                'INSUFFICIENT_CREDITS',
+                sprintf('پردازش %d محصول به %d Credit نیاز دارد؛ موجودی شما %d Credit است.', $plans->count(), $totalCost, $balance),
+                402
+            );
+        }
+
+        $created = [];
+        $skipped = [];
+        $reason = null;
+
+        foreach ($plans as $plan) {
+            $brief = $engine->brief($plan['product'], $plan['settings'], $user->brandKit);
+            $prompt = $engine->prompt($brief, $plan['format']);
+
+            if (! $moderator->passes($prompt)) {
+                $reason ??= 'MODERATION_REJECTED';
+                $skipped[] = $plan['product']->id;
+
+                continue;
+            }
+
+            try {
+                $generation = DB::transaction(function () use ($user, $plan, $limits, $credits, $estimator, $brief, $prompt): Generation {
+                    $limits->ensureCanGenerateLocked($user, $plan['type']);
+                    $project = $user->creativeProjects()->create([
+                        ...$plan['db_settings'],
+                        'product_id' => $plan['product']->id,
+                        'brief' => $brief,
+                        'prompt' => $prompt,
+                    ]);
+                    $generation = $project->generations()->create([
+                        'user_id' => $user->id,
+                        'type' => $plan['type'],
+                        'status' => 'queued',
+                        'prompt_hash' => hash('sha256', $prompt),
+                        'metadata' => ['aspect_ratio' => $plan['format']->aspectRatio(), 'bulk' => true],
+                    ]);
+                    $credits->reserve($user, $generation, $estimator->estimate($plan['type'], $plan['duration']));
+
+                    return $generation;
+                });
+            } catch (PlanLimitReached) {
+                $reason ??= 'PLAN_LIMIT_REACHED';
+                $skipped[] = $plan['product']->id;
+
+                continue;
+            } catch (InsufficientCredits) {
+                $reason ??= 'INSUFFICIENT_CREDITS';
+                $skipped[] = $plan['product']->id;
+
+                continue;
+            }
+
+            ProcessGeneration::dispatch($generation->id)->onQueue('generations');
+            $created[] = $generation->id;
+        }
+
+        if ($created === []) {
+            return $this->failure($reason ?? 'BULK_FAILED', 'هیچ محصولی پردازش نشد.', 422);
+        }
+
+        return $this->success([
+            'created' => count($created),
+            'generation_ids' => $created,
+            'skipped' => count($skipped),
+            'skipped_product_ids' => $skipped,
+            'reason' => $reason,
+        ], 202);
     }
 
     public function show(Request $request, Generation $generation): JsonResponse

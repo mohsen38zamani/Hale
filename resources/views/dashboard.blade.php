@@ -103,6 +103,10 @@
                         <p style="color: var(--text-muted); font-size: 13px; margin: 0;">محصولات ذخیره‌شده جهت تولید نامحدود محتوا</p>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
+                        <label class="bulk-select-all" data-bulk-all-wrap hidden>
+                            <input type="checkbox" data-bulk-all aria-label="انتخاب همه محصولات"> انتخاب همه
+                        </label>
+                        <button class="small-button" type="button" data-bulk-toggle aria-pressed="false" title="انتخاب چند محصول و ساخت هم‌زمان خروجی"> پردازش دسته‌ای</button>
                         <button class="small-button" type="button" data-products-favorite-filter aria-pressed="false" title="نمایش فقط محصولات موردعلاقه">★ موردعلاقه‌ها</button>
                         <input class="glass-input" data-product-search type="search" placeholder="جستجوی محصول..." aria-label="جستجوی محصول" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 14px; font-size: 13px; color: #FFFFFF; outline: 0; min-width: 200px;">
                         <button class="btn-aurora" data-open-product style="padding: 8px 16px; font-size: 13px;">
@@ -113,6 +117,15 @@
 
                 <div class="product-grid" data-product-grid>
                     <p class="empty-state" style="color: var(--text-muted); padding: 32px 0;">در حال بارگذاری کتابخانه محصولات...</p>
+                </div>
+
+                <div class="bulk-bar" data-bulk-bar hidden>
+                    <span class="bulk-count" data-bulk-count>۰ محصول انتخاب شده</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn-aurora" type="button" data-bulk-run style="padding: 8px 16px; font-size: 13px;">ساخت خروجی‌ها ✦</button>
+                        <button class="small-button" type="button" data-bulk-cancel>انصراف</button>
+                    </div>
+                    <p class="form-message" data-bulk-message role="status" style="margin: 0; font-size: 13px;"></p>
                 </div>
 
                 <div class="library-pagination" data-product-pagination hidden style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px;">

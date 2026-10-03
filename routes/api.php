@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
     Route::get('/generations', [GenerationController::class, 'index']);
     Route::post('/generations', [GenerationController::class, 'store'])->middleware(['verified', 'throttle:generation']);
+    Route::post('/generations/bulk', [GenerationController::class, 'bulk'])->middleware(['verified', 'throttle:generation']);
     Route::get('/generations/{generation}', [GenerationController::class, 'show']);
     Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry'])->middleware(['verified', 'throttle:generation']);
     Route::post('/generations/{generation}/regenerate', [GenerationController::class, 'regenerate'])->middleware(['verified', 'throttle:generation']);
