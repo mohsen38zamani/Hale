@@ -514,6 +514,67 @@ if (notificationList) {
 	document.querySelector('[data-read-all-notifications]')?.addEventListener('click', async () => { const response = await authFetch('/api/notifications/read-all', { method: 'POST', headers: { Accept: 'application/json' } }); if (response.ok) notificationList.querySelectorAll('.unread').forEach((item) => item.classList.remove('unread')); });
 }
 
+// --- Web push: subscribe this browser and keep the toggle in sync ---
+const pushButton = document.querySelector('[data-push-subscribe]');
+if (pushButton && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
+	const urlBase64ToUint8Array = (base64String) => {
+		const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+		const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+		const rawData = window.atob(base64);
+		return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+	};
+
+	const syncPushButton = async () => {
+		const registration = await navigator.serviceWorker.ready;
+		const subscription = await registration.pushManager.getSubscription();
+		pushButton.hidden = false;
+		pushButton.setAttribute('aria-pressed', String(Boolean(subscription)));
+		pushButton.textContent = subscription ? '🔔 اعلان فوری فعال' : '🔔 فعال‌سازی اعلان فوری';
+	};
+
+	navigator.serviceWorker.register('/sw.js').catch(() => {});
+	syncPushButton().catch(() => {});
+
+	pushButton.addEventListener('click', async () => {
+		pushButton.disabled = true;
+		try {
+			const registration = await navigator.serviceWorker.ready;
+			const existing = await registration.pushManager.getSubscription();
+			if (existing) {
+				await existing.unsubscribe();
+				await authFetch('/api/notifications/push/subscriptions', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ endpoint: existing.endpoint }),
+				});
+			} else {
+				const permission = await Notification.requestPermission();
+				if (permission !== 'granted') return;
+				const keyResponse = await authFetch('/api/notifications/push/public-key');
+				const keyResult = await keyResponse.json();
+				if (!keyResult.data?.enabled) {
+					pushButton.textContent = 'اعلان فوری پیکربندی نشده';
+					return;
+				}
+				const subscription = await registration.pushManager.subscribe({
+					userVisibleOnly: true,
+					applicationServerKey: urlBase64ToUint8Array(keyResult.data.public_key),
+				});
+				await authFetch('/api/notifications/push/subscriptions', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(subscription.toJSON()),
+				});
+			}
+		} catch (_) {
+			// Transient failure: keep the previous state, the user can retry.
+		} finally {
+			pushButton.disabled = false;
+			syncPushButton().catch(() => {});
+		}
+	});
+}
+
 const builderForm = document.querySelector('[data-builder-form]');
 if (builderForm) {
 	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok', studio: 'استودیو', urban: 'شهری', nature: 'طبیعت', home: 'خانه و دکور', abstract: 'انتزاعی و مدرن' };

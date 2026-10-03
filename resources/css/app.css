@@ -692,6 +692,11 @@ button, a {
   color: #FFFFFF;
 }
 
+.small-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* Favorites + history filters (dashboard) */
 .filter-bar {
   display: flex;

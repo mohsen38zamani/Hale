@@ -184,4 +184,14 @@ class PushNotificationTest extends TestCase
             ->assertOk()
             ->assertSee('data-push-subscribe', false);
     }
+
+    public function test_service_worker_handles_push_and_notification_clicks(): void
+    {
+        $worker = file_get_contents(public_path('sw.js'));
+
+        $this->assertStringContainsString("self.addEventListener('push'", $worker);
+        $this->assertStringContainsString('showNotification', $worker);
+        $this->assertStringContainsString("self.addEventListener('notificationclick'", $worker);
+        $this->assertStringContainsString('openWindow', $worker);
+    }
 }
