@@ -2,6 +2,7 @@
 
 namespace App\Domains\Creative\Services;
 
+use App\Domains\Brand\Models\BrandKit;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
@@ -49,13 +50,13 @@ class CreativeEngine
         ];
     }
 
-    public function brief(Product $product, array $settings): array
+    public function brief(Product $product, array $settings, ?BrandKit $brand = null): array
     {
         $customPrompt = isset($settings['custom_prompt']) && is_string($settings['custom_prompt'])
             ? trim($settings['custom_prompt'])
             : null;
 
-        return [
+        $brief = [
             'product' => $product->name,
             'description' => $product->description,
             'objective' => $settings['goal'],
@@ -70,6 +71,15 @@ class CreativeEngine
             'audience' => 'Iranian social commerce shoppers',
             'generated_at' => now()->toIso8601String(),
         ];
+
+        // Carry the user's brand identity (colors, tone, tagline) into the
+        // brief so prompt() can weave it into the generated scene.
+        $identity = $brand?->promptIdentity() ?? [];
+        if ($identity !== []) {
+            $brief['brand'] = $identity;
+        }
+
+        return $brief;
     }
 
     public function prompt(array $brief, CreativeFormat $format): string
@@ -102,8 +112,10 @@ class CreativeEngine
             }
         }
 
+        $brandPart = $this->brandClause(is_array($brief['brand'] ?? null) ? $brief['brand'] : []);
+
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
+            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
             $brief['product'],
             $brief['objective'],
             $brief['visual_direction'],
@@ -111,7 +123,8 @@ class CreativeEngine
             $format->aspectRatio(),
             $format->value,
             $sceneClause,
-            $customPromptPart
+            $customPromptPart,
+            $brandPart
         );
 
         if ($format->type() === 'video') {
@@ -128,5 +141,39 @@ class CreativeEngine
         $normalized = preg_replace('/\s+/u', ' ', $clean) ?? '';
 
         return rtrim(trim($normalized), '. ');
+    }
+
+    /**
+     * Turn the brand identity stored in the brief into prompt language.
+     *
+     * @param  array<string, string>  $brand
+     */
+    private function brandClause(array $brand): string
+    {
+        $palette = [];
+        foreach (['primary_color' => 'primary', 'secondary_color' => 'secondary', 'accent_color' => 'accent'] as $key => $label) {
+            if (filled($brand[$key] ?? null)) {
+                $palette[] = $label.' '.$brand[$key];
+            }
+        }
+
+        $bits = [];
+        if ($palette !== []) {
+            $bits[] = 'palette '.implode(', ', $palette);
+        }
+        if (filled($brand['tone'] ?? null)) {
+            $bits[] = 'tone '.$this->sanitizeCustomPrompt((string) $brand['tone']);
+        }
+
+        $clause = $bits !== [] ? sprintf(' Brand identity: %s.', implode('; ', $bits)) : '';
+
+        if (filled($brand['tagline'] ?? null)) {
+            $sanitizedTagline = $this->sanitizeCustomPrompt((string) $brand['tagline']);
+            if ($sanitizedTagline !== '') {
+                $clause .= sprintf(' Keep the brand tagline "%s" legible in the frame.', $sanitizedTagline);
+            }
+        }
+
+        return $clause;
     }
 }

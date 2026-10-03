@@ -175,6 +175,50 @@
                     <p class="empty-state" style="color: var(--text-muted); padding: 20px 0;">در حال دریافت اعلان‌ها...</p>
                 </div>
             </section>
+
+            {{-- Brand Kit --}}
+            <section class="brand-kit-section" data-brand-kit style="margin-bottom: 60px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 18px; margin-bottom: 24px;">
+                    <div>
+                        <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 4px;">کیت برند من</h2>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">رنگ‌ها، لحن و شعار برند در پرامپت همهٔ تولیدهات اعمال می‌شود</p>
+                    </div>
+                </div>
+                <div class="brand-kit-grid">
+                    <label class="brand-field">
+                        <span>نام برند</span>
+                        <input type="text" data-brand-name maxlength="60" placeholder="مثلاً برند آریا">
+                    </label>
+                    <label class="brand-field">
+                        <span>رنگ اصلی</span>
+                        <input type="color" data-brand-color="primary_color" value="#0E0F12">
+                    </label>
+                    <label class="brand-field">
+                        <span>رنگ ثانویه</span>
+                        <input type="color" data-brand-color="secondary_color" value="#FFFFFF">
+                    </label>
+                    <label class="brand-field">
+                        <span>رنگ تأکیدی</span>
+                        <input type="color" data-brand-color="accent_color" value="#D4AF37">
+                    </label>
+                    <label class="brand-field">
+                        <span>فونت</span>
+                        <input type="text" data-brand-font maxlength="40" placeholder="مثلاً Vazirmatn">
+                    </label>
+                    <label class="brand-field">
+                        <span>لحن برند</span>
+                        <input type="text" data-brand-tone maxlength="60" placeholder="مثلاً لوکس و مینیمال">
+                    </label>
+                    <label class="brand-field brand-field-wide">
+                        <span>شعار برند (Tagline)</span>
+                        <input type="text" data-brand-tagline maxlength="160" placeholder="مثلاً زیبایی در جزئیات">
+                    </label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 14px; margin-top: 18px;">
+                    <button class="small-button" type="button" data-brand-save>ذخیرهٔ کیت برند</button>
+                    <p class="form-message" data-brand-message style="margin: 0; font-size: 13px;"></p>
+                </div>
+            </section>
         </main>
     </div>
 

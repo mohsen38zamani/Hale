@@ -164,6 +164,23 @@
                             </small>
                         </div>
 
+                        {{-- Saved Studio Templates --}}
+                        <div class="template-toolbar" data-template-list style="margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px;">
+                                <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">قالب‌های ذخیره‌شده</span>
+                                <button class="small-button" type="button" data-template-save style="font-size: 12px; padding: 5px 10px;">＋ ذخیره به‌عنوان قالب</button>
+                            </div>
+                            <div class="template-chips" data-template-chips>
+                                <small data-template-empty style="color: var(--text-muted); font-size: 12px;">هنوز قالبی نداری؛ ترکیب دلخواهت را بساز و ذخیره کن تا بعداً با یک کلیک اعمال شود.</small>
+                            </div>
+                            <div class="template-save-row" data-template-save-row hidden>
+                                <input class="template-name-input" data-template-name type="text" maxlength="60" placeholder="نام قالب، مثلاً کمپین لوکس" aria-label="نام قالب">
+                                <button class="small-button" type="button" data-template-confirm>ثبت</button>
+                                <button class="small-button" type="button" data-template-cancel>انصراف</button>
+                            </div>
+                            <p class="form-message" data-template-message role="status" style="margin: 8px 0 0; font-size: 12px;"></p>
+                        </div>
+
                         {{-- Credit Estimate Badge --}}
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 18px; margin-bottom: 20px;">
                             <p class="estimate-message" data-credit-estimate aria-live="polite" style="margin: 0; font-size: 13px; color: var(--text-secondary); font-weight: 600;"></p>

@@ -78,7 +78,7 @@ class GenerationController extends Controller
         } catch (PlanLimitReached $exception) {
             return $this->failure('PLAN_LIMIT_REACHED', $exception->getMessage(), 402);
         }
-        $brief = $engine->brief($product, $data);
+        $brief = $engine->brief($product, $data, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);
         abort_unless($moderator->passes($prompt), 422, 'درخواست با سیاست محتوایی سازگار نیست.');
 

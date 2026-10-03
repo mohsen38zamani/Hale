@@ -40,7 +40,7 @@ class CreativeController extends Controller
 
         $suggestion = $engine->autoBest($product, $goal);
         $format = CreativeFormat::from($suggestion['format']);
-        $brief = $engine->brief($product, $suggestion);
+        $brief = $engine->brief($product, $suggestion, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);
         $creditCost = $estimator->estimate($format->type(), $suggestion['video_duration_seconds'] ?? null);
 
