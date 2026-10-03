@@ -13,10 +13,13 @@ use App\Domains\Auth\Providers\SmsIrProvider;
 use App\Domains\Billing\Contracts\PaymentGateway;
 use App\Domains\Billing\Providers\FakePaymentGateway;
 use App\Domains\Billing\Providers\ZarinpalPaymentGateway;
+use App\Domains\Notifications\Listeners\SendWebPushNotification;
 use App\Support\PhoneNormalizer;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
@@ -112,5 +115,8 @@ class AppServiceProvider extends ServiceProvider
                 'exception' => $event->exception->getMessage(),
             ]);
         });
+
+        // Wake browsers after a ShouldWebPush notification hits the database.
+        Event::listen(NotificationSent::class, SendWebPushNotification::class);
     }
 }

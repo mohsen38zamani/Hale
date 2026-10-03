@@ -168,6 +168,7 @@
                         <p style="color: var(--text-muted); font-size: 13px; margin: 0;">پیام‌های وضعیت تراکنش‌ها و آماده‌سازی محتوا</p>
                     </div>
                     <button class="small-button" data-read-all-notifications>خواندن همه</button>
+                    <button class="small-button" type="button" data-push-subscribe aria-pressed="false" hidden title="اعلان فوری روی مرورگر">🔔 اعلان فوری</button>
                 </div>
 
                 <div class="notification-list" data-notification-list>

@@ -3,12 +3,13 @@
 namespace App\Domains\Notifications\Notifications;
 
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Notifications\Contracts\ShouldWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PaymentSucceededNotification extends Notification implements ShouldQueue
+class PaymentSucceededNotification extends Notification implements ShouldQueue, ShouldWebPush
 {
     use Queueable;
 

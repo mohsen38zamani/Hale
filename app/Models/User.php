@@ -8,6 +8,7 @@ use App\Domains\Creative\Models\CreativeProject;
 use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
+use App\Domains\Notifications\Models\PushSubscription;
 use App\Domains\Notifications\Notifications\VerifyEmailNotification;
 use App\Domains\Products\Models\Product;
 use App\Support\PhoneNormalizer;
@@ -177,5 +178,10 @@ class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
     }
 }

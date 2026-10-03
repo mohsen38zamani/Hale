@@ -2,12 +2,13 @@
 
 namespace App\Domains\Notifications\Notifications;
 
+use App\Domains\Notifications\Contracts\ShouldWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class SubscriptionExpiredNotification extends Notification implements ShouldQueue
+class SubscriptionExpiredNotification extends Notification implements ShouldQueue, ShouldWebPush
 {
     use Queueable;
 

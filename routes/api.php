@@ -11,6 +11,7 @@ use App\Domains\Favorites\Controllers\FavoriteController;
 use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
 use App\Domains\Notifications\Controllers\NotificationController;
+use App\Domains\Notifications\Controllers\PushController;
 use App\Domains\Products\Controllers\ProductController;
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\AdminMiddleware;
@@ -81,6 +82,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/payments/{payment}/receipt', [PlanController::class, 'receipt']);
     Route::get('/payments/{payment}/invoice', [PlanController::class, 'invoice']);
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/push/public-key', [PushController::class, 'publicKey']);
+    Route::post('/notifications/push/subscriptions', [PushController::class, 'subscribe']);
+    Route::delete('/notifications/push/subscriptions', [PushController::class, 'unsubscribe']);
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);

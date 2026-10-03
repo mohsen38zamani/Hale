@@ -12,6 +12,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Minishlink\WebPush\VAPID;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -88,3 +89,10 @@ Artisan::command('search:reindex', function (SearchIndexer $indexer): void {
 
     $this->info("Indexed {$products} products and {$generations} generations.");
 })->purpose('Push all products and generations into the Meilisearch indexes');
+
+Artisan::command('webpush:generate-keys', function (): void {
+    $keys = VAPID::createVapidKeys();
+
+    $this->info('WEBPUSH_VAPID_PUBLIC_KEY='.$keys['publicKey']);
+    $this->info('WEBPUSH_VAPID_PRIVATE_KEY='.$keys['privateKey']);
+})->purpose('Generate a VAPID key pair for web push notifications');

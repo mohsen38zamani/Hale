@@ -3,12 +3,13 @@
 namespace App\Domains\Notifications\Notifications;
 
 use App\Domains\Generations\Models\Generation;
+use App\Domains\Notifications\Contracts\ShouldWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class GenerationStatusNotification extends Notification implements ShouldQueue
+class GenerationStatusNotification extends Notification implements ShouldQueue, ShouldWebPush
 {
     use Queueable;
 
