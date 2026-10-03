@@ -1495,3 +1495,72 @@ mark.search-hit {
 .template-name-input:focus-visible {
   border-color: var(--primary);
 }
+
+/* Seasonal studio themes */
+.season-theme-badge {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(236, 72, 153, 0.25));
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.season-theme-badge:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(236, 72, 153, 0.4));
+}
+
+/* Shared decorative layer: sits above the ground (z2) and below the
+   product (z3), so it decorates without hiding the merchandise. */
+.studio-stage[data-season-decor]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.studio-stage[data-season-decor="snowfall"]::after {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.85) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.5) 1.5px, transparent 2px);
+  background-size: 44px 44px, 76px 76px;
+  opacity: 0.7;
+  animation: season-snowfall 9s linear infinite;
+}
+
+@keyframes season-snowfall {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 440px, 0 760px; }
+}
+
+.studio-stage[data-season-decor="vignette"]::after {
+  background:
+    radial-gradient(ellipse at 25% 15%, var(--season-accent, #1FA97A), transparent 55%),
+    radial-gradient(ellipse at 80% 85%, var(--season-glow, #E8C547), transparent 50%),
+    var(--season-bg, transparent);
+  animation: season-breathe 7s ease-in-out infinite;
+}
+
+@keyframes season-breathe {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.34; }
+}
+
+.studio-stage[data-season-decor="sparkle"]::after {
+  background-image:
+    radial-gradient(circle, var(--season-accent, #FBBF24) 1px, transparent 1.5px),
+    radial-gradient(circle, var(--season-glow, #FDE68A) 1.5px, transparent 2px);
+  background-size: 60px 60px, 90px 90px;
+  background-position: 10px 10px, 40px 55px;
+  animation: season-twinkle 3.5s ease-in-out infinite;
+}
+
+@keyframes season-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.6; }
+}

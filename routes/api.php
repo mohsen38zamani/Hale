@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
     Route::get('/creative/options', [CreativeController::class, 'options']);
+    Route::get('/creative/theme', [CreativeController::class, 'theme']);
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
     Route::get('/generations', [GenerationController::class, 'index']);
     Route::post('/generations', [GenerationController::class, 'store'])->middleware(['verified', 'throttle:generation']);

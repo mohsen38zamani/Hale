@@ -634,6 +634,44 @@ if (brandKitBox) {
 	});
 }
 
+// --- Seasonal studio theme: decorate the canvas when a season is active ---
+const seasonStage = document.querySelector('[data-canvas-stage]');
+const seasonBadge = document.querySelector('[data-season-badge]');
+if (seasonStage) {
+	const seasonOptedOut = (() => {
+		try { return localStorage.getItem('hale-season-theme') === 'off'; } catch (_) { return false; }
+	})();
+
+	if (!seasonOptedOut) {
+		const applySeasonTheme = (theme) => {
+			if (!theme) return;
+			seasonStage.dataset.seasonTheme = theme.key;
+			seasonStage.dataset.seasonDecor = theme.decor;
+			const [bg, accent, glow] = Array.isArray(theme.palette) ? theme.palette : [];
+			if (bg) seasonStage.style.setProperty('--season-bg', bg);
+			if (accent) seasonStage.style.setProperty('--season-accent', accent);
+			if (glow) seasonStage.style.setProperty('--season-glow', glow);
+			if (seasonBadge) {
+				seasonBadge.hidden = false;
+				seasonBadge.textContent = `${theme.emoji} تم ${theme.name}`;
+				seasonBadge.title = 'کلیک برای خاموش‌کردن موقت تم فصلی';
+			}
+		};
+
+		authFetch('/api/creative/theme', { headers: { Accept: 'application/json' } })
+			.then((response) => (response.ok ? response.json() : null))
+			.then((result) => applySeasonTheme(result?.data?.theme))
+			.catch(() => {});
+
+		seasonBadge?.addEventListener('click', () => {
+			seasonStage.removeAttribute('data-season-theme');
+			seasonStage.removeAttribute('data-season-decor');
+			seasonBadge.hidden = true;
+			try { localStorage.setItem('hale-season-theme', 'off'); } catch (_) {}
+		});
+	}
+}
+
 const builderForm = document.querySelector('[data-builder-form]');
 if (builderForm) {
 	const labels = { introduction: 'معرفی محصول', sales: 'افزایش فروش', branding: 'برندینگ', promotion: 'تخفیف', launch: 'محصول جدید', engagement: 'جذب مخاطب', luxury: 'لوکس', minimal: 'مینیمال', cinematic: 'سینمایی', natural: 'طبیعی', colorful: 'رنگارنگ', dark: 'تیره', professional: 'حرفه‌ای', fashion: 'فشن', instagram_post: 'پست ۱:۱', instagram_story: 'استوری', instagram_reel: 'Reel', tiktok: 'TikTok', studio: 'استودیو', urban: 'شهری', nature: 'طبیعت', home: 'خانه و دکور', abstract: 'انتزاعی و مدرن' };

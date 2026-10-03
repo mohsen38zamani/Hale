@@ -7,6 +7,7 @@ use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
 use App\Domains\Creative\Requests\PreviewCreativeRequest;
 use App\Domains\Creative\Services\CreativeEngine;
+use App\Domains\Creative\Services\SeasonThemeService;
 use App\Domains\Credits\Services\CreditEstimator;
 use App\Domains\Products\Models\Product;
 use App\Http\Controllers\Controller;
@@ -30,6 +31,11 @@ class CreativeController extends Controller
             'camera_angles' => array_values(config('creative.camera_angles')),
             'lighting_setups' => array_values(config('creative.lighting_setups')),
         ]);
+    }
+
+    public function theme(SeasonThemeService $seasons): JsonResponse
+    {
+        return $this->success(['theme' => $seasons->active()]);
     }
 
     public function preview(PreviewCreativeRequest $request, CreativeEngine $engine, CreditEstimator $estimator): JsonResponse

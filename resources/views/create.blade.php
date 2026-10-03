@@ -202,7 +202,10 @@
                             <span class="live-dot" aria-hidden="true"></span>
                             <span>بوم تعاملی استودیو · LIVE PREVIEW</span>
                         </div>
-                        <div class="canvas-format-chip" data-canvas-format-chip>۱:۱ · پست اینستاگرام</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="season-theme-badge" type="button" data-season-badge hidden></button>
+                            <div class="canvas-format-chip" data-canvas-format-chip>۱:۱ · پست اینستاگرام</div>
+                        </div>
                     </div>
 
                     {{-- Stage Viewport --}}
