@@ -17,4 +17,19 @@ return [
     'web_max_dimension' => (int) env('MEDIA_WEB_MAX_DIMENSION', 1600),
     'web_quality' => (int) env('MEDIA_WEB_QUALITY', 82),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Output quality tiers
+    |--------------------------------------------------------------------------
+    |
+    | Generation outputs are resized to the dimension of the requested
+    | quality tier before watermarking: standard never exceeds 1K, premium
+    | targets 2K (upscaling only from sources of at least 512px so tiny
+    | placeholders stay untouched).
+    |
+    */
+
+    'standard_max_dimension' => (int) env('MEDIA_STANDARD_MAX_DIMENSION', 1024),
+    'premium_max_dimension' => (int) env('MEDIA_PREMIUM_MAX_DIMENSION', 2048),
+
 ];

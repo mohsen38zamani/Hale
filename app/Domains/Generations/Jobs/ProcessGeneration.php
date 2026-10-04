@@ -7,6 +7,7 @@ use App\Domains\AI\Gateway\AiGateway;
 use App\Domains\AI\Services\CircuitBreaker;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
+use App\Domains\Media\Services\ImageOptimizer;
 use App\Domains\Media\Services\WatermarkService;
 use App\Domains\Notifications\Notifications\GenerationStatusNotification;
 use App\Domains\Search\Services\SearchIndexer;
@@ -42,11 +43,12 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
         return (string) $this->generationId;
     }
 
-    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null, ?SearchIndexer $searchIndexer = null): void
+    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null, ?SearchIndexer $searchIndexer = null, ?ImageOptimizer $imageOptimizer = null): void
     {
         $watermarks ??= app(WatermarkService::class);
         $circuitBreaker ??= app(CircuitBreaker::class);
         $searchIndexer ??= app(SearchIndexer::class);
+        $imageOptimizer ??= app(ImageOptimizer::class);
 
         $claimed = DB::transaction(function (): ?array {
             $generation = Generation::query()->whereKey($this->generationId)->lockForUpdate()->firstOrFail();
@@ -83,7 +85,15 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
             ));
             $result = $response['result'];
             $providerFailures = $response['failures'] ?? [];
-            $contents = $watermarks->applyForPlan($result->contents, $result->mime, $generation->user->plan_key);
+            // Quality tier: resize to the plan tier's dimension before the
+            // watermark so the stamp is rendered at the final size.
+            $contents = $result->contents;
+            if ($generation->type === 'image') {
+                $quality = (string) ($generation->metadata['quality'] ?? 'standard');
+                $tier = $quality === 'premium' ? 'premium_max_dimension' : 'standard_max_dimension';
+                $contents = $imageOptimizer->fitToMax($contents, (int) config("media.{$tier}", 1024), $quality === 'premium');
+            }
+            $contents = $watermarks->applyForPlan($contents, $result->mime, $generation->user->plan_key);
             $this->assertOutputContract($generation->type, $result->mime, $result->extension, $contents);
             $path = "generations/{$generation->user_id}/{$generation->id}.{$result->extension}";
             $disk = Storage::disk(config('ai.output_disk'));

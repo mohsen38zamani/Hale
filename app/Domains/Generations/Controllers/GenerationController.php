@@ -77,6 +77,11 @@ class GenerationController extends Controller
         abort_unless($product->user_id === $request->user()->id, 404);
         $data = $request->validated();
         $format = CreativeFormat::from($data['format']);
+        // The plan decides the highest quality tier the user may request.
+        $quality = $data['quality'] ?? 'standard';
+        if ($gate = $this->qualityGate((string) $request->user()->plan_key, $quality)) {
+            return $gate;
+        }
         try {
             $limits->ensureCanGenerate($request->user(), $format->type());
         } catch (PlanLimitReached $exception) {
@@ -86,15 +91,16 @@ class GenerationController extends Controller
         $prompt = $engine->prompt($brief, $format);
         abort_unless($moderator->passes($prompt), 422, 'درخواست با سیاست محتوایی سازگار نیست.');
         // The campaign flag lives on inside the brief; creative_projects has
-        // no such column and must not receive it in the insert.
-        unset($data['campaign']);
+        // no such column and must not receive it in the insert. Quality is
+        // likewise carried by generation metadata, not the project row.
+        unset($data['campaign'], $data['quality']);
 
         try {
-            $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format, $limits, $credits, $estimator): Generation {
+            $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format, $limits, $credits, $estimator, $quality): Generation {
                 $limits->ensureCanGenerateLocked($request->user(), $format->type());
                 $project = $request->user()->creativeProjects()->create([...$data, 'product_id' => $product->id, 'brief' => $brief, 'prompt' => $prompt]);
-                $generation = $project->generations()->create(['user_id' => $request->user()->id, 'type' => $format->type(), 'status' => 'queued', 'prompt_hash' => hash('sha256', $prompt), 'metadata' => ['aspect_ratio' => $format->aspectRatio()]]);
-                $credits->reserve($request->user(), $generation, $estimator->estimate($format->type(), $data['video_duration_seconds'] ?? null));
+                $generation = $project->generations()->create(['user_id' => $request->user()->id, 'type' => $format->type(), 'status' => 'queued', 'prompt_hash' => hash('sha256', $prompt), 'metadata' => ['aspect_ratio' => $format->aspectRatio(), 'quality' => $quality]]);
+                $credits->reserve($request->user(), $generation, $estimator->estimate($format->type(), $data['video_duration_seconds'] ?? null, $quality));
 
                 return $generation;
             });
@@ -132,6 +138,12 @@ class GenerationController extends Controller
         $persistable = ['goal', 'style', 'format', 'environment', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup'];
         $provided = array_filter($validated, fn ($value): bool => $value !== null && $value !== '');
         $goal = CreativeGoal::from($provided['goal'] ?? CreativeGoal::Introduction->value);
+        // One shared quality tier for the whole batch: same gate as store().
+        $quality = (string) ($provided['quality'] ?? 'standard');
+        unset($provided['quality']);
+        if ($gate = $this->qualityGate((string) $user->plan_key, $quality)) {
+            return $gate;
+        }
 
         $plans = $products->map(function (Product $product) use ($engine, $provided, $goal, $persistable): array {
             $settings = array_merge($engine->autoBest($product, $goal), $provided);
@@ -147,7 +159,7 @@ class GenerationController extends Controller
             ];
         });
 
-        $totalCost = (int) $plans->sum(fn (array $plan): int => $estimator->estimate($plan['type'], $plan['duration']));
+        $totalCost = (int) $plans->sum(fn (array $plan): int => $estimator->estimate($plan['type'], $plan['duration'], $quality));
         $balance = $credits->account($user)->balance;
         if ($totalCost > $balance) {
             return $this->failure(
@@ -173,7 +185,7 @@ class GenerationController extends Controller
             }
 
             try {
-                $generation = DB::transaction(function () use ($user, $plan, $limits, $credits, $estimator, $brief, $prompt): Generation {
+                $generation = DB::transaction(function () use ($user, $plan, $limits, $credits, $estimator, $brief, $prompt, $quality): Generation {
                     $limits->ensureCanGenerateLocked($user, $plan['type']);
                     $project = $user->creativeProjects()->create([
                         ...$plan['db_settings'],
@@ -186,9 +198,9 @@ class GenerationController extends Controller
                         'type' => $plan['type'],
                         'status' => 'queued',
                         'prompt_hash' => hash('sha256', $prompt),
-                        'metadata' => ['aspect_ratio' => $plan['format']->aspectRatio(), 'bulk' => true],
+                        'metadata' => ['aspect_ratio' => $plan['format']->aspectRatio(), 'quality' => $quality, 'bulk' => true],
                     ]);
-                    $credits->reserve($user, $generation, $estimator->estimate($plan['type'], $plan['duration']));
+                    $credits->reserve($user, $generation, $estimator->estimate($plan['type'], $plan['duration'], $quality));
 
                     return $generation;
                 });
@@ -327,6 +339,24 @@ class GenerationController extends Controller
             fpassthru($stream);
             fclose($stream);
         }, "generation-{$generation->id}.{$this->extension($mime)}", ['Content-Type' => $mime] + $cacheHeaders);
+    }
+
+    /**
+     * Premium (2K) output is reserved for paid plans; free stays on the
+     * standard 1K tier. Returns the error response, or null when allowed.
+     */
+    private function qualityGate(string $planKey, string $quality): ?JsonResponse
+    {
+        $maxQuality = (string) config('plans.'.($planKey ?: 'free').'.quality', 'standard');
+        if ($quality === 'premium' && $maxQuality !== 'premium') {
+            return $this->failure(
+                'PREMIUM_QUALITY_REQUIRED',
+                'کیفیت پرمیوم (خروجی ۲K) فقط برای پلن‌های پولی فعال است؛ پلن خود را ارتقا دهید.',
+                403
+            );
+        }
+
+        return null;
     }
 
     private function extension(string $mime): string

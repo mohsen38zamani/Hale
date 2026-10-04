@@ -9,6 +9,75 @@ use Throwable;
 class ImageOptimizer
 {
     /**
+     * Resize image bytes so the long edge lands on the quality tier's
+     * target dimension.
+     *
+     * - Standard tier only shrinks (never upscales), so tiny placeholders
+     *   and the fake test provider output stay untouched.
+     * - Premium tier may upscale up to 2x, but only from sources of at
+     *   least 512px so a 1x1 placeholder never explodes into a blur.
+     *
+     * Returns the original bytes whenever GD is unavailable, the file is
+     * not a decodable image (video outputs) or no resize would help.
+     */
+    public function fitToMax(string $contents, int $target, bool $allowUpscale = false): string
+    {
+        if ($contents === '' || $target < 16 || ! function_exists('imagecreatefromstring')) {
+            return $contents;
+        }
+
+        $image = @imagecreatefromstring($contents);
+        if ($image === false) {
+            return $contents;
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        if ($width < 1 || $height < 1) {
+            imagedestroy($image);
+
+            return $contents;
+        }
+
+        $longEdge = max($width, $height);
+        if ($longEdge === $target || ($longEdge < $target && (! $allowUpscale || $longEdge < 512))) {
+            imagedestroy($image);
+
+            return $contents;
+        }
+
+        $scale = $target / $longEdge;
+        $targetWidth = max(1, (int) round($width * $scale));
+        $targetHeight = max(1, (int) round($height * $scale));
+
+        $resized = imagecreatetruecolor($targetWidth, $targetHeight);
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
+        imagedestroy($image);
+
+        // Preserve the source format: PNG (possibly with alpha) stays PNG,
+        // JPEG and WebP keep their mime so the output contract still holds.
+        ob_start();
+        $written = match ($this->mimeOf($contents)) {
+            'image/jpeg' => imagejpeg($resized, null, 92),
+            'image/webp' => imagewebp($resized, null, 92),
+            default => imagepng($resized, null, 6),
+        };
+        $encoded = ob_get_clean();
+        imagedestroy($resized);
+
+        return $written === true && is_string($encoded) && $encoded !== '' ? $encoded : $contents;
+    }
+
+    private function mimeOf(string $contents): string
+    {
+        $info = @getimagesizefromstring($contents);
+
+        return is_array($info) ? (string) ($info['mime'] ?? '') : '';
+    }
+
+    /**
      * Decode image bytes and re-encode them as a screen-sized WebP.
      *
      * Returns null when the runtime cannot process images, when the source

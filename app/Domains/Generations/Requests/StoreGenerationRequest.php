@@ -30,6 +30,7 @@ class StoreGenerationRequest extends FormRequest
             'props' => ['nullable', 'string', Rule::in(array_keys(config('creative.props')))],
             'camera_angle' => ['nullable', 'string', Rule::in(array_keys(config('creative.camera_angles')))],
             'lighting_setup' => ['nullable', 'string', Rule::in(array_keys(config('creative.lighting_setups')))],
+            'quality' => ['sometimes', Rule::in(['standard', 'premium'])],
             'campaign' => ['sometimes', 'boolean'],
             'settings' => ['sometimes', 'array'],
         ];
@@ -67,6 +68,7 @@ class StoreGenerationRequest extends FormRequest
             'props.in' => 'اکسسوری صحنه انتخاب‌شده نامعتبر است.',
             'camera_angle.in' => 'زاویه دوربین انتخاب‌شده نامعتبر است.',
             'lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
+            'quality.in' => 'کیفیت خروجی باید استاندارد (standard) یا پرمیوم (premium) باشد.',
             'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
             'settings.array' => 'تنظیمات باید به صورت ساختار معتبر ارسال شوند.',
         ];

@@ -193,6 +193,21 @@ if (credit || welcome) {
 			if (welcome) welcome.textContent = `${result.data.name}، آماده‌ای یک خروجی تازه بسازی؟`;
 			if (credit) credit.textContent = result.data.credits_balance ?? '۰';
 
+			const quota = document.querySelector('[data-quota]');
+			const imageUsage = result.data.usage?.image;
+			if (quota && imageUsage && imageUsage.limit > 0) {
+				quota.hidden = false;
+				quota.textContent = `· ${imageUsage.used}/${imageUsage.limit} تصویر`;
+			}
+
+			// The premium 2K tier is a paid-plan feature; lock it for free.
+			if (result.data.plan_key === 'free') {
+				document.querySelectorAll('[data-paid-only]').forEach((option) => {
+					option.disabled = true;
+					option.textContent = `${option.textContent} 🔒`;
+				});
+			}
+
 			const unverifiedBanner = document.querySelector('[data-unverified-banner]');
 			if (unverifiedBanner && result.data.requires_email_verification) {
 				unverifiedBanner.removeAttribute('hidden');
@@ -1047,7 +1062,8 @@ if (builderForm) {
 		const format = formatBox.querySelector('input[name="format"]:checked')?.value;
 		if (!format) return;
 		const type = ['instagram_reel', 'tiktok'].includes(format) ? 'video' : 'image';
-		const response = await authFetch('/api/credits/estimate', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ type, video_duration_seconds: type === 'video' ? Number(duration.value) : null }) });
+		const quality = document.querySelector('[data-quality]')?.value || 'standard';
+		const response = await authFetch('/api/credits/estimate', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ type, video_duration_seconds: type === 'video' ? Number(duration.value) : null, quality }) });
 		const result = await response.json();
 		if (!response.ok) throw new Error(result.error?.message || 'برآورد اعتبار انجام نشد.');
 		estimate.textContent = result.data.sufficient ? `هزینه: ${result.data.cost} Credit | موجودی: ${result.data.balance} Credit` : `اعتبار کافی نیست (${result.data.balance} از ${result.data.cost} Credit) | خرید اعتبار`;
@@ -1183,6 +1199,7 @@ if (builderForm) {
 		updateCanvasState();
 	});
 	duration.addEventListener('change', () => updateEstimate().catch(() => {}));
+	document.querySelector('[data-quality]')?.addEventListener('change', () => updateEstimate().catch(() => {}));
 
 	// --- Studio templates: save the current preset, apply saved presets ---
 	const templateChips = document.querySelector('[data-template-chips]');

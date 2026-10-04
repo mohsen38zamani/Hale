@@ -500,6 +500,7 @@
                 <span class="plan-label">${plan.name}</span>
                 <strong>${plan.monthly_credits}<small> Credit / ماه</small></strong>
                 <p>${plan.video_limit ? `${plan.video_limit} خروجی ویدئویی در ماه` : 'ساخت تصویر نامحدود'}</p>
+                <p>${plan.quality === 'premium' ? 'کیفیت خروجی: پرمیوم ۲K (۲۵ Credit)' : 'کیفیت خروجی: استاندارد ۱K (۱۰ Credit)'}</p>
                 <div class="plan-price">${money(plan.price_irr)}</div>
                 <button class="primary-button plan-button" data-plan="${plan.key}">انتخاب پلن <span>←</span></button>
             </article>

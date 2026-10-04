@@ -8,6 +8,7 @@ use App\Domains\Brand\Controllers\BrandKitController;
 use App\Domains\Creative\Controllers\CreativeController;
 use App\Domains\Credits\Controllers\CreditController;
 use App\Domains\Credits\Services\CreditService;
+use App\Domains\Credits\Services\PlanLimitService;
 use App\Domains\Favorites\Controllers\FavoriteController;
 use App\Domains\Generations\Controllers\GenerationController;
 use App\Domains\Media\Controllers\ProductAssetController;
@@ -31,7 +32,7 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-Route::get('/user/profile', function (CreditService $credits, SubscriptionService $subscriptions) {
+Route::get('/user/profile', function (CreditService $credits, SubscriptionService $subscriptions, PlanLimitService $limits) {
     $user = request()->user();
     $subscriptions->syncExpired($user);
     $user->refresh();
@@ -48,6 +49,7 @@ Route::get('/user/profile', function (CreditService $credits, SubscriptionServic
             'banned_until' => $user->banned_until?->toIso8601String(),
             'ban_reason' => $user->currentlyBanned() ? $user->ban_reason : null,
             'credits_balance' => $credits->account($user)->balance,
+            'usage' => $limits->usage($user, $activeSub?->starts_at ?? now()->startOfMonth()),
             'subscription' => $activeSub ? [
                 'plan_key' => $activeSub->plan_key,
                 'starts_at' => $activeSub->starts_at?->toIso8601String(),

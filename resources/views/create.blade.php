@@ -24,6 +24,7 @@
                 <div class="credit-pill">
                     <span>موجودی:</span>
                     <strong data-credit>--</strong>
+                    <span data-quota hidden style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
                     <a href="/pricing" style="font-size: 12px; margin-right: 4px; color: var(--primary);">+ شارژ</a>
                 </div>
             </div>
@@ -96,6 +97,17 @@
                                 پس‌زمینه و محیط صحنه:
                             </label>
                             <select name="environment" data-environment style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;"></select>
+                        </div>
+
+                        {{-- Output Quality Tier --}}
+                        <div style="margin-bottom: 24px;">
+                            <label for="quality" style="display: block; font-size: 13px; font-weight: 600; color: #FFFFFF; margin-bottom: 8px;">
+                                🎞️ کیفیت خروجی:
+                            </label>
+                            <select name="quality" data-quality style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;">
+                                <option value="standard">استاندارد · ۱K · ۱۰ Credit</option>
+                                <option value="premium" data-paid-only>پرمیوم · ۲K · ۲۵ Credit (پلن‌های پولی)</option>
+                            </select>
                         </div>
 
                         {{-- Video Duration --}}
