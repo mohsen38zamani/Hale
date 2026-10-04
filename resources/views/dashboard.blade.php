@@ -174,6 +174,57 @@
                 </div>
             </section>
 
+            {{-- Content Calendar --}}
+            <section class="content-calendar" data-calendar style="margin-bottom: 60px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 18px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 4px;">تقویم محتوا</h2>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">زمان‌بندی انتشار خروجی‌ها و مدیریت کمپین‌ها</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button class="small-button" type="button" data-cal-prev aria-label="ماه قبل">→</button>
+                        <strong data-cal-title style="font-size: 14px; min-width: 130px; text-align: center;"></strong>
+                        <button class="small-button" type="button" data-cal-next aria-label="ماه بعد">←</button>
+                        <button class="btn-glass" type="button" data-campaign-open style="padding: 6px 14px; font-size: 12px;">+ کمپین جدید</button>
+                    </div>
+                </div>
+
+                <p class="form-message" data-cal-message role="status" style="margin: 0 0 10px; font-size: 13px;"></p>
+
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; text-align: center; font-size: 11px; color: var(--text-muted);">
+                    <span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span>ج</span>
+                </div>
+                <div class="calendar-grid" data-cal-grid style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;"></div>
+
+                <div data-cal-day hidden style="margin-top: 18px; border: 1px solid var(--border-subtle); border-radius: 16px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; flex-wrap: wrap;">
+                        <strong data-cal-day-title style="font-size: 14px;"></strong>
+                        <button class="small-button" type="button" data-cal-day-close>بستن ✕</button>
+                    </div>
+                    <div data-cal-day-list style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+
+                <div data-campaign-form hidden style="margin-top: 18px; border: 1px solid var(--border-subtle); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+                    <strong style="font-size: 14px;">کمپین زمان‌بندی‌شده</strong>
+                    <p style="margin: 0; font-size: 12px; color: var(--text-muted);">هر خروجی انتخاب‌شده یک روز در تقویم ثبت می‌شود؛ فاصلهٔ روزها را می‌توانید تنظیم کنید.</p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <input type="text" data-campaign-name placeholder="نام کمپین (مثلاً هفتهٔ فروش)" maxlength="100" aria-label="نام کمپین" style="flex: 1; min-width: 180px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 12px; color: #FFFFFF; font-size: 13px; outline: 0;">
+                        <input type="date" data-campaign-start aria-label="تاریخ شروع" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 10px; color: #FFFFFF; font-size: 13px; outline: 0;">
+                        <label style="font-size: 12px; color: var(--text-muted); display: flex; gap: 6px; align-items: center;">فاصلهٔ روزها
+                            <input type="number" data-campaign-interval value="1" min="1" max="30" aria-label="فاصلهٔ روزها" style="width: 64px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 8px; color: #FFFFFF; font-size: 13px; outline: 0;">
+                        </label>
+                    </div>
+                    <div data-campaign-options style="max-height: 190px; overflow: auto; border: 1px dashed var(--border-subtle); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+                        <span class="empty-state" style="font-size: 12px;">در حال دریافت خروجی‌های آماده...</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn-aurora" type="button" data-campaign-save style="padding: 8px 16px; font-size: 13px;">زمان‌بندی کن ✦</button>
+                        <button class="small-button" type="button" data-campaign-cancel>انصراف</button>
+                        <p class="form-message" data-campaign-message style="margin: 0; font-size: 13px;"></p>
+                    </div>
+                </div>
+            </section>
+
             {{-- Notification Center --}}
             <section class="notification-center" style="margin-bottom: 60px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 18px; margin-bottom: 24px;">

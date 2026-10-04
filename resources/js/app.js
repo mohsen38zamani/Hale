@@ -647,6 +647,211 @@ if (notificationList) {
 	document.querySelector('[data-read-all-notifications]')?.addEventListener('click', async () => { const response = await authFetch('/api/notifications/read-all', { method: 'POST', headers: { Accept: 'application/json' } }); if (response.ok) notificationList.querySelectorAll('.unread').forEach((item) => item.classList.remove('unread')); });
 }
 
+// --- Content calendar: month grid, per-day list and campaign builder ---
+const calGrid = document.querySelector('[data-cal-grid]');
+if (calGrid) {
+	const calTitle = document.querySelector('[data-cal-title]');
+	const calMessage = document.querySelector('[data-cal-message]');
+	const calDayPanel = document.querySelector('[data-cal-day]');
+	const calDayTitle = document.querySelector('[data-cal-day-title]');
+	const calDayList = document.querySelector('[data-cal-day-list]');
+	const campaignForm = document.querySelector('[data-campaign-form]');
+	const campaignName = document.querySelector('[data-campaign-name]');
+	const campaignStart = document.querySelector('[data-campaign-start]');
+	const campaignInterval = document.querySelector('[data-campaign-interval]');
+	const campaignOptions = document.querySelector('[data-campaign-options]');
+	const campaignMessage = document.querySelector('[data-campaign-message]');
+	const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+	const iso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+	// Persian calendar rendering without any extra dependency.
+	const persianDay = new Intl.DateTimeFormat('fa-IR', { calendar: 'persian', day: 'numeric' });
+	const persianMonth = new Intl.DateTimeFormat('fa-IR', { calendar: 'persian', month: 'long', year: 'numeric' });
+	const persianLong = new Intl.DateTimeFormat('fa-IR', { calendar: 'persian', weekday: 'long', day: 'numeric', month: 'long' });
+	let cursor = new Date();
+	cursor = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+	let monthPosts = [];
+	let selectedDay = null;
+	let optionsLoaded = false;
+
+	const monthRange = () => ({
+		from: iso(cursor),
+		to: iso(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0)),
+	});
+
+	const calFail = (error) => {
+		if (!calMessage) return;
+		calMessage.textContent = error.message || 'عملیات در تقویم انجام نشد.';
+		calMessage.className = 'form-message error-message';
+	};
+
+	const renderCalendar = () => {
+		if (calTitle) calTitle.textContent = persianMonth.format(cursor);
+		const lead = (new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay() + 1) % 7;
+		const byDate = {};
+		monthPosts.forEach((post) => { (byDate[post.scheduled_at] ||= []).push(post); });
+		const days = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+		let html = '';
+		for (let index = 0; index < lead; index++) html += '<span aria-hidden="true" style="min-height: 44px;"></span>';
+		for (let day = 1; day <= days; day++) {
+			const date = new Date(cursor.getFullYear(), cursor.getMonth(), day);
+			const key = iso(date);
+			const count = (byDate[key] || []).length;
+			const active = key === selectedDay;
+			html += `<button type="button" class="calendar-cell${count ? ' has-posts' : ''}" data-cal-key="${key}" aria-label="${key}" style="min-height: 44px; border: 1px solid ${active ? 'var(--primary)' : count ? 'var(--border-subtle)' : 'transparent'}; border-radius: 12px; background: ${count ? 'rgba(124,92,255,0.12)' : 'rgba(255,255,255,0.02)'}; color: #FFFFFF; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer;">${persianDay.format(date)}${count ? `<small style="font-size: 10px; color: var(--primary);">${count} پست</small>` : ''}</button>`;
+		}
+		calGrid.innerHTML = html;
+	};
+
+	const renderDay = (key) => {
+		selectedDay = key;
+		if (calDayPanel) calDayPanel.hidden = false;
+		if (calDayTitle) calDayTitle.textContent = persianLong.format(new Date(`${key}T00:00:00`));
+		const posts = monthPosts.filter((post) => post.scheduled_at === key);
+		if (calDayList) {
+			calDayList.innerHTML = posts.length ? posts.map((post) => `
+				<div class="calendar-post" data-post-id="${post.id}" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 12px;">
+					<a href="/generations/${post.generation?.id || ''}" style="font-size: 12px; color: var(--primary);">${esc(post.generation?.product || 'خروجی')} ↗</a>
+					<span style="flex: 1; min-width: 140px; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${esc(post.caption || '')}">${esc(post.caption || 'بدون کپشن')}${post.campaign ? ` | ${esc(post.campaign.name)}` : ''}</span>
+					<select data-post-status aria-label="وضعیت پست" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 8px; color: #FFFFFF; font-size: 12px; outline: 0;">
+						<option value="draft"${post.status === 'draft' ? ' selected' : ''}>پیش‌نویس</option>
+						<option value="scheduled"${post.status === 'scheduled' ? ' selected' : ''}>زمان‌بندی‌شده</option>
+						<option value="published"${post.status === 'published' ? ' selected' : ''}>منتشرشده</option>
+					</select>
+					<input type="date" data-post-date value="${post.scheduled_at}" min="${iso(new Date())}" aria-label="تاریخ انتشار" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 8px; color: #FFFFFF; font-size: 12px; outline: 0;">
+					<button type="button" class="small-button" data-post-delete aria-label="حذف پست" title="حذف پست">🗑</button>
+				</div>`).join('') : '<p class="empty-state" style="font-size: 12px; padding: 8px 0;">پستی برای این روز ثبت نشده است.</p>';
+		}
+		renderCalendar();
+	};
+
+	const loadCalendar = async () => {
+		const { from, to } = monthRange();
+		const response = await authFetch(`/api/calendar/posts?from=${from}&to=${to}`, { headers: { Accept: 'application/json' } });
+		const result = await response.json();
+		if (!response.ok) throw new Error(result.error?.message || 'دریافت تقویم ممکن نیست.');
+		monthPosts = Array.isArray(result.data) ? result.data : [];
+		if (selectedDay && (selectedDay < from || selectedDay > to)) {
+			selectedDay = null;
+			if (calDayPanel) calDayPanel.hidden = true;
+		}
+		renderCalendar();
+		if (selectedDay) renderDay(selectedDay);
+	};
+
+	const goToMonth = (offset) => {
+		cursor = new Date(cursor.getFullYear(), cursor.getMonth() + offset, 1);
+		selectedDay = null;
+		if (calDayPanel) calDayPanel.hidden = true;
+		loadCalendar().catch(calFail);
+	};
+	document.querySelector('[data-cal-prev]')?.addEventListener('click', () => goToMonth(-1));
+	document.querySelector('[data-cal-next]')?.addEventListener('click', () => goToMonth(1));
+	calGrid.addEventListener('click', (event) => {
+		const cell = event.target.closest('[data-cal-key]');
+		if (cell) renderDay(cell.dataset.calKey);
+	});
+	document.querySelector('[data-cal-day-close]')?.addEventListener('click', () => {
+		if (calDayPanel) calDayPanel.hidden = true;
+		selectedDay = null;
+		renderCalendar();
+	});
+
+	calDayList.addEventListener('change', async (event) => {
+		const row = event.target.closest('[data-post-id]');
+		if (!row) return;
+		const body = event.target.matches('[data-post-status]') ? { status: event.target.value }
+			: event.target.matches('[data-post-date]') ? { scheduled_at: event.target.value } : null;
+		if (!body) return;
+		try {
+			const response = await authFetch(`/api/calendar/posts/${row.dataset.postId}`, {
+				method: 'PATCH',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+			const result = await response.json();
+			if (!response.ok) throw new Error(result.error?.message || 'ذخیرهٔ تغییرات ممکن نیست.');
+			await loadCalendar();
+			if (selectedDay) renderDay(selectedDay);
+			if (calMessage) { calMessage.textContent = 'تغییرات ذخیره شد.'; calMessage.className = 'form-message'; }
+		} catch (error) { calFail(error); }
+	});
+
+	calDayList.addEventListener('click', async (event) => {
+		const button = event.target.closest('[data-post-delete]');
+		if (!button) return;
+		const row = button.closest('[data-post-id]');
+		if (!row) return;
+		button.disabled = true;
+		try {
+			const response = await authFetch(`/api/calendar/posts/${row.dataset.postId}`, { method: 'DELETE', headers: { Accept: 'application/json' } });
+			if (!response.ok) throw new Error('حذف پست ممکن نیست.');
+			await loadCalendar();
+			if (selectedDay) renderDay(selectedDay);
+			if (calMessage) { calMessage.textContent = 'پست حذف شد.'; calMessage.className = 'form-message'; }
+		} catch (error) { calFail(error); }
+		finally { button.disabled = false; }
+	});
+
+	const loadCampaignOptions = async () => {
+		if (optionsLoaded) return;
+		const response = await authFetch('/api/generations?status=completed&per_page=50', { headers: { Accept: 'application/json' } });
+		const result = await response.json();
+		if (!response.ok) throw new Error(result.error?.message || 'دریافت خروجی‌ها ممکن نیست.');
+		const items = Array.isArray(result.data) ? result.data : (result.data?.data || []);
+		optionsLoaded = true;
+		if (!items.length) {
+			campaignOptions.innerHTML = '<span class="empty-state" style="font-size: 12px;">خروجی تکمیل‌شده‌ای نداری؛ اول یک خروجی بساز.</span>';
+			return;
+		}
+		campaignOptions.innerHTML = items.map((item) => `
+			<label style="display: flex; gap: 8px; align-items: center; cursor: pointer;">
+				<input type="checkbox" data-campaign-gen value="${item.id}">
+				<span>${esc(item.creative_project?.product?.name || 'خروجی')} · ${item.type === 'video' ? 'ویدیو' : 'تصویر'}</span>
+			</label>`).join('');
+	};
+
+	document.querySelector('[data-campaign-open]')?.addEventListener('click', async () => {
+		const opening = campaignForm.hidden;
+		campaignForm.hidden = !opening;
+		if (!opening) return;
+		if (campaignMessage) { campaignMessage.textContent = ''; campaignMessage.className = 'form-message'; }
+		campaignStart.value = iso(new Date());
+		try { await loadCampaignOptions(); } catch (error) { calFail(error); }
+	});
+	document.querySelector('[data-campaign-cancel]')?.addEventListener('click', () => { campaignForm.hidden = true; });
+
+	document.querySelector('[data-campaign-save]')?.addEventListener('click', async (event) => {
+		const button = event.currentTarget;
+		const ids = [...campaignOptions.querySelectorAll('[data-campaign-gen]:checked')].map((box) => Number(box.value));
+		const failWith = (text) => { campaignMessage.textContent = text; campaignMessage.className = 'form-message error-message'; };
+		if (!campaignName.value.trim()) return failWith('نام کمپین را بنویسید.');
+		if (!campaignStart.value) return failWith('تاریخ شروع را انتخاب کنید.');
+		if (!ids.length) return failWith('حداقل یک خروجی را انتخاب کنید.');
+		button.disabled = true;
+		try {
+			const response = await authFetch('/api/campaigns', {
+				method: 'POST',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					name: campaignName.value.trim(),
+					generation_ids: ids,
+					start_date: campaignStart.value,
+					interval_days: Number(campaignInterval.value) || 1,
+				}),
+			});
+			const result = await response.json();
+			if (!response.ok) throw new Error(result.error?.message || 'ساخت کمپین انجام نشد.');
+			campaignForm.hidden = true;
+			campaignName.value = '';
+			if (calMessage) { calMessage.textContent = `کمپین «${result.data.name}» با ${result.data.posts_count} پست زمان‌بندی شد.`; calMessage.className = 'form-message'; }
+			await loadCalendar();
+		} catch (error) { failWith(error.message); }
+		finally { button.disabled = false; }
+	});
+
+	loadCalendar().catch(calFail);
+}
+
 // --- Web push: subscribe this browser and keep the toggle in sync ---
 const pushButton = document.querySelector('[data-push-subscribe]');
 if (pushButton && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
