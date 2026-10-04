@@ -11,6 +11,8 @@ use RuntimeException;
 
 class MediaUploadService
 {
+    public function __construct(private readonly ImageOptimizer $optimizer) {}
+
     public function storeProductImage(User $user, UploadedFile $file): MediaAsset
     {
         $disk = config('filesystems.media_disk');
@@ -20,7 +22,7 @@ class MediaUploadService
         [$width, $height] = getimagesize($file->getRealPath()) ?: [null, null];
         $thumbnailPath = $this->createThumbnail($file, $directory, $disk);
 
-        return $user->mediaAssets()->create([
+        $asset = $user->mediaAssets()->create([
             'disk' => $disk,
             'path' => $path,
             'thumbnail_path' => $thumbnailPath,
@@ -29,11 +31,17 @@ class MediaUploadService
             'width' => $width,
             'height' => $height,
         ]);
+
+        // Build the screen-sized WebP right away so API consumers can see
+        // web_path immediately; failures fall back to on-demand creation.
+        $this->optimizer->webVariantFor($asset);
+
+        return $asset;
     }
 
     public function delete(MediaAsset $asset): void
     {
-        Storage::disk($asset->disk)->delete(array_filter([$asset->path, $asset->thumbnail_path]));
+        Storage::disk($asset->disk)->delete(array_filter([$asset->path, $asset->thumbnail_path, $asset->web_path]));
         $asset->delete();
     }
 

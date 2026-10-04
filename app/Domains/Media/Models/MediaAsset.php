@@ -13,7 +13,7 @@ class MediaAsset extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['disk', 'path', 'thumbnail_path', 'mime', 'size', 'width', 'height', 'expires_at'];
+    protected $fillable = ['disk', 'path', 'thumbnail_path', 'web_path', 'mime', 'size', 'width', 'height', 'expires_at'];
 
     protected function casts(): array
     {

@@ -17,10 +17,12 @@ use App\Domains\Generations\Models\Generation;
 use App\Domains\Generations\Requests\BulkGenerationRequest;
 use App\Domains\Generations\Requests\StoreGenerationRequest;
 use App\Domains\Generations\Services\RetryGeneration;
+use App\Domains\Media\Services\ImageOptimizer;
 use App\Domains\Products\Models\Product;
 use App\Domains\Search\Services\SearchService;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
+use App\Support\Http\HttpCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -291,24 +293,44 @@ class GenerationController extends Controller
         return $this->success($generation->fresh());
     }
 
-    public function download(Request $request, Generation $generation)
+    public function download(Request $request, Generation $generation, ImageOptimizer $optimizer)
     {
         abort_unless($generation->user_id === $request->user()->id, 404);
         abort_unless($generation->status === 'completed' && $generation->outputMedia, 404);
 
         $media = $generation->outputMedia;
+        $path = $media->path;
+        $mime = $media->mime;
 
-        return response()->streamDownload(function () use ($media): void {
-            $stream = Storage::disk($media->disk)->readStream($media->path);
+        if ((string) $request->query('variant') === 'web') {
+            // Screen-sized WebP for preview/download; non-image outputs
+            // (videos, undecodable files) fall back to the original.
+            $webPath = $optimizer->webVariantFor($media);
+            if ($webPath !== null) {
+                $path = $webPath;
+                $mime = 'image/webp';
+            }
+        }
+
+        $etag = HttpCache::etag($media->getKey(), $path, $media->updated_at?->getTimestamp() ?? 0);
+        $cacheHeaders = ['Cache-Control' => 'private, max-age=86400', 'ETag' => $etag];
+        if (HttpCache::notModified($request, $etag)) {
+            return response('', 304, $cacheHeaders);
+        }
+
+        return response()->streamDownload(function () use ($media, $path): void {
+            $stream = Storage::disk($media->disk)->readStream($path);
+            abort_unless(is_resource($stream), 404);
             fpassthru($stream);
             fclose($stream);
-        }, "generation-{$generation->id}.{$this->extension($media->mime)}", ['Content-Type' => $media->mime]);
+        }, "generation-{$generation->id}.{$this->extension($mime)}", ['Content-Type' => $mime] + $cacheHeaders);
     }
 
     private function extension(string $mime): string
     {
         return match ($mime) {
             'image/png' => 'png',
+            'image/webp' => 'webp',
             'video/mp4' => 'mp4',
             default => 'jpg',
         };

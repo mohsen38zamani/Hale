@@ -4,11 +4,14 @@ namespace App\Domains\Media\Controllers;
 
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Media\Requests\UploadProductAssetRequest;
+use App\Domains\Media\Services\ImageOptimizer;
 use App\Domains\Media\Services\MediaUploadService;
 use App\Domains\Products\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
+use App\Support\Http\HttpCache;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -59,18 +62,41 @@ class ProductAssetController extends Controller
         return $this->success(['message' => 'رسانه با موفقیت حذف شد.']);
     }
 
-    public function download(Product $product, MediaAsset $asset)
+    public function download(Request $request, Product $product, MediaAsset $asset, ImageOptimizer $optimizer)
     {
-        abort_unless($product->user_id === request()->user()->id, 404);
+        abort_unless($product->user_id === $request->user()->id, 404);
         abort_unless($product->assets()->whereKey($asset->id)->exists(), 404);
 
-        $isThumbnail = $asset->thumbnail_path !== null;
+        $variant = (string) $request->query('variant', 'default');
+        $mime = $asset->mime;
 
-        return response()->stream(function () use ($asset, $isThumbnail): void {
-            $stream = Storage::disk($asset->disk)->readStream($isThumbnail ? $asset->thumbnail_path : $asset->path);
+        if ($variant === 'original') {
+            $path = $asset->path;
+        } elseif ($variant === 'web') {
+            // Screen-sized WebP, created on the first request; falls back to
+            // the untouched original when no variant can be produced.
+            $path = $asset->path;
+            $webPath = $optimizer->webVariantFor($asset);
+            if ($webPath !== null) {
+                $path = $webPath;
+                $mime = 'image/webp';
+            }
+        } else {
+            $path = $asset->thumbnail_path ?? $asset->path;
+            $mime = $asset->thumbnail_path !== null ? 'image/webp' : $asset->mime;
+        }
+
+        $etag = HttpCache::etag($asset->getKey(), $path, $asset->updated_at?->getTimestamp() ?? 0);
+        $cacheHeaders = ['Cache-Control' => 'private, max-age=86400', 'ETag' => $etag];
+        if (HttpCache::notModified($request, $etag)) {
+            return response('', 304, $cacheHeaders);
+        }
+
+        return response()->stream(function () use ($asset, $path): void {
+            $stream = Storage::disk($asset->disk)->readStream($path);
             abort_unless(is_resource($stream), 404);
             fpassthru($stream);
             fclose($stream);
-        }, 200, ['Content-Type' => $isThumbnail ? 'image/webp' : $asset->mime]);
+        }, 200, ['Content-Type' => $mime] + $cacheHeaders);
     }
 }
