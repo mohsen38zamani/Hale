@@ -1342,12 +1342,15 @@ if (generationPage) {
 	let pollTimeoutId = null;
 	let isFinished = false;
 
-	const loadOutput = async () => {
-		const response = await authFetch(`/api/generations/${generationId}/download`, { headers: { Accept: 'application/octet-stream' } });
+	const loadOutput = async (variant) => {
+		const response = await authFetch(`/api/generations/${generationId}/download${variant ? `?variant=${variant}` : ''}`, { headers: { Accept: 'application/octet-stream' } });
 		if (!response.ok) throw new Error('دریافت خروجی ممکن نیست.');
 		if (outputUrl) URL.revokeObjectURL(outputUrl);
-		outputUrl = URL.createObjectURL(await response.blob());
-		return outputUrl;
+		const blob = await response.blob();
+		outputUrl = URL.createObjectURL(blob);
+		// The served mime decides the filename: web previews download as
+		// webp, fallbacks and videos keep their real format.
+		return { url: outputUrl, mime: blob.type };
 	};
 
 	let pollAttempt = 0;
@@ -1379,11 +1382,16 @@ if (generationPage) {
 			title.innerHTML = 'محتوا<br><em>آماده است.</em>';
 			copy.textContent = 'حالا می‌توانی خروجی را دانلود کنی، بازخورد بدهی یا یک نسخه تازه بسازی.';
 			const media = generation.output_media;
-			const output = await loadOutput();
-			frame.innerHTML = media?.mime?.startsWith('video') ? `<video controls src="${output}"></video>` : `<img alt="خروجی تولیدشده" src="${output}">`;
+			const isVideo = Boolean(media?.mime?.startsWith('video'));
+			// Images preview through the compressed web variant; videos and
+			// variant-less fallbacks stream the original bytes.
+			const output = await loadOutput(isVideo ? null : 'web');
+			frame.innerHTML = isVideo ? `<video controls src="${output.url}"></video>` : `<img alt="خروجی تولیدشده" src="${output.url}">`;
 			actions.hidden = false;
-			document.querySelector('[data-download]').href = output;
-			document.querySelector('[data-download]').download = `generation-${generationId}.${media?.mime === 'video/mp4' ? 'mp4' : 'png'}`;
+			const downloadLink = document.querySelector('[data-download]');
+			downloadLink.href = output.url;
+			const extension = output.mime === 'image/webp' ? 'webp' : output.mime === 'image/jpeg' ? 'jpg' : output.mime === 'video/mp4' ? 'mp4' : 'png';
+			downloadLink.download = `generation-${generationId}.${extension}`;
 			retryButton.hidden = true;
 			regenerateButton.hidden = false;
 			return;
