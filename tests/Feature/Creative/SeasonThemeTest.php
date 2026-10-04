@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Creative;
 
+use App\Domains\Creative\Services\SeasonThemeService;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,5 +92,19 @@ class SeasonThemeTest extends TestCase
         $this->get('/create')
             ->assertOk()
             ->assertSee('data-season-badge', false);
+    }
+
+    public function test_service_respects_explicit_carbon_argument(): void
+    {
+        config(['seasons.active' => 'auto']);
+        $service = app(SeasonThemeService::class);
+
+        $theme = $service->active(Carbon::parse('2026-12-25 10:00:00'));
+        $this->assertNotNull($theme);
+        $this->assertSame('yalda', $theme['key']);
+
+        $themeSpring = $service->active(Carbon::parse('2026-03-25 10:00:00'));
+        $this->assertNotNull($themeSpring);
+        $this->assertSame('nowruz', $themeSpring['key']);
     }
 }

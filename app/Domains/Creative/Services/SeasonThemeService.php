@@ -31,7 +31,7 @@ class SeasonThemeService
             return null;
         }
 
-        $date = now()->format('m-d');
+        $date = ($today ?? now())->format('m-d');
         foreach ($themes as $theme) {
             if ($this->inRange($date, (string) $theme['start'], (string) $theme['end'])) {
                 return $theme;

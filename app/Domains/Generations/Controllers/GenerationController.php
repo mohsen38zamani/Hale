@@ -60,7 +60,7 @@ class GenerationController extends Controller
             ->when($data['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
             ->when($data['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($data['favorite'] ?? false, fn ($query) => $query->whereIn('generations.id', $favorites->ids($request->user(), 'generation')))
-            ->when($data['search'] ?? '', fn ($query, $searchTerm) => $query->whereIn('generations.id', $search->generationIds($request->user(), $searchTerm)))
+            ->when(filled($data['search'] ?? null), fn ($query) => $query->whereIn('generations.id', $search->generationIds($request->user(), (string) $data['search'])))
             ->when($data['from'] ?? null, fn ($query, $from) => $query->whereDate('created_at', '>=', $from))
             ->when($data['to'] ?? null, fn ($query, $to) => $query->whereDate('created_at', '<=', $to))
             ->latest()

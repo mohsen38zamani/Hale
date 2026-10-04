@@ -169,4 +169,43 @@ class AdvancedSearchTest extends TestCase
         Http::assertSent(fn ($request): bool => $request->method() === 'DELETE'
             && str_contains($request->url(), "/indexes/products/documents/{$id}"));
     }
+
+    public function test_generation_search_handles_falsy_string_like_zero(): void
+    {
+        Sanctum::actingAs($user = User::factory()->create());
+        $p1 = $user->products()->create(['name' => 'مدل 0']);
+        $p2 = $user->products()->create(['name' => 'مدل الف']);
+
+        $g1 = $user->generations()->create([
+            'creative_project_id' => $user->creativeProjects()->create([
+                'product_id' => $p1->id,
+                'goal' => 'sales',
+                'style' => 'luxury',
+                'format' => 'instagram_post',
+                'brief' => ['summary' => 'brief'],
+                'prompt' => 'prompt zero',
+            ])->id,
+            'type' => 'image',
+            'status' => 'completed',
+            'prompt_hash' => hash('sha256', 'search-zero-1'),
+        ]);
+
+        $g2 = $user->generations()->create([
+            'creative_project_id' => $user->creativeProjects()->create([
+                'product_id' => $p2->id,
+                'goal' => 'sales',
+                'style' => 'luxury',
+                'format' => 'instagram_post',
+                'brief' => ['summary' => 'brief'],
+                'prompt' => 'prompt alpha',
+            ])->id,
+            'type' => 'image',
+            'status' => 'completed',
+            'prompt_hash' => hash('sha256', 'search-zero-2'),
+        ]);
+
+        $response = $this->getJson('/api/generations?search=0')->assertOk();
+        $this->assertCount(1, $response->json('data.data'));
+        $this->assertSame($g1->id, $response->json('data.data.0.id'));
+    }
 }

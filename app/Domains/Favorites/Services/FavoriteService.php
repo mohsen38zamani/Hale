@@ -68,10 +68,27 @@ class FavoriteService
      */
     public function mark(iterable $items, User $user, string $type): void
     {
-        $ids = array_flip($this->ids($user, $type));
+        $keys = [];
+        foreach ($items as $item) {
+            $keys[] = $item->getKey();
+        }
+
+        if ($keys === []) {
+            return;
+        }
+
+        $favIds = array_flip(
+            Favorite::query()
+                ->where('user_id', $user->getKey())
+                ->where('favoritable_type', $this->morphClass($type))
+                ->whereIn('favoritable_id', $keys)
+                ->pluck('favoritable_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all()
+        );
 
         foreach ($items as $item) {
-            $item->setAttribute('is_favorite', isset($ids[$item->getKey()]));
+            $item->setAttribute('is_favorite', isset($favIds[$item->getKey()]));
         }
     }
 

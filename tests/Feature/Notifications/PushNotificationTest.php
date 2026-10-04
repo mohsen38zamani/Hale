@@ -109,6 +109,30 @@ class PushNotificationTest extends TestCase
         $this->deleteJson('/api/notifications/push/subscriptions', ['endpoint' => $endpoint])->assertOk();
     }
 
+    public function test_subscribing_on_shared_device_removes_foreign_subscription(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+        $endpoint = 'https://fcm.googleapis.com/wp/fcm/shared-browser';
+
+        Sanctum::actingAs($userA);
+        $this->postJson('/api/notifications/push/subscriptions', [
+            'endpoint' => $endpoint,
+            'keys' => ['p256dh' => 'userA-p256dh', 'auth' => 'userA-auth'],
+        ])->assertCreated();
+        $this->assertDatabaseHas('push_subscriptions', ['user_id' => $userA->id, 'endpoint' => $endpoint]);
+
+        Sanctum::actingAs($userB);
+        $this->postJson('/api/notifications/push/subscriptions', [
+            'endpoint' => $endpoint,
+            'keys' => ['p256dh' => 'userB-p256dh', 'auth' => 'userB-auth'],
+        ])->assertCreated();
+
+        $this->assertDatabaseCount('push_subscriptions', 1);
+        $this->assertDatabaseMissing('push_subscriptions', ['user_id' => $userA->id]);
+        $this->assertDatabaseHas('push_subscriptions', ['user_id' => $userB->id, 'endpoint' => $endpoint]);
+    }
+
     public function test_subscribe_validates_the_payload(): void
     {
         Sanctum::actingAs(User::factory()->create());

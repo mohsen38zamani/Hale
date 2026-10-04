@@ -37,6 +37,13 @@ class PushController extends Controller
             'keys.auth.max' => 'کلید احراز اعلان نامعتبر است.',
         ]);
 
+        // Remove any stale subscription on the same endpoint belonging to
+        // another user (e.g. shared device or re-login) to prevent notification leaks.
+        PushSubscription::query()
+            ->where('endpoint', $data['endpoint'])
+            ->where('user_id', '!=', $request->user()->getKey())
+            ->delete();
+
         $subscription = PushSubscription::query()->updateOrCreate(
             ['user_id' => $request->user()->getKey(), 'endpoint' => $data['endpoint']],
             ['p256dh' => $data['keys']['p256dh'], 'auth' => $data['keys']['auth']],

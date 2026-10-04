@@ -7,6 +7,7 @@ use App\Domains\Billing\Models\Subscription;
 use App\Domains\Brand\Models\BrandKit;
 use App\Domains\Creative\Models\CreativeProject;
 use App\Domains\Credits\Models\CreditAccount;
+use App\Domains\Favorites\Models\Favorite;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
 use App\Domains\Notifications\Models\PushSubscription;
@@ -195,5 +196,10 @@ class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
     public function generationTemplates(): HasMany
     {
         return $this->hasMany(GenerationTemplate::class);
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
     }
 }

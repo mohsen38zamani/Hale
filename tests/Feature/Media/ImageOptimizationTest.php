@@ -109,10 +109,11 @@ class ImageOptimizationTest extends TestCase
         $this->assertSame(1600, $info[0]);
         $this->assertStringContainsString('private', (string) $web->headers->get('Cache-Control'));
 
-        // Conditional request: the ETag from the first hit yields a 304.
+        // Conditional request: the ETag from the first hit yields a 304 (strong or weak).
         $etag = (string) $web->headers->get('ETag');
         $this->assertNotSame('', $etag);
         $this->get($uri.'?variant=web', ['If-None-Match' => $etag])->assertStatus(304);
+        $this->get($uri.'?variant=web', ['If-None-Match' => 'W/'.$etag])->assertStatus(304);
     }
 
     public function test_web_variant_serves_small_webp_sources_untouched(): void

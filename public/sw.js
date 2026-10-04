@@ -45,16 +45,19 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const url = event.notification.data?.url || '/dashboard';
+    const targetUrl = new URL(event.notification.data?.url || '/dashboard', self.location.origin).href;
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
             for (const client of windowClients) {
-                if ('focus' in client) {
+                if (client.url === targetUrl && 'focus' in client) {
                     return client.focus();
                 }
             }
-            return self.clients.openWindow(url);
+            if (windowClients.length > 0 && 'navigate' in windowClients[0]) {
+                return windowClients[0].navigate(targetUrl).then((c) => c?.focus?.() ?? windowClients[0].focus());
+            }
+            return self.clients.openWindow(targetUrl);
         }),
     );
 });

@@ -21,8 +21,9 @@ class HttpCache
             return false;
         }
 
-        $candidates = array_map('trim', explode(',', $header));
+        $cleanEtag = (string) preg_replace('/^W\//', '', $etag);
+        $candidates = array_map(static fn ($c): string => (string) preg_replace('/^W\//', '', trim($c)), explode(',', $header));
 
-        return in_array($etag, $candidates, true) || in_array('*', $candidates, true);
+        return in_array($cleanEtag, $candidates, true) || in_array('*', $candidates, true);
     }
 }
