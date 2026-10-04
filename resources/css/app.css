@@ -1593,6 +1593,30 @@ mark.search-hit {
   50% { opacity: 0.6; }
 }
 
+.studio-stage[data-season-decor="rain"]::after {
+  background-image:
+    repeating-linear-gradient(
+      110deg,
+      transparent 0 14px,
+      rgba(125, 211, 252, 0.45) 14px 15px,
+      transparent 15px 30px
+    ),
+    repeating-linear-gradient(
+      110deg,
+      transparent 0 26px,
+      rgba(245, 158, 11, 0.22) 26px 27px,
+      transparent 27px 54px
+    );
+  background-size: 180px 180px, 260px 260px;
+  opacity: 0.6;
+  animation: season-rain 1.1s linear infinite;
+}
+
+@keyframes season-rain {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: -70px 180px, -90px 260px; }
+}
+
 /* Bulk catalog processing (dashboard library) */
 .product-grid .product-tile {
   position: relative;

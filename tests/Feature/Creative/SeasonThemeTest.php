@@ -64,9 +64,23 @@ class SeasonThemeTest extends TestCase
         Carbon::setTestNow('2026-03-24 10:00:00');
         $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme.key', 'nowruz');
 
-        // The autumn gap (09-22 -> 11-30) has no theme at all.
+        // Valentine sits inside the winter window and must win.
+        Carbon::setTestNow('2027-02-14 10:00:00');
+        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme.key', 'valentine');
+
+        // The former autumn gap now resolves to the rainy autumn theme and
+        // hands over to Black Friday on 11-22.
         Carbon::setTestNow('2026-10-15 10:00:00');
-        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme', null);
+        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme.key', 'autumn_rain');
+
+        Carbon::setTestNow('2026-11-21 10:00:00');
+        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme.key', 'autumn_rain');
+
+        Carbon::setTestNow('2026-11-25 10:00:00');
+        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme.key', 'black_friday');
+
+        Carbon::setTestNow('2026-12-01 10:00:00');
+        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme.key', 'winter');
     }
 
     public function test_every_configured_theme_has_a_renderable_shape(): void
@@ -77,7 +91,7 @@ class SeasonThemeTest extends TestCase
         foreach ($themes as $theme) {
             $this->assertMatchesRegularExpression('/^\d{2}-\d{2}$/', $theme['start']);
             $this->assertMatchesRegularExpression('/^\d{2}-\d{2}$/', $theme['end']);
-            $this->assertContains($theme['decor'], ['snowfall', 'vignette', 'sparkle']);
+            $this->assertContains($theme['decor'], ['snowfall', 'vignette', 'sparkle', 'rain']);
             $this->assertCount(3, $theme['palette']);
             $this->assertNotEmpty($theme['name']);
             $this->assertNotEmpty($theme['emoji']);
