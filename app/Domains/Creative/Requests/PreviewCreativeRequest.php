@@ -18,6 +18,7 @@ class PreviewCreativeRequest extends FormRequest
         return [
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'goal' => ['sometimes', Rule::enum(CreativeGoal::class)],
+            'campaign' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -27,6 +28,7 @@ class PreviewCreativeRequest extends FormRequest
             'product_id.required' => 'انتخاب محصول الزامی است.',
             'product_id.exists' => 'محصول انتخاب‌شده یافت نشد.',
             'goal.enum' => 'هدف انتخاب‌شده نامعتبر است.',
+            'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
         ];
     }
 }

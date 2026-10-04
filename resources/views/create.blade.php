@@ -204,6 +204,7 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <button class="season-theme-badge" type="button" data-season-badge hidden></button>
+                            <button class="campaign-badge" type="button" data-campaign-badge aria-pressed="false" hidden></button>
                             <div class="canvas-format-chip" data-canvas-format-chip>۱:۱ · پست اینستاگرام</div>
                         </div>
                     </div>

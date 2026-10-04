@@ -755,12 +755,30 @@ if (brandKitBox) {
 // --- Seasonal studio theme: decorate the canvas when a season is active ---
 const seasonStage = document.querySelector('[data-canvas-stage]');
 const seasonBadge = document.querySelector('[data-season-badge]');
+const campaignBadge = document.querySelector('[data-campaign-badge]');
+// Shared with the builder below: opt-in campaign pack state. The pack only
+// applies when a theme is active AND the user flipped the chip on.
+let campaignEnabled = (() => {
+	try { return localStorage.getItem('hale-campaign-pack') === 'on'; } catch (_) { return false; }
+})();
+let campaignPack = null;
+let refreshPromptInspector = () => {};
 if (seasonStage) {
 	const seasonOptedOut = (() => {
 		try { return localStorage.getItem('hale-season-theme') === 'off'; } catch (_) { return false; }
 	})();
 
 	if (!seasonOptedOut) {
+		const renderCampaignChip = () => {
+			if (!campaignBadge || !campaignPack) return;
+			campaignBadge.hidden = false;
+			campaignBadge.setAttribute('aria-pressed', String(campaignEnabled));
+			campaignBadge.textContent = campaignEnabled ? `✅ ${campaignPack.label}` : `🔥 ${campaignPack.label}`;
+			campaignBadge.title = campaignEnabled
+				? 'غیرفعال‌کردن پکیج کمپینی؛ پرامپت بدون استایل کمپینی ساخته می‌شود'
+				: 'افزودن استایل کمپینی فصلی به پرامپت تولید';
+		};
+
 		const applySeasonTheme = (theme) => {
 			if (!theme) return;
 			seasonStage.dataset.seasonTheme = theme.key;
@@ -774,6 +792,14 @@ if (seasonStage) {
 				seasonBadge.textContent = `${theme.emoji} تم ${theme.name}`;
 				seasonBadge.title = 'کلیک برای خاموش‌کردن موقت تم فصلی';
 			}
+			if (theme.prompt_pack) {
+				campaignPack = {
+					key: theme.key,
+					label: theme.campaign_label || `کمپین ${theme.name}`,
+					pack: theme.prompt_pack,
+				};
+				renderCampaignChip();
+			}
 		};
 
 		authFetch('/api/creative/theme', { headers: { Accept: 'application/json' } })
@@ -781,10 +807,22 @@ if (seasonStage) {
 			.then((result) => applySeasonTheme(result?.data?.theme))
 			.catch(() => {});
 
+		campaignBadge?.addEventListener('click', () => {
+			if (!campaignPack) return;
+			campaignEnabled = !campaignEnabled;
+			try { localStorage.setItem('hale-campaign-pack', campaignEnabled ? 'on' : 'off'); } catch (_) {}
+			renderCampaignChip();
+			refreshPromptInspector();
+		});
+
 		seasonBadge?.addEventListener('click', () => {
 			seasonStage.removeAttribute('data-season-theme');
 			seasonStage.removeAttribute('data-season-decor');
 			seasonBadge.hidden = true;
+			// Turning the seasonal theme off also drops the campaign pack for
+			// this session; the chip disappears with it.
+			campaignEnabled = false;
+			if (campaignBadge) campaignBadge.hidden = true;
 			try { localStorage.setItem('hale-season-theme', 'off'); } catch (_) {}
 		});
 	}
@@ -966,8 +1004,9 @@ if (builderForm) {
 
 			let customPart = cleanCustom ? ` Custom scene details: <mark>${cleanCustom}</mark>.` : '';
 			let videoPart = isVideo ? ' Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.' : '';
+			const campaignPart = campaignEnabled && campaignPack ? ` Campaign mood: ${String(campaignPack.pack).replace(/[. ]+$/, '')}.` : '';
 
-			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}. Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
+			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}. Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
 
 			inspectorCode.innerHTML = assembledPrompt;
 		}
@@ -1066,6 +1105,9 @@ if (builderForm) {
 
 		updateCanvasState();
 	}).catch(() => { message.textContent = 'دریافت گزینه‌ها انجام نشد. دوباره تلاش کن.'; });
+
+	// The campaign chip (topbar) re-runs this so the inspector text follows.
+	refreshPromptInspector = updateCanvasState;
 
 	select.addEventListener('change', () => {
 		updateProductArtwork(select.value);
@@ -1291,7 +1333,8 @@ if (builderForm) {
 			camera_angle: values.camera_angle || null,
 			lighting_setup: values.lighting_setup || null,
 			custom_prompt: rawCustomPrompt || null,
-			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null
+			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null,
+			campaign: Boolean(campaignEnabled && campaignPack)
 		};
 		try {
 			const response = await authFetch('/api/generations', {

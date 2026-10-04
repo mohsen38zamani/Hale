@@ -10,6 +10,8 @@ use App\Domains\Products\Models\Product;
 
 class CreativeEngine
 {
+    public function __construct(private readonly SeasonThemeService $seasons) {}
+
     public function autoBest(Product $product, CreativeGoal $goal): array
     {
         $name = mb_strtolower($product->name.' '.($product->description ?? ''));
@@ -79,6 +81,20 @@ class CreativeEngine
             $brief['brand'] = $identity;
         }
 
+        // Opt-in campaign style: only an explicit truthy flag plus an active
+        // theme with a pack adds the campaign block to the brief, so default
+        // prompts stay byte-for-byte identical to before.
+        if (! empty($settings['campaign'])) {
+            $theme = $this->seasons->active();
+            if (is_array($theme) && filled($theme['prompt_pack'] ?? null)) {
+                $brief['campaign'] = [
+                    'key' => (string) $theme['key'],
+                    'label' => (string) ($theme['campaign_label'] ?? $theme['name']),
+                    'pack' => (string) $theme['prompt_pack'],
+                ];
+            }
+        }
+
         return $brief;
     }
 
@@ -113,9 +129,10 @@ class CreativeEngine
         }
 
         $brandPart = $this->brandClause(is_array($brief['brand'] ?? null) ? $brief['brand'] : []);
+        $campaignPart = $this->campaignClause(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []);
 
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
+            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
             $brief['product'],
             $brief['objective'],
             $brief['visual_direction'],
@@ -124,7 +141,8 @@ class CreativeEngine
             $format->value,
             $sceneClause,
             $customPromptPart,
-            $brandPart
+            $brandPart,
+            $campaignPart
         );
 
         if ($format->type() === 'video') {
@@ -175,5 +193,24 @@ class CreativeEngine
         }
 
         return $clause;
+    }
+
+    /**
+     * Turn the campaign block stored in the brief into prompt language.
+     *
+     * @param  array<string, mixed>  $campaign
+     */
+    private function campaignClause(array $campaign): string
+    {
+        if (! filled($campaign['pack'] ?? null)) {
+            return '';
+        }
+
+        $pack = $this->sanitizeCustomPrompt((string) $campaign['pack']);
+        if ($pack === '') {
+            return '';
+        }
+
+        return sprintf(' Campaign mood: %s.', $pack);
     }
 }

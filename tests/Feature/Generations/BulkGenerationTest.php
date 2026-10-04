@@ -59,6 +59,30 @@ class BulkGenerationTest extends TestCase
         $this->assertTrue($project->generations()->first()->metadata['bulk']);
     }
 
+    public function test_bulk_applies_the_active_campaign_pack_to_briefs(): void
+    {
+        Queue::fake();
+        config(['seasons.active' => 'black_friday']);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $id = $user->products()->create(['name' => 'عطر شبانه'])->id;
+        $user->creditAccount()->firstOrCreate([], ['balance' => 30]);
+
+        $this->postJson('/api/generations/bulk', [
+            'product_ids' => [$id],
+            'campaign' => true,
+        ])->assertAccepted()->assertJsonPath('data.created', 1);
+
+        $project = $user->creativeProjects()->firstOrFail();
+        $brief = $project->brief;
+        if (is_string($brief)) {
+            $brief = json_decode($brief, true);
+        }
+        $this->assertSame('black_friday', $brief['campaign']['key'] ?? null);
+        $this->assertStringContainsString('Campaign mood:', (string) $project->prompt);
+        $this->assertArrayNotHasKey('campaign', $project->getAttributes());
+    }
+
     public function test_bulk_rejects_foreign_and_unknown_products(): void
     {
         Queue::fake();

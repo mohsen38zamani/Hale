@@ -85,6 +85,9 @@ class GenerationController extends Controller
         $brief = $engine->brief($product, $data, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);
         abort_unless($moderator->passes($prompt), 422, 'درخواست با سیاست محتوایی سازگار نیست.');
+        // The campaign flag lives on inside the brief; creative_projects has
+        // no such column and must not receive it in the insert.
+        unset($data['campaign']);
 
         try {
             $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format, $limits, $credits, $estimator): Generation {

@@ -6,6 +6,7 @@ use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
 use App\Domains\Creative\Services\CreativeEngine;
+use App\Domains\Creative\Services\SeasonThemeService;
 use App\Domains\Products\Models\Product;
 use Tests\TestCase;
 
@@ -16,7 +17,7 @@ class CreativeEngineTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->engine = new CreativeEngine;
+        $this->engine = new CreativeEngine(app(SeasonThemeService::class));
     }
 
     public function test_auto_best_suggests_luxury_style_for_perfume(): void

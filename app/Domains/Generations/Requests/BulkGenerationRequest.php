@@ -35,6 +35,7 @@ class BulkGenerationRequest extends FormRequest
             'props' => ['sometimes', Rule::in(array_keys(config('creative.props')))],
             'camera_angle' => ['sometimes', Rule::in(array_keys(config('creative.camera_angles')))],
             'lighting_setup' => ['sometimes', Rule::in(array_keys(config('creative.lighting_setups')))],
+            'campaign' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -74,6 +75,7 @@ class BulkGenerationRequest extends FormRequest
             'props.in' => 'اکسسوری صحنه انتخاب‌شده نامعتبر است.',
             'camera_angle.in' => 'زاویه دوربین انتخاب‌شده نامعتبر است.',
             'lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
+            'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
         ];
     }
 }
