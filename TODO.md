@@ -302,7 +302,11 @@
 
 ## P2: بعد از MVP
 
-- [ ] Image limit و quality tier پیشرفته.
+- [x] Image limit و quality tier پیشرفته.
+  - کلید `quality` در [plans.php](file:///var/www/html/Hale'/config/plans.php) (free=standard؛ starter/creator=premium به‌عنوان سقف مجاز) و دو سقف ابعاد در [media.php](file:///var/www/html/Hale'/config/media.php) (`standard_max_dimension=1024`، `premium_max_dimension=2048`).
+  - فیلد `quality` در store و bulk با گیت `qualityGate()` در [GenerationController](file:///var/www/html/Hale'/app/Domains/Generations/Controllers/GenerationController.php): درخواست premium از پلن free با 403 `PREMIUM_QUALITY_REQUIRED` رد می‌شود؛ هزینه standard=10 و premium=25 و `/api/credits/estimate` با پارامتر quality سطح واقعی یا `quality_blocked` را برمی‌گرداند.
+  - اعمال اندازه با `ImageOptimizer::fitToMax()` در [ProcessGeneration](file:///var/www/html/Hale'/app/Domains/Generations/Jobs/ProcessGeneration.php) پیش از واترمارک (standard فقط کاهش اندازه؛ premium تا ۲× upscale فقط از منبع ≥۵۱۲؛ بدون پارامتر جدید در درخواست گوگل).
+  - سقف ماهانه در profile (`PlanLimitService::usage` با شمارش گروهی تک‌کوئری، بودجهٔ query-audit از ۸ به ۹) + نمایش سقف کنار موجودی (`data-quota`) و انتخابگر کیفیت با قفل `data-paid-only` برای free؛ پوشش با `QualityTierTest` (۱۰ تست).
 - [x] fallback چند Provider AI و cost optimization.
   - `AiProviderException` با پچم `retryable` (429/5xx/408/شبکه/خروجی نامعتبر/نبود کلید → retryable؛ خطاهای 4xx اعتبارسنجی → permanent و توقف زنجیره).
   - `ModelRouter::candidates()` زنجیرهٔ کامل providerها را در اولویت پیکربندی برمی‌گرداند و `AiGateway::generate()` روی کل زنجیره می‌چرخد، هنگام fallback لاگ `ai.provider.fallback` ثبت می‌کند، بودجه را فقط یک‌بار release می‌کند و فهرست `failures` را در metadata جنریشن ذخیره می‌کند.
@@ -328,9 +332,11 @@
   - جدول `generation_templates` (قالب مستقل از محصول: goal/style/format/environment/کنترل‌های صحنه/custom_prompt در JSON اعتبارسنجی‌شده؛ `product_id` داخل settings صراحتاً ممنوع) با CRUD کامل مالکیتی و نوار «قالب‌های ذخیره‌شده» در استودیو (اعمال با یک کلیک + ذخیرهٔ ترکیب فعلی).
   - پوشش با `BrandKitTest` (۷ تست) و `GenerationTemplateTest` (۵ تست).
 - [ ] Conversational Editing و Variants.
-- [ ] Campaign Generator، Bulk Generation، Caption و Calendar.
+- [x] Campaign Generator، Bulk Generation، Caption و Calendar.
   - [x] **Bulk Generation** — پیاده‌سازی شد و در آیتم «پردازش دسته‌ای کاتالوگ» (پایین همین فایل) ثبت شد: `POST /api/generations/bulk` + انتخاب چندمحصولی در کتابخانه.
-  - [ ] Campaign Generator / Caption Generator / Content Calendar — باقی‌مانده.
+  - [x] **Caption Generator** — `POST /api/generations/{generation}/caption` (زبان fa/en، لحن صمیمی/رسمی/هیجان‌انگیز، moderation ورودی، throttle:generation): [CaptionService](file:///var/www/html/Hale'/app/Domains/AI/Services/CaptionService.php) با Gemini از همان کلید/base_url گوگل و fallback قطعی قالب‌محور (محصول/هدف/برند) وقتی کلید نیست یا مدل جواب نمی‌دهد؛ هزینهٔ `credits.costs.text=3` با `CreditService::spendForTask` (شاخهٔ text در CreditEstimator، وگرنه فرمول ویدیو آن را ۴۵ حساب می‌کرد)؛ همان language+tone از metadata برای رایگان برمی‌گردد و `refresh=true` دوباره می‌سازد و هزینه می‌برد. دکمه و پنل کپشن در صفحهٔ جزئیات تولید؛ پوشش با `CaptionGeneratorTest` (۹ تست).
+  - [x] **Content Calendar و Campaign** — جدول‌های `campaigns`/`scheduled_posts` ([migration](file:///var/www/html/Hale'/database/migrations/2026_10_04_110000_create_campaigns_and_scheduled_posts_tables.php)) و [CalendarController](file:///var/www/html/Hale'/app/Domains/Calendar/Controllers/CalendarController.php): `GET/POST/PATCH/DELETE /api/calendar/posts` (بازهٔ تاریخ، مالکیت 404، `after_or_equal:today`، وضعیت draft|scheduled|published) + `GET/POST /api/campaigns` با ساخت پست‌های پلکانی start + i×interval (حداکثر ۳۰ پست، فاصلهٔ ۱ تا ۳۰ روز) و رد اتمیکی شناسه‌های غیرمالک.
+  - پنل «تقویم محتوا» در داشبورد با `Intl.DateTimeFormat('fa-IR', {calendar:'persian'})` بدون پکیج جدید: گرید ماهانه با شمارش پست هر روز، لیست روز با تغییر وضعیت/تاریخ/حذف و فرم ساخت کمپین از خروجی‌های تکمیل‌شده؛ پوشش با `ContentCalendarTest` (۱۰ تست).
 - [ ] Organizations، Workspace، Team/RBAC و Public API.
 - [ ] White Label و Social Auto Publish.
 - [x] Image optimization/compression برای web delivery.
@@ -385,7 +391,10 @@
   - پیاده‌سازی: `User` به interface و trait `MustVerifyEmail` مجهز شد؛ ارسال لینک با `VerifyEmailNotification` روی signed URL API به `GET /api/auth/email/verify/{id}/{hash}` (اعتبار ۲۴ ساعته) و ارسال مجدد با `POST /api/auth/email/verification-notification` (throttled).
   - الزام با middleware سراسری `verified` (`EnsureEmailIsVerified`): کاربر unverified امکان ساخت/retry/regenerate و checkout ندارد (403 `EMAIL_NOT_VERIFIED`)؛ اکانت‌های phone-only معاف‌اند و تغییر ایمیل در پروفایل، تأیید را باطل می‌کند.
   - migration backfill برای کاربران قدیمی تا قفل نشوند؛ پوشش با `EmailVerificationTest` (۱۳ تست).
-- [ ] Credit top-up بدون subscription (خرید اعتبار جداگانه).
+- [x] Credit top-up بدون subscription (خرید اعتبار جداگانه).
+  - سه بستهٔ `topup_50/150/400` (۵۰/۱۵۰/۴۰۰ اعتبار با ۱٫۵/۴/۹٫۵ میلیون تومان) در [credits.php](file:///var/www/html/Hale'/config/credits.php)؛ `GET /api/credits/packs` عمومی و `POST /api/credits/topup` (verified + throttle:checkout + Idempotency-Key).
+  - `BillingService::checkoutTopup` با scope اختصاصی `topup:` و metadata شامل kind/pack/credits (استخراج متدهای مشترک checkout)؛ شاخهٔ topup در `settle()` فقط `grantPurchase` را با کلید idempotent `payment:{id}` اجرا می‌کند — بدون subscription، بدون تغییر plan و بدون شمارش سقف‌های پلن.
+  - نوتیفیکیشن پرداخت، توضیح درگاه و رسید برای بسته‌ها topupمحور شدند؛ UI: بخش «بسته‌های اعتبار» در pricing با همان جریان checkout پلن‌ها و بنر وضعیت پرداخت مشترک + لینک «خرید اعتبار» در پیام کمبود اعتبار استودیو؛ پوشش با `CreditTopupTest` (۷ تست شامل callback، شکست و idempotency).
 - [x] Admin: امکان ban/suspend کاربر.
   - ستون‌های `banned_at`/`banned_until`/`ban_reason` + اندپوینت‌های `POST /api/admin/users/{user}/ban` و `/unban` (دلیل الزامی، `expires_at` اختیاری برای suspend موقت؛ حساب‌های مدیر محافظت‌شده‌اند).
   - اجرا: revoke همهٔ توکن‌ها هنگام ban، مسدودسازی login، middleware سراسری `PreventBannedUser` (403 به‌جز profile و logout)، انقضای خودکار suspend موقت، نمایش chip «مسدود» و دکمه‌های مسدودسازی/لغو در پنل ادمین.
