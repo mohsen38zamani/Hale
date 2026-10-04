@@ -309,15 +309,35 @@
   - هزینهٔ رزرو از `config/ai.pricing` خوانده می‌شود (پیش‌فرض + override هر provider از طریق env) و زنجیره در صورت اتمام بودجهٔ روزانه در میانهٔ تلاش متوقف می‌شود؛ اولویت providerها با `AI_PROVIDER_PRIORITY`.
   - رفع باگ پنهان `CircuitBreaker::reserve` (مقایسهٔ `budget_date` با `where` ساده که روی sqlite به‌دلیل ذخیرهٔ `Y-m-d 00:00:00` شکست می‌خورد).
   - پوشش با `ModelRouterTest` (۵ تست)، `AiGatewayTest` (۱۰ تست شامل زنجیرهٔ ۳تایی، خطای permanent، شکست کامل، توقف بودجه و قیمت‌گذاری) و سناریوی Feature در `ProcessGenerationTest` (429 گوگل → fallback به local با ثبت failures).
-- [ ] Search پیشرفته/Meilisearch.
-- [ ] Favorites، collections و history filter پیشرفته.
-- [ ] Push notification PWA.
-- [ ] Brand Kit و Templates.
+- [x] Search پیشرفته/Meilisearch.
+  - دامنهٔ [Search](file:///var/www/html/Hale'/app/Domains/Search) با درایور `SearchDriver`: درایور `database` (پیش‌فرض؛ LIKE با escape `!`) و `meilisearch` (ارتباط HTTP بدون SDK، اسکوپ `user_id` روی هر ایندکس)؛ هر شکست ارتباط با `Log::warning` ثبت و به حالت database برمی‌گردد.
+  - هوک‌های ایندکس روی ایجاد/ویرایش/حذف محصول و تولید + فرمان `php artisan search:reindex` برای بازسازی کامل ایندکس‌ها.
+  - جستجوی پیشرفته در تاریخچه و کتابخانه با هِلپرهای `debounce/escapeHtml/highlight` در [app.js](file:///var/www/html/Hale'/resources/js/app.js)، ورودی جستجوی دبونس‌دار در نوار فیلتر و هایلایت `<mark class="search-hit">` روی کاشی محصول و سطر تاریخچه.
+  - پوشش با `AdvancedSearchTest` (۸ تست) و assertionهای `FavoriteHistoryFilterTest`.
+- [x] Favorites، collections و history filter پیشرفته.
+  - API علاقه‌مندی‌ها با هدف‌های polymorphic (product/generation) در [Favorites](file:///var/www/html/Hale'/app/Domains/Favorites) + فیلتر «فقط موردعلاقه‌ها» در کتابخانه و تاریخچه؛ ستاره روی کاشی/سطر با toggle آنی و بازگرداندن وضعیت از سرور.
+  - history filter پیشرفته: نوع/وضعیت/بازهٔ تاریخ + جستجوی دبونس‌دار با هایلایت تطبیق (پوشش مشترک با `FavoriteHistoryFilterTest`).
+  - نکته: «collections» پوشه‌ای هنوز پیاده نشده و در صورت نیاز به‌صورت آیتم جداگانه اضافه می‌شود.
+- [x] Push notification PWA.
+  - پکیج `minishlink/web-push`، جدول `push_subscriptions`، اندپوینت‌های `notifications/push/public-key|subscribe|unsubscribe` و فرمان `webpush:generate-keys` (کلیدهای VAPID در `WEBPUSH_*`)؛ اشتراک‌های خطای 404/410 حذف می‌شوند.
+  - لیسنر queued `SendWebPushNotification` روی رویداد `NotificationSent` با قرارداد `ShouldWebPush` روی ۴ نوتیفیکیشن (GenerationStatus، CreditsLow، PaymentSucceeded، SubscriptionExpired)؛ Welcome/VerifyEmail/AiBudget عمداً push نمی‌شوند.
+  - هندلرهای `push`/`notificationclick` در [sw.js](file:///var/www/html/Hale'/public/sw.js) + دکمهٔ «اعلان فوری» در داشبورد با تشخیص PushManager، ثبت worker و همگام‌سازی subscribe/unsubscribe.
+  - پوشش با `PushNotificationTest` (۹ تست شامل اسکریپت SW).
+- [x] Brand Kit و Templates.
+  - جدول `brand_kits` (یکی برای هر کاربر: رنگ‌های hex، فونت، لحن، شعار) با `PUT` upsert و پنل «کیت برند من» در داشبورد؛ هویت برند از مسیر `CreativeEngine::brief()` وارد پرامپت همهٔ تولیدها می‌شود (بندهای `Brand identity` و شعار خوانا) و پیش از ذخیره از `PromptModerator` عبور می‌کند.
+  - جدول `generation_templates` (قالب مستقل از محصول: goal/style/format/environment/کنترل‌های صحنه/custom_prompt در JSON اعتبارسنجی‌شده؛ `product_id` داخل settings صراحتاً ممنوع) با CRUD کامل مالکیتی و نوار «قالب‌های ذخیره‌شده» در استودیو (اعمال با یک کلیک + ذخیرهٔ ترکیب فعلی).
+  - پوشش با `BrandKitTest` (۷ تست) و `GenerationTemplateTest` (۵ تست).
 - [ ] Conversational Editing و Variants.
 - [ ] Campaign Generator، Bulk Generation، Caption و Calendar.
+  - [x] **Bulk Generation** — پیاده‌سازی شد و در آیتم «پردازش دسته‌ای کاتالوگ» (پایین همین فایل) ثبت شد: `POST /api/generations/bulk` + انتخاب چندمحصولی در کتابخانه.
+  - [ ] Campaign Generator / Caption Generator / Content Calendar — باقی‌مانده.
 - [ ] Organizations، Workspace، Team/RBAC و Public API.
 - [ ] White Label و Social Auto Publish.
-- [ ] Image optimization/compression برای web delivery.
+- [x] Image optimization/compression برای web delivery.
+  - سرویس [ImageOptimizer](file:///var/www/html/Hale'/app/Domains/Media/Services/ImageOptimizer.php) با GD (بدون وابستگی جدید composer): تبدیل به WebP سایز-صفحه تا `MEDIA_WEB_MAX_DIMENSION` (پیش‌فرض ۱۶۰۰) با کیفیت `MEDIA_WEB_QUALITY` (۸۲) از طریق `config/media.php`؛ منبعی که از قبل WebP در محدوده است بازکدگذاری نمی‌شود و خروجی‌های غیرتصویری/خراب به بایت اصلی برمی‌گردند.
+  - ستون `web_path` در `media_assets` با مسیر قطعی `web/{id}.webp` (درخواست‌های همزمان روی یک فایل همگرا می‌شوند)؛ آپلود محصول واریانت را فوری می‌سازد و دانلود خروجی generation آن را در اولین درخواست `?variant=web` تنبل می‌سازد؛ حذف asset، واریانت را هم پاک می‌کند.
+  - اندپوینت‌های دانلود با `variant=web|original` (رفتار پیش‌فرض thumbnail بدون تغییر) و هِلپر [HttpCache](file:///var/www/html/Hale'/app/Support/Http/HttpCache.php): ETag + `Cache-Control: private, max-age=86400` و پاسخ 304 برای `If-None-Match`؛ نام فایل خروجی از mime سرویس‌شده مشتق می‌شود (`generation-{id}.webp`).
+  - صفحهٔ جزئیات تولید، پیش‌نمایش تصویر را با واریانت فشرده می‌گیرد و نام دانلود را از blob سرویس‌شده می‌سازد؛ پوشش با `ImageOptimizationTest` (۶ تست).
 
 ### استودیوی جامع تصویرسازی و تولید محتوای محصول (Advanced AI Product Studio)
 
@@ -347,14 +367,18 @@
     - پنل آکاردئونی تاشو با انتخابگرهای کارت‌های شیشه‌ای در [create.blade.php](file:///var/www/html/Hale'/resources/views/create.blade.php)، به‌روزرسانی آنی پایه، نور و چیپ‌های بازرس پرامپت در [app.js](file:///var/www/html/Hale'/resources/js/app.js) و استایل‌های متناسب در [app.css](file:///var/www/html/Hale'/resources/css/app.css).
     - پوشش کامل با تست‌های واحد و Feature در [CreativeEngineTest.php](file:///var/www/html/Hale'/tests/Unit/Creative/CreativeEngineTest.php)، [GenerationApiTest.php](file:///var/www/html/Hale'/tests/Feature/Generations/GenerationApiTest.php) و [StudioPreviewViewTest.php](file:///var/www/html/Hale'/tests/Feature/Generations/StudioPreviewViewTest.php) (۲۳۹ تست پاس‌شده، ۱۱۴۹ assertion).
 - [ ] **تم‌های فصلی و کمپین‌های مناسبتی (Seasonal & Campaign Packs):**
-  - تم‌های آماده تقویمی: نوروز و بهار، شب یلدا (تم انار و نور گرم)، حراج بزرگ / بلک فرایدی (مشکی و نئون طلایی)، ولنتاین، تابستانه ساحلی و پاییزی بارانی.
+  - [x] **زیرساخت تم فصلی استودیو:** [config/seasons.php](file:///var/www/html/Hale'/config/seasons.php) با ۵ تم (یلدا، نوروز، زمستان، بهار، تابستان) به ترتیب اولویت و پنجره‌های MM-DD قابل عبور از سال نو؛ تشخیص با [SeasonThemeService](file:///var/www/html/Hale'/app/Domains/Creative/Services/SeasonThemeService.php) و کلید `SEASON_THEME` (`auto` پیش‌فرض / کلید تم / `off`)، اندپوینت `GET /api/creative/theme`، دکور بوم استودیو (snowfall/vignette/sparkle با پالت هر تم، زیر لایهٔ محصول) و نشان «تم فصلی» با خاموشی دائم از `localStorage`؛ پوشش با `SeasonThemeTest` (۶ تست).
+  - [ ] تم‌های باقی‌مانده (بلک فرایدی، ولنتاین، پاییزی بارانی) و پکیج‌های پرامپت کمپینی.
 - [ ] **ابزارهای کمکی هوش مصنوعی (AI Utility Tools - الهام‌گرفته از Photoroom):**
   - حذف خودکار پس‌زمینه (One-Click Background Removal) و تولید خروجی پس‌زمینه سفید استاندارد دیجی‌کالا/آمازون.
   - ارتقای کیفیت و وضوح تصویر (AI Super-Resolution Upscaler به 2K و 4K).
   - بسط دادن هوشمند کادر تصویر بدون برش محصول (Generative Expand / Outpainting).
   - محاسبه و تولید خودکار سایه و رفلکس واقعی سه‌بعدی روی سطح جدید (Natural 3D Shadows & Grounding).
-- [ ] **پردازش دسته‌ای کاتالوگ (Batch Processing Studio):**
-  - انتخاب چند محصول همزمان و اعمال یک تم استودیویی واحد روی کل کاتالوگ با یک کلیک.
+- [x] **پردازش دسته‌ای کاتالوگ (Batch Processing Studio):**
+  - حالت «پردازش دسته‌ای» در کتابخانهٔ داشبورد: دکمهٔ toggle، چک‌باکس روی کاشی‌ها فقط در حالت انتخاب، «انتخاب همه» و نوار اکشن با شمارندهٔ انتخاب (انتخاب در صفحه‌بندی/جستجو حفظ می‌شود و با حذف محصول پاک می‌گردد).
+  - `POST /api/generations/bulk` حداکثر ۲۰ شناسهٔ یکتا: تنظیمات مشترک اختیاری (Goal/Style/Format/صحنه/متن دلخواه با اعتبارسنجی و moderation؛ نبودِ هر فیلد → `autoBest` همان محصول)، کیت برند به‌صورت خودکار اعمال می‌شود.
+  - پیش‌بررسی موجودی کل بسته قبل از ایجاد هر ردیف (402 `INSUFFICIENT_CREDITS`)، سپس چک پلن/اعتبار به‌ازای هر محصول داخل تراکنش با موفقیت جزئی + `skipped_product_ids` و `reason` (سقف پلن / اعتبار / moderation)؛ مالکیت محصولات از قبل تأیید می‌شود (`INVALID_PRODUCTS`) و هر نسل با نشانهٔ `bulk` در metadata ثبت می‌شود.
+  - پوشش با `BulkGenerationTest` (۸ تست).
 - [x] GDPR-style account deletion endpoint — **رد شد و از مسیر محصول حذف شد.**
   - تصمیم صریح: حذف کاربر وجود ندارد چون به هر حساب کردیت رایگان اولیه تعلق می‌گیرد و حذف اکانت باعث ایجاد سوءاستفاده/مشکل مالی می‌شود. هیچ اندپوینت حذف حسابی پیاده‌سازی نخواهد شد.
 - [x] Email verification الزامی (فعال کردن `MustVerifyEmail`).
