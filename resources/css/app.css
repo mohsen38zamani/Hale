@@ -34,7 +34,7 @@
 }
 
 html, body {
-  overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100vw;
   background-color: var(--bg-base);
   color: var(--text-primary);
@@ -788,6 +788,12 @@ mark.search-hit {
   .builder-layout {
     grid-template-columns: 1fr;
   }
+
+  .studio-canvas-panel {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 .builder-panel {
@@ -842,6 +848,11 @@ mark.search-hit {
 .studio-canvas-panel {
   position: sticky;
   top: 24px;
+  z-index: 10;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -850,6 +861,23 @@ mark.search-hit {
   border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   padding: 24px;
+}
+
+.studio-canvas-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.studio-canvas-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.studio-canvas-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.studio-canvas-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .canvas-topbar {
