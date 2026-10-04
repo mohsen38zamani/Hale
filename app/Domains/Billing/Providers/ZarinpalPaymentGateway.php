@@ -16,7 +16,9 @@ class ZarinpalPaymentGateway implements PaymentGateway
             'merchant_id' => config('payment.zarinpal.merchant_id'),
             'amount' => $amount,
             'currency' => config('payment.zarinpal.currency', 'IRR'),
-            'description' => 'خرید پلن '.($planKey),
+            'description' => str_starts_with($planKey, 'topup_')
+                ? 'خرید بسته اعتبار Hale'
+                : 'خرید پلن '.($planKey),
             'callback_url' => config('payment.zarinpal.callback_url'),
             'metadata' => array_filter([
                 'mobile' => $user->phone,

@@ -1066,7 +1066,11 @@ if (builderForm) {
 		const response = await authFetch('/api/credits/estimate', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ type, video_duration_seconds: type === 'video' ? Number(duration.value) : null, quality }) });
 		const result = await response.json();
 		if (!response.ok) throw new Error(result.error?.message || 'برآورد اعتبار انجام نشد.');
-		estimate.textContent = result.data.sufficient ? `هزینه: ${result.data.cost} Credit | موجودی: ${result.data.balance} Credit` : `اعتبار کافی نیست (${result.data.balance} از ${result.data.cost} Credit) | خرید اعتبار`;
+		if (result.data.sufficient) {
+			estimate.textContent = `هزینه: ${result.data.cost} Credit | موجودی: ${result.data.balance} Credit`;
+		} else {
+			estimate.innerHTML = `اعتبار کافی نیست (${result.data.balance} از ${result.data.cost} Credit) | <a href="/pricing" style="color: var(--primary); font-weight: 700;">خرید اعتبار</a>`;
+		}
 		estimate.dataset.insufficient = result.data.sufficient ? 'false' : 'true';
 	};
 	const renderChoices = (target, values, name, withType = false, isObject = false) => {

@@ -60,6 +60,7 @@ Route::get('/user/profile', function (CreditService $credits, SubscriptionServic
     ]);
 })->middleware('auth:sanctum');
 Route::get('/plans', [PlanController::class, 'index']);
+Route::get('/credits/packs', [CreditController::class, 'packs']);
 Route::post('/webhooks/payment', [PlanController::class, 'webhook'])->middleware('throttle:payment-webhook');
 Route::get('/payments/zarinpal/callback', [PlanController::class, 'zarinpalCallback'])->middleware('throttle:payment-webhook');
 
@@ -102,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::delete('/templates/{template}', [TemplateController::class, 'destroy']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/subscriptions/checkout', [PlanController::class, 'checkout'])->middleware(['verified', 'throttle:checkout']);
+    Route::post('/credits/topup', [CreditController::class, 'topup'])->middleware(['verified', 'throttle:checkout']);
 });
 
 Route::get('/health', [HealthController::class, 'check']);

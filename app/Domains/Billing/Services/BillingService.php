@@ -23,12 +23,37 @@ class BillingService
 
     public function checkout(User $user, string $planKey, ?string $idempotencyKey = null): array
     {
-        $plan = config('plans.'.$planKey);
+        $amount = (int) config('plans.'.$planKey.'.price_irr');
+
+        return $this->requestGatewayPayment('checkout', $user, $planKey, $amount, $idempotencyKey, []);
+    }
+
+    /**
+     * One-time credit pack purchase: settles into the wallet without any
+     * subscription or plan change once the gateway callback verifies it.
+     */
+    public function checkoutTopup(User $user, string $packKey, ?string $idempotencyKey = null): array
+    {
+        $amount = (int) config('credits.packs.'.$packKey.'.price_irr');
+        $metadata = [
+            'kind' => 'topup',
+            'pack' => $packKey,
+            'credits' => (int) config('credits.packs.'.$packKey.'.credits'),
+        ];
+
+        return $this->requestGatewayPayment('topup', $user, $packKey, $amount, $idempotencyKey, $metadata);
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function requestGatewayPayment(string $scope, User $user, string $itemKey, int $amount, ?string $idempotencyKey, array $metadata): array
+    {
         $key = $idempotencyKey !== null && trim($idempotencyKey) !== ''
-            ? 'checkout:'.$user->id.':'.trim($idempotencyKey)
-            : 'checkout:'.$user->id.':'.str()->uuid();
+            ? $scope.':'.$user->id.':'.trim($idempotencyKey)
+            : $scope.':'.$user->id.':'.str()->uuid();
         try {
-            $payment = DB::transaction(function () use ($user, $planKey, $plan, $key): Payment {
+            $payment = DB::transaction(function () use ($user, $itemKey, $amount, $key): Payment {
                 $existing = Payment::query()->where('idempotency_key', $key)->lockForUpdate()->first();
                 if ($existing !== null) {
                     if ($existing->authority !== null) {
@@ -44,8 +69,8 @@ class BillingService
 
                 return Payment::query()->create([
                     'user_id' => $user->id,
-                    'plan_key' => $planKey,
-                    'amount' => $plan['price_irr'],
+                    'plan_key' => $itemKey,
+                    'amount' => $amount,
                     'gateway' => config('payment.driver'),
                     'status' => 'initializing',
                     'idempotency_key' => $key,
@@ -60,12 +85,12 @@ class BillingService
         }
 
         try {
-            $gatewayPayment = $this->gateway->createPayment($user, $planKey, (int) $plan['price_irr']);
+            $gatewayPayment = $this->gateway->createPayment($user, $itemKey, $amount);
         } catch (\Throwable $exception) {
-            $payment->update(['status' => 'failed', 'metadata' => ['gateway_error' => $exception->getMessage()]]);
+            $payment->update(['status' => 'failed', 'metadata' => ['gateway_error' => $exception->getMessage()] + $metadata]);
             throw $exception;
         }
-        $payment->update(['authority' => $gatewayPayment['authority'], 'status' => 'pending', 'metadata' => ['redirect_url' => $gatewayPayment['redirect_url']]]);
+        $payment->update(['authority' => $gatewayPayment['authority'], 'status' => 'pending', 'metadata' => ['redirect_url' => $gatewayPayment['redirect_url']] + $metadata]);
 
         return $this->paymentPayload($payment->fresh());
     }
@@ -99,15 +124,32 @@ class BillingService
                 return $payment;
             }
             $now = Carbon::now();
+
+            $payment->update(['status' => 'paid', 'reference' => $verification['reference'], 'paid_at' => $now]);
+            $this->ensureInvoice($payment->fresh());
+
+            // Credit packs settle straight into the wallet: no subscription
+            // is created, no plan changes, and the grant idempotency key
+            // ("payment:{id}") protects against webhook replays.
+            if (str_starts_with((string) $payment->plan_key, 'topup_')) {
+                $packCredits = (int) config('credits.packs.'.$payment->plan_key.'.credits');
+                if ($packCredits > 0) {
+                    $this->credits->grantPurchase($payment->user, $packCredits, 'payment:'.$payment->id, [
+                        'payment_id' => $payment->id,
+                        'pack' => $payment->plan_key,
+                    ]);
+                }
+                DB::afterCommit(fn () => $payment->user->notify(new PaymentSucceededNotification($payment->fresh())));
+
+                return $payment->fresh();
+            }
+
             $months = (int) config('payment.subscription_months');
             $activeSub = Subscription::query()
                 ->where('user_id', $payment->user_id)
                 ->where('status', 'active')
                 ->where('ends_at', '>', $now)
                 ->first();
-
-            $payment->update(['status' => 'paid', 'reference' => $verification['reference'], 'paid_at' => $now]);
-            $this->ensureInvoice($payment->fresh());
 
             if ($activeSub !== null && $activeSub->plan_key === $payment->plan_key) {
                 $endsAt = $activeSub->ends_at->copy()->addMonths($months);

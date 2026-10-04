@@ -264,6 +264,17 @@
             <p class="empty-state">در حال بارگذاری پلن‌ها...</p>
         </div>
 
+        <!-- One-time credit packs (no subscription) -->
+        <section class="credit-packs" style="margin-top: 56px;">
+            <div class="section-heading">
+                <h2>بسته‌های اعتبار</h2>
+                <span style="font-size: 13px;">خرید جداگانهٔ اعتبار؛ بدون نیاز به اشتراک</span>
+            </div>
+            <div class="pricing-grid" data-packs-grid>
+                <p class="empty-state">در حال بارگذاری بسته‌ها...</p>
+            </div>
+        </section>
+
         <section class="payment-history">
             <div class="section-heading">
                 <h2>تاریخچه پرداخت و فاکتورها</h2>
@@ -346,6 +357,7 @@
         headers: { Accept: 'application/json', ...(options.headers || {}) }
     });
     const pricingGrid = document.querySelector('[data-pricing-grid]');
+    const packsGrid = document.querySelector('[data-packs-grid]');
     const pricingMessage = document.querySelector('[data-pricing-message]');
     const paymentList = document.querySelector('[data-payment-list]');
     const paymentPagination = document.querySelector('[data-payment-pagination]');
@@ -368,7 +380,7 @@
         if (paymentStatus === 'paid') {
             paymentResultBanner.className = 'payment-result-card success';
             resultTitle.textContent = 'پرداخت با موفقیت انجام شد';
-            resultDesc.textContent = 'اشتراک شما فعال گردید و اعتبارات به حسابتان واریز شد. می‌توانید از هم‌اکنون پروژه‌های جدید خود را بسازید.';
+            resultDesc.textContent = 'پرداخت شما با موفقیت اعمال گردید و اعتبارات به حسابتان واریز شد. از هم‌اکنون می‌توانید پروژه‌های جدید خود را بسازید.';
         } else {
             paymentResultBanner.className = 'payment-result-card failed';
             resultTitle.textContent = 'پرداخت ناموفق بود';
@@ -543,6 +555,60 @@
         });
     }).catch(() => {
         pricingMessage.textContent = 'دریافت پلن‌ها انجام نشد.';
+    });
+
+    // Fetch one-time credit packs
+    fetch('/api/credits/packs').then(response => response.json()).then(result => {
+        const packs = Array.isArray(result.data) ? result.data : [];
+        if (!packs.length) {
+            packsGrid.innerHTML = '<p class="empty-state">بسته‌ای موجود نیست.</p>';
+            return;
+        }
+        packsGrid.innerHTML = packs.map(pack => `
+            <article class="pricing-card">
+                <span class="plan-label">بسته اعتبار</span>
+                <strong>${pack.credits}<small> Credit</small></strong>
+                <p>خرید جداگانه؛ بدون نیاز به اشتراک</p>
+                <div class="plan-price">${money(pack.price_irr)}</div>
+                <button class="primary-button plan-button" data-pack="${pack.key}">خرید بسته <span>←</span></button>
+            </article>
+        `).join('');
+
+        document.querySelectorAll('[data-pack]').forEach(button => {
+            button.addEventListener('click', async () => {
+                if (!(await ensureSession())) {
+                    pricingMessage.className = 'form-message error-message';
+                    pricingMessage.textContent = 'برای خرید اعتبار، ابتدا وارد حساب کاربری خود شوید.';
+                    return;
+                }
+                button.disabled = true;
+                button.textContent = 'در حال اتصال...';
+                try {
+                    const response = await pricingFetch('/api/credits/topup', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Idempotency-Key': crypto.randomUUID()
+                        },
+                        body: JSON.stringify({ pack: button.dataset.pack })
+                    });
+                    const checkout = await response.json();
+                    if (response.ok) {
+                        window.location.href = checkout.data.redirect_url;
+                    } else {
+                        pricingMessage.textContent = checkout.error?.message || 'اتصال به درگاه انجام نشد.';
+                        button.disabled = false;
+                        button.innerHTML = 'خرید بسته <span>←</span>';
+                    }
+                } catch {
+                    pricingMessage.textContent = 'خطا در ارتباط با سرور.';
+                    button.disabled = false;
+                    button.innerHTML = 'خرید بسته <span>←</span>';
+                }
+            });
+        });
+    }).catch(() => {
+        packsGrid.innerHTML = '<p class="empty-state">دریافت بسته‌ها انجام نشد.</p>';
     });
 </script>
 </body>

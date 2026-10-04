@@ -2,6 +2,8 @@
 
 namespace App\Domains\Credits\Controllers;
 
+use App\Domains\Billing\Requests\TopupRequest;
+use App\Domains\Billing\Services\BillingService;
 use App\Domains\Credits\Services\CreditEstimator;
 use App\Domains\Credits\Services\CreditService;
 use App\Http\Controllers\Controller;
@@ -12,6 +14,23 @@ use Illuminate\Http\Request;
 class CreditController extends Controller
 {
     use ApiResponse;
+
+    public function packs(): JsonResponse
+    {
+        return $this->success(array_values(config('credits.packs')));
+    }
+
+    public function topup(TopupRequest $request, BillingService $billing): JsonResponse
+    {
+        return $this->success(
+            $billing->checkoutTopup(
+                $request->user(),
+                $request->string('pack')->value(),
+                $request->header('Idempotency-Key'),
+            ),
+            201,
+        );
+    }
 
     public function balance(Request $request, CreditService $credits): JsonResponse
     {

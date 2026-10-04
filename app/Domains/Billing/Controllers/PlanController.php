@@ -48,7 +48,7 @@ class PlanController extends Controller
         $receipt = implode(PHP_EOL, [
             'Hale payment receipt',
             'Payment ID: '.$payment->id,
-            'Plan: '.$payment->plan_key,
+            (str_starts_with($payment->plan_key, 'topup_') ? 'Top-up pack: ' : 'Plan: ').$payment->plan_key,
             'Amount (IRR): '.$payment->amount,
             'Status: '.$payment->status,
             'Reference: '.($payment->reference ?? '-'),
