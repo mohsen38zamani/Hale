@@ -76,6 +76,60 @@ SMS_IR_API_KEY=your_sms_ir_api_key_production
 SMS_IR_LINE_NUMBER=3000xxxx
 SMS_IR_VERIFY_TEMPLATE_ID=100000
 
+# Provider هوش مصنوعی (Google AI Studio)
+GOOGLE_AI_API_KEY=your_google_ai_api_key
+GOOGLE_AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+GOOGLE_IMAGEN_MODEL=imagen-3.0-generate-002
+GOOGLE_TEXT_MODEL=gemini-2.0-flash        # مدل کپشن
+GOOGLE_VEO_MODEL=veo-2.0-generate-001
+GOOGLE_AI_TIMEOUT=60
+GOOGLE_VEO_TIMEOUT=120
+# اولویت زنجیرهٔ Fallback (کلید جدا با کاما؛ خالی = ترتیب ثبت)
+AI_PROVIDER_PRIORITY=
+# سقف بودجهٔ روزانهٔ AI به دلار (رزرو و تسویه پس از هر اجرا)
+AI_DAILY_BUDGET_USD=50
+# هزینهٔ رزرو بر اساس USD (قابل override برای هر provider)
+AI_PRICING_IMAGE_USD=0.04
+AI_PRICING_VIDEO_PER_SECOND_USD=0.05
+# عمر نگهداری خروجی‌های AI و سقف حجم/مدت اجارهٔ پردازش
+AI_OUTPUT_RETENTION_DAYS=90
+AI_MAX_OUTPUT_BYTES=52428800
+AI_PROCESSING_LEASE_SECONDS=600
+# پارامترهای متنی (کپشن)
+AI_TEXT_TEMPERATURE=0.9
+AI_TEXT_MAX_TOKENS=540
+
+# اعتبار و مالی
+INITIAL_CREDIT_BALANCE=30        # اعتبار خوش‌آمدگویی ثبت‌نام
+CREDIT_COST_TEXT=3               # هزینهٔ کپشن (متن AI)
+LOW_CREDIT_THRESHOLD=20          # آستانهٔ هشدار کمبود اعتبار (درصد)
+FINANCIAL_USD_TO_TOMAN=1000000   # نرخ تبدیل برای نمایش ریالی هزینه‌ها
+
+# جستجو (database پیش‌فرض؛ meilisearch اختیاری)
+SEARCH_DRIVER=database
+MEILISEARCH_HOST=http://127.0.0.1:7700
+MEILISEARCH_KEY=
+MEILISEARCH_PRODUCTS_INDEX=products
+MEILISEARCH_GENERATIONS_INDEX=generations
+
+# Web Push (با php artisan webpush:generate-keys بسازید؛ خالی = بدون Push)
+WEBPUSH_SUBJECT=mailto:hello@example.com
+WEBPUSH_VAPID_PUBLIC_KEY=
+WEBPUSH_VAPID_PRIVATE_KEY=
+WEBPUSH_TTL=3600
+
+# تم فصلی استودیو: auto | کلید تم | off
+SEASON_THEME=auto
+
+# تحویل تصویر وب و سقف ابعاد کیفیت خروجی
+MEDIA_WEB_MAX_DIMENSION=1600
+MEDIA_WEB_QUALITY=82
+MEDIA_STANDARD_MAX_DIMENSION=1024
+MEDIA_PREMIUM_MAX_DIMENSION=2048
+
+# ادمین (لیست ایمیل مدیران با کاما)
+ADMIN_EMAILS=admin@example.com
+
 # ره‌گیری خطاها (Sentry)
 SENTRY_LARAVEL_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
 ```
@@ -84,7 +138,7 @@ SENTRY_LARAVEL_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
 
 ## ۳. مدیریت پردازش‌های پس‌زمینه با Supervisor
 
-برای اجرای پایدار جاب‌های صف (تولید تصویر، ویدیو، ارسال ایمیل و وب‌هوک‌ها)، از سرویس **Supervisor** استفاده می‌شود.
+برای اجرای پایدار جاب‌های صف (تولید تصویر، ویدیو، ارسال ایمیل، وب‌پوش و وب‌هوک‌ها)، از سرویس **Supervisor** استفاده می‌شود.
 
 فایل پیکربندی را در مسیر `/etc/supervisor/conf.d/hale-worker.conf` ایجاد کنید:
 

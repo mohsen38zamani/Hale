@@ -31,6 +31,8 @@
 
 علامت `✅` یعنی Backend آن بخش پیاده‌سازی و تست شده است؛ نبودن علامت به معنی باقی‌ماندن کار یا تکمیل‌نبودن بخش Frontend/عملیاتی است.
 
+**وضعیت تا ۱۴۰۵/۰۷/۰۴:** Phase 1 (Sprintهای ۱–۶) از نظر Backend تکمیل است — ۳۴۴ تست / ۱۷۷۸ assertion سبز؛ CI شامل Pint/PHPStan/build و پیکربندی staging نیز آماده است. علاوه بر آن، آیتم‌هایی از Phase 2 و 3 زودتر از موعد اجرا شده‌اند: جستجو و علاقه‌مندی‌ها (2.7)، Push Notification (2.8)، Caption (3.3)، Content Calendar و Campaign (3.4)، Bulk Generation (3.5) و بخشی از بومی‌سازی/مناسبت‌ها (3.6 — Jalali در تقویم و ۸ تم فصلی). موارد باقی‌ماندهٔ Sprintها (مثل Webhook پذیرندهٔ Provider، Failed Job Handling، Security Audit و Soft Launch) در TODO.md ثبت‌اند.
+
 جزئیات موردهای باقی‌مانده، وابستگی‌ها و معیار پایان در فایل ریشهٔ [`TODO.md`](../TODO.md) نگهداری می‌شود.
 
 ---
@@ -115,22 +117,22 @@ app/
 | 1.1 | Laravel Project Setup | Install, config, .env template |
 | 1.2 | Database Migrations | users, organizations (schema only), sessions |
 | 1.3 | Authentication | ✅ Register، Login با email/phone، Logout، Password Reset |
-| 1.4 | Email Verification | Optional, recommended |
+| 1.4 | Email Verification | ✅ تأیید ایمیل الزامی (`MustVerifyEmail` + middleware `verified`) |
 | 1.5 | API Auth (Sanctum) | ✅ Token-based for PWA با email یا phone |
 | 1.6 | Base API Response Format | ✅ Standard JSON envelope |
-| 1.7 | Exception Handling | Global handler, error codes |
+| 1.7 | Exception Handling | ✅ Global handler، کدهای خطای استاندارد و پیام فارسی |
 
 ### Frontend
 | # | Feature | Tasks |
 |---|---------|-------|
-| 1.8 | PWA Shell | Layout, navigation, RTL support |
-| 1.9 | Auth Pages | Login, Register, Forgot Password |
-| 1.10 | Landing Page | Hero, CTA, pricing preview |
+| 1.8 | PWA Shell | ✅ Layout, navigation, RTL support |
+| 1.9 | Auth Pages | ✅ Login, Register, Forgot Password |
+| 1.10 | Landing Page | ✅ Hero, CTA, pricing preview (بازنویسی‌شده) |
 
 ### DevOps
 | # | Feature | Tasks |
 |---|---------|-------|
-| 1.11 | PHPUnit Setup | Base test structure |
+| 1.11 | PHPUnit Setup | ✅ Base test structure |
 | 1.12 | Feature Tests | ✅ Auth، Phone OTP و Profile flow tests |
 
 ---
@@ -146,19 +148,19 @@ app/Domains/
 
 | # | Feature | Tasks |
 |---|---------|-------|
-| 2.1 | Product Model | name, description, user_id, status |
-| 2.2 | ProductAsset Model | original image, thumbnails |
-| 2.3 | Media Upload Service | Validation, resize, storage to S3 |
-| 2.4 | Product CRUD API | Create, Read, Update, Delete, List |
-| 2.5 | Product Library API | Paginated list with thumbnails |
-| 2.6 | Image Processing | Thumbnail generation, max size limits |
+| 2.1 | Product Model | ✅ name, description, user_id, status |
+| 2.2 | ProductAsset Model | ✅ original image, thumbnails |
+| 2.3 | Media Upload Service | ✅ Validation, resize, storage to S3 |
+| 2.4 | Product CRUD API | ✅ Create, Read, Update, Delete, List |
+| 2.5 | Product Library API | ✅ Paginated list with thumbnails |
+| 2.6 | Image Processing | ✅ Thumbnail generation, max size limits + واریانت WebP |
 
 ### Frontend
 | # | Feature | Tasks |
 |---|---------|-------|
-| 2.7 | Upload Product Page | Drag & drop, camera capture (mobile) |
-| 2.8 | Product Library Page | Grid view, search, delete |
-| 2.9 | Product Detail Page | View, edit name, re-upload image |
+| 2.7 | Upload Product Page | ✅ Drag & drop، آپلود در کتابخانه |
+| 2.8 | Product Library Page | ✅ Grid view, search, delete (+ ستاره و حالت bulk) |
+| 2.9 | Product Detail Page | ✅ View, edit name, re-upload image |
 
 ### Database Tables
 ```sql
@@ -180,21 +182,21 @@ app/Domains/
 
 | # | Feature | Tasks |
 |---|---------|-------|
-| 3.1 | CreativeProject Model | product_id, goal, style, format, video_duration_seconds, settings (JSON) |
-| 3.2 | Goal/Style/Format Enums | Predefined options (not free text) |
-| 3.3 | Creative Brief Generator | Input → structured brief (via LLM) |
-| 3.4 | Prompt Generator | Brief → optimized prompt |
-| 3.5 | "Auto Best" Mode | System selects style/environment/camera |
-| 3.6 | Generation Model | status, type, credits_used, metadata |
-| 3.7 | Generation API | POST /generations, GET /generations/{id} |
+| 3.1 | CreativeProject Model | ✅ product_id, goal, style, format, video_duration_seconds, settings (JSON) + کنترل‌های صحنه |
+| 3.2 | Goal/Style/Format Enums | ✅ Predefined options (not free text) |
+| 3.3 | Creative Brief Generator | ✅ Input → structured brief (الگوریتم داخلی؛ LLM برای این مرحله استفاده نمی‌شود) |
+| 3.4 | Prompt Generator | ✅ Brief → optimized prompt |
+| 3.5 | "Auto Best" Mode | ✅ System selects style/environment/camera |
+| 3.6 | Generation Model | ✅ status, type, credits_used, metadata |
+| 3.7 | Generation API | ✅ POST /generations, GET /generations/{id} |
 
 ### Frontend
 | # | Feature | Tasks |
 |---|---------|-------|
-| 3.8 | Creative Builder Wizard | Step-by-step: Product → Goal → Style → Format → Video Duration |
-| 3.9 | Visual Style Picker | Card-based selection (not text input) |
-| 3.10 | Preview Settings | Show what system will generate |
-| 3.11 | "Auto Best" Button | One-click generation |
+| 3.8 | Creative Builder Wizard | ✅ Step-by-step: Product → Goal → Style → Format → Video Duration |
+| 3.9 | Visual Style Picker | ✅ Card-based selection (not text input) |
+| 3.10 | Preview Settings | ✅ Show what system will generate (بازرس زندهٔ پرامپت) |
+| 3.11 | "Auto Best" Button | ✅ One-click generation |
 
 ### Database Tables
 ```sql
@@ -221,23 +223,23 @@ app/Domains/
 
 | # | Feature | Tasks |
 |---|---------|-------|
-| 4.1 | AI Gateway Service | Single entry point for all AI calls |
-| 4.2 | Provider Interface | `ImageGenerator`, `VideoGenerator`, `ImageAnalyzer`؛ اعلام مدت‌های پشتیبانی‌شده هر Video Provider |
+| 4.1 | AI Gateway Service | ✅ Single entry point for all AI calls با زنجیرهٔ Fallback چند Provider |
+| 4.2 | Provider Interface | ✅ قرارداد `GenerationProvider`؛ اعلام مدت‌های پشتیبانی‌شده هر Video Provider |
 | 4.3 | Google Provider Adapter | ✅ Gemini/Imagen (تصویر) و Veo (ویدئو) آماده اتصال به همراه تست Http::fake |
 | 4.4 | Model Router | ✅ انتخاب مدل با پشتیبانی Fallback Provider و Circuit Breaker |
-| 4.5 | Generation Job (Queue) | Async processing with Horizon |
+| 4.5 | Generation Job (Queue) | ✅ Async processing ( Horizon / sync در تست ) |
 | 4.6 | Webhook Handler | Provider callback, idempotent |
-| 4.7 | Generation Status Updates | queued → processing → completed/failed |
-| 4.8 | Retry Logic | Configurable retries with backoff |
-| 4.9 | Cost Tracking | Log provider, model, tokens, cost per generation |
-| 4.10 | Content Moderation (basic) | Pre-generation prompt filter |
+| 4.7 | Generation Status Updates | ✅ queued → processing → completed/failed/cancelled |
+| 4.8 | Retry Logic | ✅ Retry کاربر + چرخاندن خطاهای retryable روی زنجیرهٔ Provider |
+| 4.9 | Cost Tracking | ✅ Log provider, model, cost per generation (رزرو و تسویه) |
+| 4.10 | Content Moderation (basic) | ✅ Pre-generation prompt filter (`PromptModerator`) |
 
 ### Frontend
 | # | Feature | Tasks |
 |---|---------|-------|
 | 4.11 | Generation Progress UI | ✅ Polling پایه و progress bar؛ تست مرورگر و stateهای کامل باقی‌مانده |
 | 4.12 | Generation Result Page | ✅ Preview، download، regenerate و feedback UI پایه |
-| 4.13 | Generation History | ✅ نمایش تاریخچه پایه؛ filter/date/search باقی‌مانده |
+| 4.13 | Generation History | ✅ نمایش تاریخچه، فیلتر نوع/وضعیت/بازه، جستجو با هایلایت و ستارهٔ علاقه‌مندی |
 | 4.14 | Error States | Failed generation, retry button |
 
 ### Infrastructure
@@ -275,19 +277,19 @@ app/Domains/
 | 5.6 | Subscription Model | ✅ plan، status، starts_at و ends_at |
 | 5.7 | Payment Gateway Integration | ✅ Zarinpal adapter پیش‌فرض + Fake provider برای تست |
 | 5.8 | Payment Webhook | ✅ Verify، activate subscription، add credits؛ callback رسمی زرین‌پال نیز فعال است |
-| 5.9 | Invoice/Receipt | Basic payment history |
-| 5.10 | Usage Limits | ⚠️ محدودیت ویدئو بر اساس پلن پیاده شده؛ image limit و renewal باقی‌مانده |
+| 5.9 | Invoice/Receipt | ✅ تاریخچهٔ پرداخت + رسید و فاکتور (`/payments/{id}/receipt|invoice`) |
+| 5.10 | Usage Limits | ✅ محدودیت ویدئو/تصویر و کیفیت استاندارد/پریمیوم بر اساس پلن، منطبق با دورهٔ اشتراک |
 | 5.11 | Anti-Fraud (basic) | ✅ Phone OTP برای فعال‌سازی Credit رایگان |
 
 ### Frontend
 | # | Feature | Tasks |
 |---|---------|-------|
-| 5.12 | Credit Balance Display | Header widget |
-| 5.13 | Pricing Page | Plans comparison |
-| 5.14 | Checkout Flow | ✅ Pricing و شروع Checkout UI؛ callback/payment result باقی‌مانده |
-| 5.15 | Payment History | List transactions |
-| 5.16 | Low Credit Warning | Notification when credits low |
-| 5.17 | Paywall | Block generation when no credits |
+| 5.12 | Credit Balance Display | ✅ Header widget (موجودی + سقف ماهانه) |
+| 5.13 | Pricing Page | ✅ Plans comparison + بسته‌های خرید اعتبار |
+| 5.14 | Checkout Flow | ✅ Pricing، شروع Checkout، بنر وضعیت پرداخت و callback زرین‌پال |
+| 5.15 | Payment History | ✅ List transactions + رسید/فاکتور |
+| 5.16 | Low Credit Warning | ✅ Notification when credits low (ایمیل/درون‌برنامه‌ای/Push) |
+| 5.17 | Paywall | ✅ بلاک با 402 `INSUFFICIENT_CREDITS` + برآورد زندهٔ هزینه |
 
 ### Database Tables
 ```sql
@@ -305,25 +307,25 @@ plans (config or table)
 | # | Feature | Tasks |
 |---|---------|-------|
 | 6.1 | Admin Panel (minimal) | ✅ کنترلر و روت‌های Admin: مشاهده کاربران، جزئیات، مانیتور صف و Refund دستی |
-| 6.2 | Notifications | Email: generation ready, low credits, subscription |
-| 6.3 | Feedback Loop | 👍/👎 after generation |
-| 6.4 | Download & Export | Download image/video, share link |
-| 6.5 | Watermark (Free plan) | Add watermark to free tier outputs |
-| 6.6 | Rate Limiting | API rate limits per user/plan |
+| 6.2 | Notifications | ✅ Email: generation ready, low credits, subscription + Push وب |
+| 6.3 | Feedback Loop | ✅ 👍/👎 after generation |
+| 6.4 | Download & Export | ✅ Download image/video با واریانت web (share link باقی) |
+| 6.5 | Watermark (Free plan) | ✅ Add watermark to free tier outputs |
+| 6.6 | Rate Limiting | ✅ API rate limits per user/plan (throttleهای auth/generation/checkout) |
 | 6.7 | Circuit Breaker | ✅ سقف بودجه روزانه AI و مسدودسازی خودکار بر مبنای usage_logs |
-| 6.8 | Logging & Monitoring | Structured logs, basic dashboards |
+| 6.8 | Logging & Monitoring | ✅ لاگ‌های ساختاریافته (fallback/audit) و متریک ادمین |
 | 6.9 | Security Audit | API key protection, input validation |
-| 6.10 | Performance | Query optimization, caching |
-| 6.11 | E2E Tests | Critical user flows |
-| 6.12 | Documentation | API docs, deployment guide |
+| 6.10 | Performance | ✅ بهینه‌سازی کوئری (شمارش گروهی) و تست query-audit با بودجه |
+| 6.11 | E2E Tests | ✅ Critical user flows (`HappyPathFlowTest`، `PaywallCheckoutFlowTest`، تست مرورگر RTL) |
+| 6.12 | Documentation | ✅ مستندات محصول، نقشه راه و Runbook استقرار |
 | 6.13 | Soft Launch | Deploy + beta user onboarding |
 
 ### ✅ معیار خروج Phase 1
 - [ ] تمام Sprintهای ۱–۶ تکمیل شده
-- [ ] CI/CD و staging پایدار
-- [ ] Generation pipeline end-to-end کار می‌کند
-- [ ] Billing و Credit ledger تست شده
-- [ ] Admin panel برای عملیات پشتیبانی آماده است
+- [x] CI/CD و staging پایدار
+- [x] Generation pipeline end-to-end کار می‌کند
+- [x] Billing و Credit ledger تست شده
+- [x] Admin panel برای عملیات پشتیبانی آماده است
 
 ---
 
@@ -333,14 +335,14 @@ plans (config or table)
 
 | Sprint | Feature | Tasks |
 |--------|---------|--------|
-| 2.1 | Brand Kit | Models, API, UI — logo, colors, font, tone |
-| 2.2 | Templates | Pre-built scenarios, template engine |
+| 2.1 | Brand Kit | ✅ Models, API, UI — logo, colors, font, tone |
+| 2.2 | Templates | ✅ Pre-built scenarios, template engine |
 | 2.3 | AI Editing | Conversational edit pipeline |
 | 2.4 | Creative Suggestions | LLM-based idea generation |
-| 2.5 | Generation Variants | Variant model + regenerate flow |
+| 2.5 | Generation Variants | ✅ فقط regenerate flow (Variant model مستقل باقی) |
 | 2.6 | Onboarding by Persona | Branching signup flow |
-| 2.7 | Improved History | Search, filter, favorites, collections |
-| 2.8 | PWA Enhancements | Service worker, push notifications |
+| 2.7 | Improved History | ✅ Search, filter, favorites (collections پوشه‌ای باقی) |
+| 2.8 | PWA Enhancements | ✅ Service worker, push notifications |
 
 ---
 
@@ -350,12 +352,12 @@ plans (config or table)
 
 | Sprint | Feature | Tasks |
 |--------|---------|--------|
-| 3.1 | Campaign Generator | Multi-asset orchestration |
-| 3.2 | Campaign Orchestration | Saga pattern, partial failure handling |
-| 3.3 | Caption Generator | Persian caption + hashtag service |
-| 3.4 | Content Calendar | Calendar model, scheduling UI |
-| 3.5 | Bulk Generation | Batch queue jobs |
-| 3.6 | Persian Localization | Jalali, Iranian occasions |
+| 3.1 | Campaign Generator | ▶ جزئی — کمپین زمان‌بندی‌شده از خروجی‌های موجود انجام شد؛ چند-Asset Orchestration تولید باقی |
+| 3.2 | Campaign Orchestration | Saga pattern, partial failure handling (موفقیت جزئی در Bulk پیاده شده) |
+| 3.3 | Caption Generator | ✅ Persian/English caption + 3 لحن با fallback قطعی |
+| 3.4 | Content Calendar | ✅ Calendar model, scheduling UI (Jalali در مرورگر) |
+| 3.5 | Bulk Generation | ✅ Batch queue jobs (حداکثر ۲۰ محصول، موفقیت جزئی) |
+| 3.6 | Persian Localization | ▶ جزئی — Jalali در تقویم و ۸ تم فصلی/مناسبتی |
 | 3.7 | Content Ideas Engine | AI suggestion API |
 
 ---

@@ -8,7 +8,7 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 
 ## وضعیت پروژه
 
-پروژه در حال عبور از **Phase 0 به Phase 1** است. اسکلت Laravel، APIهای احراز هویت، محصولات و رسانه، Creative با الگوریتم پویا و حالت «خودت بهترینش رو بساز»، Generation صف‌محور، AI Gateway با درایورهای Google Imagen و Google Veo و مکانیزم Fallback و Circuit Breaker، اعتبار و Billing پایه، پنل مدیریت، اعلانات و درگاه پرداخت زرین‌پال (با پشتیبانی از sandbox و هدایت خودکار مرورگر) پیاده‌سازی شده‌اند. ۹۶ تست خودکار (شامل ۳۸۷ Assertion) در داکر کاملاً سبز هستند. جزئیات موارد اجرایی در [TODO.md](TODO.md) نگهداری می‌شود.
+**Phase 1 (هستهٔ MVP) تکمیل شده است** و بخش بزرگی از آیتم‌های Phase 2 و 3 نیز زودتر از موعد اجرا شده‌اند: احراز هویت (ایمیل/موبایل، OTP، تأیید ایمیل الزامی)، محصولات و رسانه، Creative با الگوریتم پویا و حالت «خودت بهترینش رو بساز»، Generation صف‌محور با کیفیت استاندارد/پریمیوم و تولید دسته‌ای، AI Gateway با زنجیرهٔ Fallback چند Provider و Circuit Breaker، اعتبار و Billing با پلن، بسته‌های خرید اعتبار و درگاه زرین‌پال، جستجو، علاقه‌مندی‌ها، Push Notification، Brand Kit و قالب‌ها، تم‌های فصلی، کپشن هوشمند، تقویم محتوا، پنل مدیریت (شامل مسدودسازی کاربر و لغو تولید) و اعلانات پیاده‌سازی شده‌اند. **۳۴۴ تست خودکار (شامل ۱۷۷۸ Assertion)** در داکر کاملاً سبز هستند. جزئیات موارد اجرایی در [TODO.md](TODO.md) نگهداری می‌شود.
 
 
 ```text
@@ -32,13 +32,22 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 - سیستم Credit با چرخه Reserve → Settle/Refund
 - پلن اشتراکی، پرداخت داخلی و تاریخچه تراکنش‌ها
 - Checkout و Callback زرین‌پال پشت abstraction قابل‌تعویض درگاه پرداخت
-- پنل مدیریت حداقلی برای کاربران، Generationها و بازگشت Credit
+- پنل مدیریت حداقلی برای کاربران، Generationها، بازگشت Credit، مسدودسازی کاربر و لغو تولید در حال اجرا
 - ثبت هزینه Provider و مدل برای هر Generation
-- اعلان تکمیل یا شکست Generation و کاهش موجودی Credit
+- اعلان تکمیل یا شکست Generation و کاهش موجودی Credit (درون‌برنامه‌ای، ایمیل و Push فوری PWA)
+- تأیید ایمیل الزامی برای مسیرهای حساس (ساخت تولید، retry و checkout)
+- جستجوی پیشرفته در محصولات و تاریخچه با درایور `database` یا Meilisearch و فیلتر/ستارهٔ علاقه‌مندی
+- Brand Kit و قالب‌های ذخیره‌شده با اعمال یک‌کلیکی در استودیو
+- تولید دسته‌ای حداکثر ۲۰ محصولی در کتابخانه با موفقیت جزئی و گزارش علت رد هر ردیف
+- کیفیت خروجی استاندارد/پریمیوم با سقف ابعاد و گیت مجوز پلن
+- خرید اعتبار جداگانه (بسته‌های top-up) بدون نیاز به اشتراک
+- تولید کپشن فارسی/انگلیسی با AI و fallback قطعی در صورت قطعی بودن
+- تقویم محتوا و ساخت کمپین زمان‌بندی‌شده در داشبورد
+- تم‌های فصلی مناسبتی (نوروز، یلدا، جمعه سیاه و…) با پکیج پرامپت اختیاری
 
 ### خارج از محدوده MVP
 
-Brand Kit، Campaign Generator، Content Calendar، ویرایش مکالمه‌ای، تیم و Workspace، API عمومی، White Label، انتشار خودکار شبکه‌های اجتماعی و اپلیکیشن Native به فازهای بعد منتقل شده‌اند.
+ویرایش مکالمه‌ای، تیم و Workspace، API عمومی، White Label، انتشار خودکار شبکه‌های اجتماعی، ابزارهای پردازش تصویر (حذف پس‌زمینه، ارتقای وضوح) و اپلیکیشن Native به فازهای بعد منتقل شده‌اند.
 
 ## گزینه‌های تولید محتوا
 
@@ -49,6 +58,7 @@ Brand Kit، Campaign Generator، Content Calendar، ویرایش مکالمه‌
 | فرمت | Instagram Post (1:1)، Story (9:16)، Reel (9:16)، TikTok (9:16) |
 | مدت ویدئو | انتخاب کاربر از مدت‌های پشتیبانی‌شده توسط Provider/Model |
 | خروجی | تصویر استاندارد/پریمیوم، ویدئوی استاندارد/پریمیوم با مدت انتخابی |
+| کپشن | زبان فارسی/انگلیسی؛ لحن صمیمی/رسمی/هیجان‌انگیز (AI با fallback قطعی) |
 
 ## معماری پیشنهادی
 
@@ -105,12 +115,11 @@ PWA (RTL / Mobile-first)
 
 تصویر PHP موجود بر پایه `php:8.3-fpm-bookworm` است و افزونه‌های `pdo_mysql`، `mbstring`، `pcntl`، `bcmath`، `gd`، `zip`، `intl`، `opcache` و Redis را نصب می‌کند.
 
-## ساختار پیشنهادی Domainها
+## ساختار فعلی Domainها
 
 ```text
 app/Domains/
 ├── Auth/
-├── Users/
 ├── Products/
 ├── Media/
 ├── Creative/
@@ -118,10 +127,16 @@ app/Domains/
 ├── AI/
 │   ├── Gateway/
 │   ├── Router/
-│   └── Providers/
+│   ├── Providers/
+│   └── Services/          # PromptModerator، CaptionService
 ├── Credits/
 ├── Billing/
-├── Notifications/
+├── Notifications/         # ایمیل، درون‌برنامه‌ای و Web Push
+├── Search/                # درایور database / Meilisearch
+├── Favorites/             # ستارهٔ محصولات و تولیدها
+├── Brand/                 # Brand Kit
+├── Templates/             # قالب‌های ذخیره‌شدهٔ تولید
+├── Calendar/              # تقویم محتوا و کمپین‌ها
 └── Admin/
 ```
 
@@ -175,7 +190,7 @@ docker compose exec app php artisan migrate --force
 docker compose run --rm app php artisan test
 ```
 
-## API برنامه‌ریزی‌شده MVP
+## APIهای پیاده‌شده MVP
 
 ```http
 # Auth
@@ -186,6 +201,8 @@ POST   /api/auth/forgot-password
 POST   /api/auth/reset-password
 POST   /api/auth/phone/send-code
 POST   /api/auth/verify-phone
+GET    /api/auth/email/verify/{id}/{hash}
+POST   /api/auth/email/verification-notification
 
 # Products
 GET    /api/products
@@ -198,36 +215,86 @@ DELETE /api/products/{id}/assets/{asset}
 
 # Creative & Generations
 GET    /api/creative/options
+GET    /api/creative/theme           # تم فصلی فعال
 POST   /api/creative/preview
 POST   /api/generations
+POST   /api/generations/bulk         # تولید دسته‌ای (حداکثر ۲۰ محصول)
 GET    /api/generations
 GET    /api/generations/{id}
 POST   /api/generations/{id}/retry
 POST   /api/generations/{id}/regenerate
 POST   /api/generations/{id}/feedback
-GET    /api/generations/{id}/download
+POST   /api/generations/{id}/caption  # کپشن AI (fa/en، ۳ لحن)
+GET    /api/generations/{id}/download # ?variant=web|original
+
+# Favorites & Search (جستجو با پارامتر ?search= روی products و generations)
+GET    /api/favorites
+POST   /api/favorites/toggle          # toggle ستاره (product/generation)
+
+# Brand & Templates
+GET    /api/brand-kit
+PUT    /api/brand-kit
+GET    /api/templates
+POST   /api/templates
+GET    /api/templates/{id}
+PUT    /api/templates/{id}
+DELETE /api/templates/{id}
+
+# Calendar & Campaigns
+GET    /api/calendar/posts            # بازهٔ تاریخ
+POST   /api/calendar/posts
+PATCH  /api/calendar/posts/{id}
+DELETE /api/calendar/posts/{id}
+GET    /api/campaigns
+POST   /api/campaigns                 # پست‌های پلکانی start + i×interval
 
 # Credits & Billing
 GET    /api/credits/balance
 GET    /api/credits/transactions
+POST   /api/credits/estimate         # برآورد زندهٔ هزینه
+GET    /api/credits/packs             # بسته‌های خرید اعتبار (عمومی)
+POST   /api/credits/topup             # خرید اعتبار بدون اشتراک
 GET    /api/plans
 POST   /api/subscriptions/checkout
-POST   /api/webhooks/payment       # Fake/adapter webhook با signature
+POST   /api/webhooks/payment          # Fake/adapter webhook با signature
 GET    /api/payments/zarinpal/callback
+GET    /api/payments                  # تاریخچهٔ پرداخت‌ها
+GET    /api/payments/{id}/receipt     # رسید (برای topup نیز)
+GET    /api/payments/{id}/invoice     # فاکتور
+
+# Notifications & Push
+GET    /api/notifications
+POST   /api/notifications/{id}/read
+POST   /api/notifications/read-all
+GET    /api/notifications/push/public-key
+POST   /api/notifications/push/subscriptions
+DELETE /api/notifications/push/subscriptions
+
+# Admin
+GET    /api/admin/users
+POST   /api/admin/users/{user}/ban
+POST   /api/admin/users/{user}/unban
+POST   /api/admin/generations/{generation}/cancel
 ```
 
-این فهرست قرارداد هدف MVP است؛ بخشی از endpointها در حال حاضر پیاده‌سازی شده‌اند و وضعیت واقعی را باید از `routes/api.php` بررسی کرد.
+این فهرست endpointهای پیاده‌سازی‌شدهٔ فعلی است؛ مرجع کامل و جزئیات پارامترها در `routes/api.php` است.
 
 ### وضعیت فعلی Backend
 
 | حوزه | وضعیت فعلی |
 |---|---|
-| Auth | Register/Login/Logout با ایمیل یا موبایل، Password Reset و Profile Update پیاده شده |
+| Auth | Register/Login/Logout با ایمیل یا موبایل، Password Reset، Profile Update و تأیید ایمیل الزامی |
 | Phone Verification | OTP با محدودیت تلاش، اتصال Provider پیامک و فعال‌سازی idempotent Credit رایگان |
 | SMS Provider | `FakeSmsProvider` برای تست و `SmsIrProvider` برای `sms.ir` |
-| Generation | Queue، Credit reserve/settle/refund، Plan limit، Retry و Regenerate |
-| Billing | Payment/Subscription، Checkout، Webhook امضاشده و Callback زرین‌پال |
-| باقی‌مانده | Provider واقعی AI، Invoice، Notifications، Admin، Watermark، E2E و عملیات production |
+| Generation | Queue، Credit reserve/settle/refund، Plan limit، Retry، Regenerate، کیفیت استاندارد/پریمیوم، تولید دسته‌ای و لغو توسط ادمین |
+| AI | زنجیرهٔ Fallback چند Provider (`AI_PROVIDER_PRIORITY`)، Circuit Breaker بودجهٔ روزانه، Moderation پرامپت و کپشن Gemini با fallback قطعی |
+| Search & Favorites | درایور `database`/Meilisearch با هوک ایندکس و فرمان `search:reindex` + ستارهٔ علاقه‌مندی محصول/تولید |
+| Brand & Templates | Brand Kit یکپارچه با پرامپت همهٔ تولیدها + قالب‌های ذخیره‌شده |
+| Calendar | پست‌های تقویم و کمپین‌های پلکانی با مالکیت و اعتبارسنجی تاریخ |
+| Billing | Payment/Subscription، Checkout، بسته‌های top-up اعتبار، Webhook امضاشده و Callback زرین‌پال |
+| Notifications | ایمیل + درون‌برنامه‌ای + Web Push (VAPID) روی ۴ رویداد کلیدی |
+| Admin | کاربران، مانیتور صف، بازگشت Credit، مسدودسازی (ban/suspend) و لغو تولید |
+| باقی‌مانده | Conversational Editing، Organizations/RBAC، ابزارهای پردازش تصویر، E2E مرورگر و عملیات production |
 
 ## مدل درآمد و Credit
 
@@ -245,19 +312,28 @@ GET    /api/payments/zarinpal/callback
 | تصویر پریمیوم | ۲۵ |
 | ویدئوی استاندارد | پویا؛ بر اساس مدت انتخابی و مدل |
 | ویدئوی پریمیوم | پویا؛ بر اساس مدت انتخابی و مدل |
+| کپشن (متن AI) | ۳ |
+
+### بسته‌های خرید اعتبار (بدون اشتراک)
+
+| بسته | اعتبار | قیمت |
+|---|---:|---:|
+| `topup_50` | ۵۰ | ۱٬۵۰۰٬۰۰۰ تومان |
+| `topup_150` | ۱۵۰ | ۴٬۰۰۰٬۰۰۰ تومان |
+| `topup_400` | ۴۰۰ | ۹٬۵۰۰٬۰۰۰ تومان |
 
 پیش از Generate، مدت‌های قابل انتخاب متناسب با Provider/Model نمایش داده می‌شوند و Cost Estimator هزینه و Credit را بر اساس مدت انتخابی، کیفیت و مدل محاسبه می‌کند. قیمت پلن‌ها و Creditها باید پس از اندازه‌گیری هزینه واقعی Provider، نرخ Retry، Storage و Gross Margin بازتنظیم شوند. ویدئو در MVP نامحدود نخواهد بود.
 
 ## نقشه راه
 
-| فاز | هدف | بازه تخمینی |
-|---|---|---:|
-| Phase 0 | اعتبارسنجی Provider، زیرساخت محلی، ERD و مصاحبه مشتری | ۲–۳ هفته |
-| Phase 1 | MVP: محصول، Generation، Credit، Billing و Launch آزمایشی | ۸–۱۲ هفته |
-| Phase 2 | Retention: Brand Kit، Template و AI Editing | ۶–۸ هفته |
-| Phase 3 | Campaign، Content Calendar و تولید گروهی | ۸–۱۰ هفته |
-| Phase 4 | تیم، Workspace، Agency، API و White Label | ۱۰–۱۲ هفته |
-| Phase 5 | اتوماسیون بازاریابی و انتشار | تعیین‌نشده |
+| فاز | هدف | بازه تخمینی | وضعیت |
+|---|---|---:|---|
+| Phase 0 | اعتبارسنجی Provider، زیرساخت محلی، ERD و مصاحبه مشتری | ۲–۳ هفته | ✅ تکمیل |
+| Phase 1 | MVP: محصول، Generation، Credit، Billing و Launch آزمایشی | ۸–۱۲ هفته | ✅ تکمیل |
+| Phase 2 | Retention: Brand Kit، Template و AI Editing | ۶–۸ هفته | ▶ جزئی (Brand Kit، Templates، تاریخچه و Push انجام شد؛ AI Editing باقی) |
+| Phase 3 | Campaign، Content Calendar و تولید گروهی | ۸–۱۰ هفته | ▶ جزئی (Bulk، Caption و Calendar انجام شد؛ انتشار خودکار باقی) |
+| Phase 4 | تیم، Workspace، Agency، API و White Label | ۱۰–۱۲ هفته | ⬜ برنامه‌ریزی‌شده |
+| Phase 5 | اتوماسیون بازاریابی و انتشار | تعیین‌نشده | ⬜ برنامه‌ریزی‌نشده |
 
 ## معیارهای موفقیت MVP
 

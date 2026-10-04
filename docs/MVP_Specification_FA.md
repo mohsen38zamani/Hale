@@ -26,21 +26,30 @@
 | **سؤال** | «چه چیزی بسازیم؟» | «به چه ترتیبی بسازیم؟» |
 | **محتوا** | User Story، صفحات، معیار موفقیت | Sprint، Task، Stack |
 
-## وضعیت پیاده‌سازی Backend در ۱۴۰۵/۰۶/۲۱
+## وضعیت پیاده‌سازی Backend در ۱۴۰۵/۰۷/۰۴
 
 تا این نسخه، بخش‌های زیر از MVP در Backend پیاده‌سازی و تست شده‌اند:
 
 - ثبت‌نام و ورود با ایمیل یا شماره موبایل؛ ثبت‌نام بدون ایمیل با حداقل یک شناسه
-- Password Reset، Profile Update و تغییر رمز با الزام رمز فعلی
+- Password Reset، Profile Update و تغییر رمز با الزام رمز فعلی؛ تأیید ایمیل الزامی (`MustVerifyEmail`) برای مسیرهای حساس
 - Phone OTP با محدودیت تلاش، Provider قابل‌تعویض و فعال‌سازی یک‌باره Credit رایگان
 - Product CRUD و آپلود، thumbnail، Product Asset deletion و انطباق بازه محدودیت پلن با دوره اشتراک
 - Payment/Subscription، Checkout، Webhook امضاشده و درگاه زرین‌پال با پشتیبانی sandbox و هدایت مرورگر
+- خرید اعتبار جداگانه (بسته‌های top-up `topup_50/150/400`) بدون subscription و بدون تغییر plan
 - Providerهای Google Imagen و Google Veo با مدیریت خطا و تست‌های Http::fake
-- ModelRouter با پشتیبانی Fallback و Circuit Breaker برای کنترل هزینه روزانه AI
-- Admin Domain برای مشاهده و جستجوی کاربران، مانیتور صف Generationها و بازگشت دستی Credit
-- Creative Builder با دکمه و الگوریتم پویای Auto Best و برآورد زنده هزینه Credit
+- ModelRouter با زنجیرهٔ Fallback چند Provider (`AI_PROVIDER_PRIORITY`) و Circuit Breaker بودجهٔ روزانه
+- کپشن AI (Gemini) با fallback قطعی فارسی/انگلیسی و هزینهٔ متنی جداگانه
+- کیفیت خروجی استاندارد/پریمیوم با گیت پلن (403 `PREMIUM_QUALITY_REQUIRED`)، سقف ابعاد و هزینهٔ متفاوت
+- تولید دسته‌ای (Bulk) حداکثر ۲۰ محصولی با پیش‌بررسی موجودی و موفقیت جزئی
+- جستجوی پیشرفته (درایور database/Meilisearch)، علاقه‌مندی‌ها و فیلترهای پیشرفتهٔ تاریخچه
+- Brand Kit و قالب‌های ذخیره‌شدهٔ تولید با اعمال یک‌کلیکی
+- تقویم محتوا و کمپین‌های پست پلکانی (Jalali در UI)
+- Push Notification وب (VAPID) روی رویدادهای کلیدی + اعلان درون‌برنامه‌ای و ایمیل
+- تم‌های فصلی مناسبتی و پکیج پرامپت کمپینی opt-in
+- Admin Domain برای مشاهده و جستجوی کاربران، مانیتور صف، بازگشت دستی Credit، مسدودسازی (ban/suspend) و لغو تولید
+- Creative Builder با دکمه و الگوریتم پویای Auto Best، کنترل‌های صحنه، متن دلخواه و برآورد زنده هزینه Credit
 
-Frontend/PWA پایه شامل Landing، Auth، Dashboard، Product Library، Creative Builder، Progress/Result، Generation History و Pricing/Checkout UI آماده است. فهرست جزئیات اجرایی در `TODO.md` است.
+Frontend/PWA پایه شامل Landing بازنویسی‌شده، Auth، Dashboard (با تقویم محتوا و کیت برند)، Product Library (با جستجو، ستاره و حالت bulk)، استودیوی زنده، Progress/Result (با پنل کپشن)، Generation History، Notifications/Push و Pricing/Checkout (با بسته‌های اعتبار) آماده است. فهرست جزئیات اجرایی در `TODO.md` است و پوشش تست فعلی **۳۴۴ تست / ۱۷۷۸ assertion** است.
 
 ---
 
@@ -188,7 +197,9 @@ Dashboard — «امروز چی می‌خوای بسازی؟»
 | Credits & Billing | موجودی Credit، تاریخچه، خرید | P0 |
 | Checkout | انتخاب پلن → درگاه → تأیید | P0 |
 | Profile / Settings | نام، ایمیل، رمز | P1 |
-| Notifications | «Generation آماده شد»، «Credit کم است» | P1 |
+| Notifications | «Generation آماده شد»، «Credit کم است» + اشتراک Push | P1 |
+| تقویم محتوا | گرید ماهانهٔ Jalali، پست‌ها و ساخت کمپین (در داشبورد) | P1 |
+| کیت برند و قالب‌ها | رنگ/فونت/تَن برند و اعمال قالب‌های ذخیره‌شده در استودیو | P1 |
 
 ## ۵.۳ Admin (حداقلی)
 
@@ -266,20 +277,24 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 | Retry | تا ۲ بار با backoff | Failed → Credit refund |
 | Regenerate | همان settings، خروجی جدید | Credit دوباره کسر |
 | Download | PNG/JPG (image), MP4 (video) | Direct download |
-| History | ۹۰ روز نگهداری | Filter by type/date |
+| History | ۹۰ روز نگهداری | Filter by type/date؛ جستجو، فیلتر پیشرفته و ستارهٔ علاقه‌مندی |
 | Feedback | 👍 / 👎 بعد از هر output | ذخیره در DB |
 | Watermark | فقط Free plan | قابل مشاهده در preview |
+| Quality Tier | استاندارد/پریمیوم با سقف ابعاد config | premium فقط از پلن پولی (403 `PREMIUM_QUALITY_REQUIRED`) |
+| Bulk Generation | انتخاب حداکثر ۲۰ محصول در کتابخانه | پیش‌بررسی Credit کل بسته؛ موفقیت جزئی با `skipped_product_ids` |
+| Caption | کپشن fa/en با ۳ لحن؛ AI با fallback قطعی | مالکیت + moderation؛ هزینهٔ متنی جداگانه |
 
 ## ۶.۵ AI Infrastructure (Backend — invisible to user)
 
 | Feature | جزئیات |
 |---------|--------|
-| AI Gateway | Single entry برای همه AI calls |
+| AI Gateway | Single entry برای همه AI calls؛ زنجیرهٔ Fallback چند Provider با `AI_PROVIDER_PRIORITY` |
 | Model Router | Economic / Standard بر اساس plan |
-| Provider Adapter | Google (Gemini, Imagen, Veo) + Fallback |
+| Provider Adapter | Google (Imagen, Veo) + Fake برای تست؛ خطای retryable → چرخش، permanent → توقف زنجیره |
+| Text Generation | کپشن با `GOOGLE_TEXT_MODEL` (Gemini) و fallback قطعی قالب‌محور بدون نیاز به کلید |
 | Cost Tracking | provider, model, tokens, $ cost per job |
-| Content Moderation | فیلتر Prompt قبل از Generate |
-| Circuit Breaker | سقف هزینه روزانه AI |
+| Content Moderation | فیلتر Prompt قبل از Generate (شامل ورودی کپشن) |
+| Circuit Breaker | سقف هزینه روزانه AI (`AI_DAILY_BUDGET_USD`) |
 
 ## ۶.۶ Credits & Billing
 
@@ -291,6 +306,7 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 | Subscription Plans | Free, Starter, Creator | Config-based |
 | Payment | Zarinpal یا IDPay | پرداخت موفق → Credit/plan فعال |
 | Paywall | بدون Credit → block Generate | CTA به Pricing |
+| Credit Top-up | بسته‌های `topup_50/150/400` بدون subscription | پرداخت موفق → فقط grant اعتبار؛ plan و سقف‌ها دست‌نخورده |
 | Low Credit Alert | Email/In-app | زیر ۲۰٪ موجودی |
 
 ### پلن‌های MVP
@@ -309,6 +325,7 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 | Premium Image | ۲۵ |
 | Video (Standard) | پویا؛ بر اساس مدت انتخابی و مدل |
 | Video (Premium) | پویا؛ بر اساس مدت انتخابی و مدل |
+| Caption (Text AI) | ۳ |
 
 > **توجه:** پیش از Generate، Credit موردنیاز بر اساس مدت انتخابی، کیفیت و Provider/Model محاسبه و به کاربر نمایش داده می‌شود. اعداد نهایی بعد از اندازه‌گیری Cost واقعی Provider تنظیم می‌شوند.
 
@@ -316,11 +333,13 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 
 | Event | Channel |
 |-------|---------|
-| Generation completed | In-app + Email |
-| Generation failed | In-app + Email |
-| Credit low | In-app |
-| Payment success | Email |
+| Generation completed | In-app + Email + Push |
+| Generation failed / cancelled | In-app + Email + Push |
+| Credit low | In-app + Push |
+| Payment success | Email + Push |
+| Subscription expired | In-app + Push |
 | Welcome | Email |
+| Verify Email | Email (signed URL) |
 
 ## ۶.۸ Non-Functional (MVP)
 
@@ -341,12 +360,7 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 این‌ها **عمداً** ساخته نمی‌شوند تا MVP زود Launch شود:
 
 ```text
-❌ Brand Kit
-❌ Campaign Generator (چند Asset)
-❌ Content Calendar
 ❌ Conversational Editing («پس‌زمینه روشن‌تر کن»)
-❌ Caption / Hashtag Generator
-❌ Templates Library
 ❌ Team / Organization / Workspace
 ❌ Agency / Client management
 ❌ Approval Workflow
@@ -359,8 +373,10 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 ❌ Marketplace / Community
 ❌ Native Mobile App (iOS/Android)
 ❌ Multi-language (فقط فارسی در MVP)
-❌ Jalali calendar / مناسبت‌های ایرانی (Phase 3)
+❌ ابزارهای پردازش تصویر (حذف پس‌زمینه، Super-Resolution، Outpainting)
 ```
+
+> **✅ مواردی که از این فهرست خارج و پیاده‌سازی شدند:** Brand Kit، Content Calendar و کمپین زمان‌بندی‌شده، Caption Generator، Templates Library، تولید دسته‌ای (Bulk)، تقویم Jalali و مناسبت‌های ایرانی (تم‌های فصلی) — جزئیات در `TODO.md`.
 
 ---
 
@@ -401,6 +417,8 @@ POST   /api/auth/forgot-password
 POST   /api/auth/reset-password
 POST   /api/auth/phone/send-code   # Request OTP
 POST   /api/auth/verify-phone      # Free credit activation
+GET    /api/auth/email/verify/{id}/{hash}        # تأیید ایمیل (signed، ۲۴ ساعت)
+POST   /api/auth/email/verification-notification # ارسال مجدد (throttled)
 ```
 
 ## Products
@@ -417,31 +435,87 @@ DELETE /api/products/{id}/assets/{asset}
 ## Creative & Generations
 ```http
 GET    /api/creative/options       # Goals, styles, formats
+GET    /api/creative/theme         # تم فصلی فعال
 POST   /api/creative/preview       # Auto Best suggestion
-POST   /api/generations            # Start generation
-GET    /api/generations            # History list
+POST   /api/generations            # Start generation (verified + throttle)
+POST   /api/generations/bulk       # تولید دسته‌ای، حداکثر ۲۰ محصول
+GET    /api/generations            # History list (با ?search=، فیلتر نوع/وضعیت/بازه)
 GET    /api/generations/{id}       # Status + result
 POST   /api/generations/{id}/retry
 POST   /api/generations/{id}/regenerate
 POST   /api/generations/{id}/feedback   # 👍/👎
-GET    /api/generations/{id}/download
+POST   /api/generations/{id}/caption    # کپشن AI (fa/en، ۳ لحن)
+GET    /api/generations/{id}/download   # ?variant=web|original
+```
+
+## Favorites & Search
+```http
+GET    /api/favorites              # لیست علاقه‌مندی‌ها (product/generation)
+POST   /api/favorites/toggle       # toggle ستاره
+# جستجو: پارامتر ?search= روی GET /api/products و GET /api/generations
+```
+
+## Brand & Templates
+```http
+GET    /api/brand-kit
+PUT    /api/brand-kit              # upsert (یکی برای هر کاربر)
+GET    /api/templates
+POST   /api/templates
+GET    /api/templates/{id}
+PUT    /api/templates/{id}
+DELETE /api/templates/{id}
+```
+
+## Calendar & Campaigns
+```http
+GET    /api/calendar/posts         # بازهٔ تاریخ، فقط مالک (404 غیرمالک)
+POST   /api/calendar/posts         # after_or_equal:today، وضعیت draft|scheduled|published
+PATCH  /api/calendar/posts/{id}
+DELETE /api/calendar/posts/{id}
+GET    /api/campaigns
+POST   /api/campaigns              # پست پلکانی start + i×interval (حداکثر ۳۰)
 ```
 
 ## Billing
 ```http
 GET    /api/credits/balance
 GET    /api/credits/transactions
+POST   /api/credits/estimate       # برآورد زنده (quality/caption نیز)
+GET    /api/credits/packs          # بسته‌های top-up (عمومی)
+POST   /api/credits/topup          # خرید اعتبار بدون اشتراک (Idempotency-Key)
 GET    /api/plans
 POST   /api/subscriptions/checkout
 POST   /api/webhooks/payment       # Signed adapter webhook
 GET    /api/payments/zarinpal/callback
+GET    /api/payments               # تاریخچهٔ پرداخت‌ها
+GET    /api/payments/{id}/receipt  # رسید (شامل بسته‌های top-up)
+GET    /api/payments/{id}/invoice  # فاکتور
 ```
 
-## User
+## User & Notifications
 ```http
 GET    /api/user/profile
 PUT    /api/user/profile
 GET    /api/notifications
+POST   /api/notifications/{id}/read
+POST   /api/notifications/read-all
+GET    /api/notifications/push/public-key
+POST   /api/notifications/push/subscriptions    # subscribe (VAPID)
+DELETE /api/notifications/push/subscriptions    # unsubscribe
+```
+
+## Admin
+```http
+GET    /api/admin/metrics
+GET    /api/admin/users
+GET    /api/admin/users/{id}
+GET    /api/admin/generations      # مانیتور صف
+POST   /api/admin/generations/{id}/cancel
+POST   /api/admin/users/{id}/refund
+POST   /api/admin/users/{id}/ban
+POST   /api/admin/users/{id}/unban
+GET    /api/admin/settings
+POST   /api/admin/settings
 ```
 
 ---
