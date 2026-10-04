@@ -6,6 +6,10 @@ class CreditEstimator
 {
     public function estimate(string $type, ?int $durationSeconds = null, string $quality = 'standard'): int
     {
+        if ($type === 'text') {
+            return (int) config('credits.costs.text', 3);
+        }
+
         if ($type === 'image') {
             return (int) config("credits.costs.image.{$quality}", config('credits.costs.image.standard'));
         }

@@ -69,6 +69,7 @@
                     </a>
                     <button class="btn-glass" data-retry hidden style="font-size: 13px;">تلاش مجدد</button>
                     <button class="btn-glass" data-regenerate style="font-size: 13px;">تولید دوباره ↺</button>
+                    <button class="btn-glass" data-caption hidden style="font-size: 13px;">✨ تولید کپشن</button>
                 </div>
 
                 <div style="display: flex; gap: 8px; align-items: center;">
@@ -76,6 +77,29 @@
                     <button class="small-button" data-feedback="positive" style="color: #34D399;">👍 عالی بود</button>
                     <button class="small-button" data-feedback="negative" style="color: #F87171;">👎 نیاز به تغییر</button>
                 </div>
+            </div>
+
+            {{-- Caption Generator Panel --}}
+            <div class="caption-panel" data-caption-panel hidden style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 24px; margin-top: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+                    <strong style="font-size: 14px; color: #FFFFFF;">✨ کپشن پست</strong>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <select data-caption-language aria-label="زبان کپشن" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0;">
+                            <option value="fa">فارسی</option>
+                            <option value="en">English</option>
+                        </select>
+                        <select data-caption-tone aria-label="لحن کپشن" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0;">
+                            <option value="friendly">صمیمی</option>
+                            <option value="formal">رسمی</option>
+                            <option value="exciting">هیجان‌انگیز</option>
+                        </select>
+                        <button class="small-button" data-caption-generate>بازنویسی ↻</button>
+                        <button class="small-button" data-caption-copy>کپی متن</button>
+                    </div>
+                </div>
+                <p data-caption-text style="margin: 0 0 10px; font-size: 14px; line-height: 1.9; color: #FFFFFF; white-space: pre-wrap;"></p>
+                <p data-caption-tags style="margin: 0 0 8px; font-size: 13px; color: var(--primary);"></p>
+                <p data-caption-meta style="margin: 0; font-size: 11px; color: var(--text-muted);"></p>
             </div>
 
             <p class="form-message" data-generation-message role="alert" style="margin-top: 18px; text-align: center;"></p>

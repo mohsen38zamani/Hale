@@ -24,6 +24,12 @@ return [
         ],
     ],
     'processing_lease_seconds' => (int) env('AI_PROCESSING_LEASE_SECONDS', 600),
+    // Text completion settings (caption generator). Falls back to the
+    // deterministic template whenever the model is unreachable.
+    'text' => [
+        'temperature' => (float) env('AI_TEXT_TEMPERATURE', 0.9),
+        'max_output_tokens' => (int) env('AI_TEXT_MAX_TOKENS', 540),
+    ],
     'moderation' => [
         'blocked_terms' => [
             'pornographic',
@@ -43,6 +49,7 @@ return [
             'api_key' => env('GOOGLE_AI_API_KEY'),
             'base_url' => env('GOOGLE_AI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
             'imagen_model' => env('GOOGLE_IMAGEN_MODEL', 'imagen-3.0-generate-002'),
+            'text_model' => env('GOOGLE_TEXT_MODEL', 'gemini-2.0-flash'),
             'veo_model' => env('GOOGLE_VEO_MODEL', 'veo-2.0-generate-001'),
             'timeout' => (int) env('GOOGLE_AI_TIMEOUT', 60),
             'veo_timeout' => (int) env('GOOGLE_VEO_TIMEOUT', 120),

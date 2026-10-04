@@ -124,6 +124,32 @@ class CreditService
         return $this->grant($user, $amount, $key, 'bonus', ['reason' => $key]);
     }
 
+    /**
+     * One-shot charge for a non-generation AI task (caption writing, ...).
+     *
+     * Rechecks the balance under the row lock so a concurrent spend cannot
+     * drive the account negative; the idempotency key makes a replayed
+     * attempt free instead of double-charging.
+     */
+    public function spendForTask(User $user, Generation $generation, int $amount, string $key, array $metadata = []): int
+    {
+        return DB::transaction(function () use ($user, $generation, $amount, $key, $metadata): int {
+            $account = $this->lockedAccount($user);
+            if ($account->transactions()->where('idempotency_key', $key)->exists()) {
+                return (int) $account->balance;
+            }
+            if ($account->balance < $amount) {
+                throw new InsufficientCredits('اعتبار کافی نیست.');
+            }
+
+            $account->decrement('balance', $amount);
+            $account->increment('lifetime_used', $amount);
+            $this->record($account->fresh(), $generation, 'text_task', -$amount, $key, $metadata);
+
+            return (int) $account->fresh()->balance;
+        });
+    }
+
     public function grantPurchase(User $user, int $amount, string $key, array $metadata = []): int
     {
         return $this->grant($user, $amount, $key, 'purchase', $metadata);

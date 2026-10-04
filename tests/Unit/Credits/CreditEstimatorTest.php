@@ -16,4 +16,13 @@ class CreditEstimatorTest extends TestCase
         $this->assertSame(45, $estimator->estimate('video')); // default 5 seconds
         $this->assertSame(45, $estimator->estimate('video', 2)); // clamped to min 5 seconds
     }
+
+    public function test_it_estimates_text_tasks_from_config(): void
+    {
+        $estimator = new CreditEstimator;
+
+        // Must never fall through to the duration-based video formula.
+        $this->assertSame((int) config('credits.costs.text'), $estimator->estimate('text'));
+        $this->assertSame(3, $estimator->estimate('text'));
+    }
 }

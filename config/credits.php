@@ -6,6 +6,8 @@ return [
     'costs' => [
         'image' => ['standard' => 10, 'premium' => 25],
         'video' => ['base' => 20, 'per_second' => 5],
+        // Non-image AI tasks (caption writing, ...).
+        'text' => (int) env('CREDIT_COST_TEXT', 3),
     ],
 
     /*

@@ -81,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/generations/{generation}/retry', [GenerationController::class, 'retry'])->middleware(['verified', 'throttle:generation']);
     Route::post('/generations/{generation}/regenerate', [GenerationController::class, 'regenerate'])->middleware(['verified', 'throttle:generation']);
     Route::post('/generations/{generation}/feedback', [GenerationController::class, 'feedback']);
+    Route::post('/generations/{generation}/caption', [GenerationController::class, 'caption'])->middleware(['verified', 'throttle:generation']);
     Route::get('/generations/{generation}/download', [GenerationController::class, 'download']);
     Route::get('/credits/balance', [CreditController::class, 'balance']);
     Route::get('/credits/transactions', [CreditController::class, 'transactions']);

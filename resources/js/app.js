@@ -1401,6 +1401,13 @@ if (generationPage) {
 	const creditInfo = document.querySelector('[data-generation-credit]');
 	const retryButton = document.querySelector('[data-retry]');
 	const regenerateButton = document.querySelector('[data-regenerate]');
+	const captionButton = document.querySelector('[data-caption]');
+	const captionPanel = document.querySelector('[data-caption-panel]');
+	const captionLanguage = document.querySelector('[data-caption-language]');
+	const captionTone = document.querySelector('[data-caption-tone]');
+	const captionText = document.querySelector('[data-caption-text]');
+	const captionTags = document.querySelector('[data-caption-tags]');
+	const captionMeta = document.querySelector('[data-caption-meta]');
 	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.', cancelled: 'تولید لغو شد.' };
 	let outputUrl;
 	let pollTimeoutId = null;
@@ -1458,6 +1465,7 @@ if (generationPage) {
 			downloadLink.download = `generation-${generationId}.${extension}`;
 			retryButton.hidden = true;
 			regenerateButton.hidden = false;
+			if (captionButton) captionButton.hidden = false;
 			return;
 		}
 		if (generation.status === 'failed' || generation.status === 'cancelled') {
@@ -1469,6 +1477,7 @@ if (generationPage) {
 			actions.hidden = false;
 			retryButton.hidden = cancelled;
 			regenerateButton.hidden = true;
+			if (captionButton) captionButton.hidden = true;
 			if (cancelled) document.querySelector('[data-download]').hidden = true;
 			return;
 		}
@@ -1505,6 +1514,59 @@ if (generationPage) {
 			message.textContent = result.error?.message || 'تولید مجدد انجام نشد.';
 		}
 	});
+
+	const generateCaption = async (refresh) => {
+		if (captionButton) {
+			captionButton.disabled = true;
+			captionButton.textContent = 'در حال ساخت...';
+		}
+		try {
+			const response = await authFetch(`/api/generations/${generationId}/caption`, {
+				method: 'POST',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				body: JSON.stringify({ language: captionLanguage?.value || 'fa', tone: captionTone?.value || 'friendly', refresh: Boolean(refresh) })
+			});
+			const result = await response.json();
+			if (!response.ok) {
+				if (response.status === 402) {
+					message.innerHTML = `${result.error?.message || 'اعتبار کافی نیست.'} <a href="/pricing">خرید اعتبار</a>`;
+				} else {
+					message.textContent = result.error?.message || 'کپشن ساخته نشد.';
+				}
+				return;
+			}
+			if (captionText) captionText.textContent = result.data.caption;
+			if (captionTags) captionTags.textContent = (result.data.hashtags || []).join(' ');
+			if (captionMeta) {
+				captionMeta.textContent = result.data.cached
+					? 'کپشن ذخیره‌شدهٔ قبلی برگردانده شد.'
+					: `هزینه: ${result.data.cost} Credit | موجودی: ${result.data.balance} Credit${result.data.source === 'ai' ? ' | ساخته‌شده با هوش مصنوعی' : ''}`;
+			}
+			if (captionPanel) captionPanel.hidden = false;
+			message.textContent = '';
+		} catch (error) {
+			message.textContent = error.message;
+		} finally {
+			if (captionButton) {
+				captionButton.disabled = false;
+				captionButton.textContent = '✨ تولید کپشن';
+			}
+		}
+	};
+	captionButton?.addEventListener('click', () => generateCaption(false));
+	document.querySelector('[data-caption-generate]')?.addEventListener('click', () => generateCaption(true));
+	document.querySelector('[data-caption-copy]')?.addEventListener('click', async () => {
+		const payload = `${captionText?.textContent || ''}\n\n${captionTags?.textContent || ''}`.trim();
+		if (!payload) return;
+		try {
+			await navigator.clipboard.writeText(payload);
+			message.textContent = 'کپشن کپی شد.';
+		} catch {
+			message.textContent = 'کپی در دسترس نیست؛ متن را دستی انتخاب کن.';
+		}
+	});
+	captionLanguage?.addEventListener('change', () => { if (captionPanel && !captionPanel.hidden) generateCaption(false); });
+	captionTone?.addEventListener('change', () => { if (captionPanel && !captionPanel.hidden) generateCaption(false); });
 	retryButton?.addEventListener('click', async () => {
 		retryButton.disabled = true;
 		const response = await authFetch(`/api/generations/${generationId}/retry`, { method: 'POST', headers: { Accept: 'application/json' } });

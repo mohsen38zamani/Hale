@@ -2,6 +2,7 @@
 
 namespace App\Domains\Generations\Controllers;
 
+use App\Domains\AI\Services\CaptionService;
 use App\Domains\AI\Services\PromptModerator;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
@@ -306,6 +307,97 @@ class GenerationController extends Controller
         $generation->update(['feedback' => $data['feedback']]);
 
         return $this->success($generation->fresh());
+    }
+
+    /**
+     * Generate a social caption (Persian/English, tone-aware, with
+     * hashtags) for a completed generation. Costs a small text-task
+     * credit charge; a repeat with the same language/tone returns the
+     * cached caption for free unless refresh=true is sent.
+     */
+    public function caption(Request $request, Generation $generation, PromptModerator $moderator, CaptionService $captions, CreditEstimator $estimator, CreditService $credits): JsonResponse
+    {
+        abort_unless($generation->user_id === $request->user()->id, 404);
+
+        $data = $request->validate([
+            'language' => ['sometimes', 'string', 'in:fa,en'],
+            'tone' => ['sometimes', 'string', 'in:friendly,formal,exciting'],
+            'refresh' => ['sometimes', 'boolean'],
+        ], [
+            'language.in' => 'زبان کپشن باید فارسی (fa) یا انگلیسی (en) باشد.',
+            'tone.in' => 'لحن کپشن باید صمیمی، رسمی یا هیجان‌انگیز باشد.',
+        ]);
+        $language = $data['language'] ?? 'fa';
+        $tone = $data['tone'] ?? 'friendly';
+
+        $project = $generation->creativeProject;
+        $product = $project?->product;
+        $moderationInput = implode(' ', array_filter([
+            (string) $product?->name,
+            (string) $product?->description,
+            (string) $project?->custom_prompt,
+        ]));
+        abort_unless($moderator->passes($moderationInput), 422, 'درخواست با سیاست محتوایی سازگار نیست.');
+
+        $user = $request->user();
+        $metadata = is_array($generation->metadata) ? $generation->metadata : [];
+        $cached = is_array($metadata['caption'] ?? null) ? $metadata['caption'] : null;
+        if (($data['refresh'] ?? false) !== true
+            && $cached !== null
+            && ($cached['language'] ?? null) === $language
+            && ($cached['tone'] ?? null) === $tone) {
+            return $this->success([
+                'caption' => (string) ($cached['caption'] ?? ''),
+                'hashtags' => array_values((array) ($cached['hashtags'] ?? [])),
+                'source' => (string) ($cached['source'] ?? 'fallback'),
+                'cached' => true,
+                'cost' => 0,
+                'balance' => $credits->account($user)->balance,
+            ]);
+        }
+
+        $cost = $estimator->estimate('text');
+        $insufficient = 'اعتبار کافی نیست؛ برای تولید کپشن می‌توانید بستهٔ اعتبار بخرید.';
+        if ($credits->account($user)->balance < $cost) {
+            return $this->failure('INSUFFICIENT_CREDITS', $insufficient, 402);
+        }
+
+        $result = $captions->generate($generation, $language, $tone);
+
+        // Attempt-scoped key: every paid caption charges exactly once and
+        // a replay of the same attempt stays free.
+        $attempt = $credits->account($user)->transactions()
+            ->where('idempotency_key', 'like', "generation:{$generation->id}:caption:{$language}:{$tone}:%")
+            ->count() + 1;
+        try {
+            $balance = $credits->spendForTask(
+                $user,
+                $generation,
+                $cost,
+                "generation:{$generation->id}:caption:{$language}:{$tone}:{$attempt}",
+                ['language' => $language, 'tone' => $tone, 'source' => $result['source']],
+            );
+        } catch (InsufficientCredits) {
+            return $this->failure('INSUFFICIENT_CREDITS', $insufficient, 402);
+        }
+
+        $metadata['caption'] = [
+            'caption' => $result['caption'],
+            'hashtags' => $result['hashtags'],
+            'source' => $result['source'],
+            'language' => $language,
+            'tone' => $tone,
+        ];
+        $generation->update(['metadata' => $metadata]);
+
+        return $this->success([
+            'caption' => $result['caption'],
+            'hashtags' => $result['hashtags'],
+            'source' => $result['source'],
+            'cached' => false,
+            'cost' => $cost,
+            'balance' => $balance,
+        ]);
     }
 
     public function download(Request $request, Generation $generation, ImageOptimizer $optimizer)

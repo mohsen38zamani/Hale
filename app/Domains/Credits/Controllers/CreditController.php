@@ -45,12 +45,12 @@ class CreditController extends Controller
     public function estimate(Request $request, CreditEstimator $estimator, CreditService $credits): JsonResponse
     {
         $data = $request->validate([
-            'type' => ['required', 'string', 'in:image,video'],
+            'type' => ['required', 'string', 'in:image,video,text'],
             'video_duration_seconds' => ['nullable', 'integer', 'in:5,8,10'],
             'quality' => ['nullable', 'string', 'in:standard,premium'],
         ], [
             'type.required' => 'انتخاب نوع خروجی الزامی است.',
-            'type.in' => 'نوع خروجی باید تصویر (image) یا ویدیو (video) باشد.',
+            'type.in' => 'نوع خروجی باید تصویر (image)، ویدیو (video) یا متن (text) باشد.',
             'video_duration_seconds.in' => 'مدت زمان ویدیو باید یکی از مقادیر ۵، ۸ یا ۱۰ ثانیه باشد.',
             'quality.in' => 'کیفیت خروجی باید استاندارد یا پرمیوم باشد.',
         ]);
