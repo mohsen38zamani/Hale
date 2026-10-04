@@ -303,6 +303,121 @@ const renderProductSkeletons = (count = 4) => {
 	`).join('');
 };
 
+// --- Bulk catalog processing: pick several products, queue them at once ---
+const bulkToggle = document.querySelector('[data-bulk-toggle]');
+const bulkAllWrap = document.querySelector('[data-bulk-all-wrap]');
+const bulkAll = document.querySelector('[data-bulk-all]');
+const bulkBar = document.querySelector('[data-bulk-bar]');
+const bulkCount = document.querySelector('[data-bulk-count]');
+const bulkRun = document.querySelector('[data-bulk-run]');
+const bulkCancel = document.querySelector('[data-bulk-cancel]');
+const bulkMessage = document.querySelector('[data-bulk-message]');
+let bulkMode = false;
+const bulkSelected = new Set();
+
+const updateBulkUi = () => {
+	bulkToggle?.setAttribute('aria-pressed', String(bulkMode));
+	productGrid?.classList.toggle('bulk-mode', bulkMode);
+	if (bulkAllWrap) bulkAllWrap.hidden = !bulkMode;
+	if (bulkBar) bulkBar.hidden = !bulkMode || bulkSelected.size === 0;
+	if (bulkCount) bulkCount.textContent = `${bulkSelected.size} محصول انتخاب شده`;
+};
+
+const syncBulkCheckboxes = (visibleIds = []) => {
+	document.querySelectorAll('[data-bulk-select]').forEach((box) => {
+		const id = Number(box.dataset.bulkSelect);
+		box.checked = bulkSelected.has(id);
+		box.closest('.product-tile')?.classList.toggle('is-selected', box.checked);
+	});
+	if (bulkAll) bulkAll.checked = visibleIds.length > 0 && visibleIds.every((id) => bulkSelected.has(id));
+	updateBulkUi();
+};
+
+const exitBulkMode = () => {
+	bulkMode = false;
+	bulkSelected.clear();
+	if (bulkAll) bulkAll.checked = false;
+	if (bulkMessage) {
+		bulkMessage.textContent = '';
+		bulkMessage.className = 'form-message';
+	}
+	syncBulkCheckboxes([]);
+};
+
+bulkToggle?.addEventListener('click', () => {
+	bulkMode = !bulkMode;
+	if (!bulkMode) exitBulkMode();
+	else updateBulkUi();
+});
+
+bulkAll?.addEventListener('change', () => {
+	document.querySelectorAll('[data-bulk-select]').forEach((box) => {
+		box.checked = bulkAll.checked;
+		box.closest('.product-tile')?.classList.toggle('is-selected', box.checked);
+		const id = Number(box.dataset.bulkSelect);
+		if (bulkAll.checked) bulkSelected.add(id);
+		else bulkSelected.delete(id);
+	});
+	updateBulkUi();
+});
+
+productGrid?.addEventListener('change', (event) => {
+	const box = event.target.closest('[data-bulk-select]');
+	if (!box) return;
+	const id = Number(box.dataset.bulkSelect);
+	if (box.checked) bulkSelected.add(id);
+	else bulkSelected.delete(id);
+	box.closest('.product-tile')?.classList.toggle('is-selected', box.checked);
+	updateBulkUi();
+});
+
+bulkCancel?.addEventListener('click', exitBulkMode);
+
+bulkRun?.addEventListener('click', async () => {
+	if (!bulkSelected.size || bulkRun.disabled) return;
+	const ids = [...bulkSelected].sort((a, b) => a - b);
+	const reasonLabels = {
+		PLAN_LIMIT_REACHED: 'به سقف مجاز پلن رسیدیم',
+		INSUFFICIENT_CREDITS: 'اعتبار کافی نیست',
+		MODERATION_REJECTED: 'برخی متن‌ها از قوانین محتوایی عبور نکردند',
+		INVALID_PRODUCTS: 'برخی محصولات دیگر موجود نیستند',
+	};
+	bulkRun.disabled = true;
+	if (bulkMessage) {
+		bulkMessage.className = 'form-message';
+		bulkMessage.textContent = 'در حال قراردادن در صف ساخت...';
+	}
+	try {
+		const response = await authFetch('/api/generations/bulk', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+			body: JSON.stringify({ product_ids: ids }),
+		});
+		const result = await response.json();
+		if (!response.ok) throw new Error(result.error?.message || 'پردازش دسته‌ای انجام نشد.');
+		const data = result.data || {};
+		let text = `✓ ${data.created} خروجی در صف ساخت قرار گرفت.`;
+		if (data.skipped) text += ` ${data.skipped} محصول رد شد (${reasonLabels[data.reason] || 'محدودیت'}).`;
+		// Success exits bulk mode but keeps the report visible.
+		bulkMode = false;
+		bulkSelected.clear();
+		if (bulkAll) bulkAll.checked = false;
+		syncBulkCheckboxes([]);
+		if (bulkMessage) {
+			bulkMessage.className = 'form-message success-message';
+			bulkMessage.textContent = text;
+		}
+	} catch (error) {
+		// Keep the mode and the selection so the user can adjust and retry.
+		if (bulkMessage) {
+			bulkMessage.className = 'form-message error-message';
+			bulkMessage.textContent = error.message;
+		}
+	} finally {
+		bulkRun.disabled = false;
+	}
+});
+
 const loadProducts = async () => {
 	if (!productGrid) return;
 	productGrid.innerHTML = renderProductSkeletons(4);
@@ -325,8 +440,10 @@ const loadProducts = async () => {
 		productGrid.innerHTML = products.length ? products.map((product) => {
 			const primary = product.assets?.[0];
 			const loved = Boolean(product.is_favorite);
-			return `<article class="product-tile"><div class="product-tile-art ${primary ? 'skeleton-shimmer is-loading' : ''}">${primary ? `<img data-product-asset="${primary.id}" alt="${escapeHtml(product.name)}" style="opacity: 0;">` : '<b>H</b>'}</div><strong>${highlight(product.name, productSearch?.value)}</strong><small>${product.description ? highlight(product.description, productSearch?.value) : 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="favorite-star" type="button" data-favorite-product="${product.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`;
+			return `<article class="product-tile"><label class="product-select-box"><input type="checkbox" data-bulk-select="${product.id}" aria-label="انتخاب ${escapeHtml(product.name)}"></label><div class="product-tile-art ${primary ? 'skeleton-shimmer is-loading' : ''}">${primary ? `<img data-product-asset="${primary.id}" alt="${escapeHtml(product.name)}" style="opacity: 0;">` : '<b>H</b>'}</div><strong>${highlight(product.name, productSearch?.value)}</strong><small>${product.description ? highlight(product.description, productSearch?.value) : 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="favorite-star" type="button" data-favorite-product="${product.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`;
 		}).join('') : `<p class="empty-state">${productsFavoriteOnly ? 'هنوز محصولی به موردعلاقه‌ها اضافه نکرده‌ای.' : 'محصولی با این مشخصات پیدا نشد.'}</p>`;
+
+		syncBulkCheckboxes(products.map((product) => product.id));
 
 		await Promise.all(products.filter((product) => product.assets?.[0]).map(async (product) => {
 			const asset = product.assets[0];
@@ -395,6 +512,7 @@ productGrid?.addEventListener('click', async (event) => {
 		try {
 			const response = await authFetch(`/api/products/${deleteButton.dataset.deleteProduct}`, { method: 'DELETE', headers: { Accept: 'application/json' } });
 			if (response.ok) {
+				bulkSelected.delete(Number(deleteButton.dataset.deleteProduct));
 				await loadProducts();
 			} else {
 				const result = await response.json().catch(() => null);
