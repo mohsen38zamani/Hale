@@ -125,15 +125,18 @@ class CreditService
     }
 
     /**
-     * One-shot charge for a non-generation AI task (caption writing, ...).
+     * One-shot charge for a non-generation AI task (caption writing,
+     * image edits, ...).
      *
      * Rechecks the balance under the row lock so a concurrent spend cannot
      * drive the account negative; the idempotency key makes a replayed
-     * attempt free instead of double-charging.
+     * attempt free instead of double-charging. $generation is optional:
+     * utility tools are not generation rows, so their ledger entries carry
+     * no generation FK and are refunded through refundTask().
      */
-    public function spendForTask(User $user, Generation $generation, int $amount, string $key, array $metadata = []): int
+    public function spendForTask(User $user, ?Generation $generation, int $amount, string $key, array $metadata = [], string $type = 'text_task'): int
     {
-        return DB::transaction(function () use ($user, $generation, $amount, $key, $metadata): int {
+        return DB::transaction(function () use ($user, $generation, $amount, $key, $metadata, $type): int {
             $account = $this->lockedAccount($user);
             if ($account->transactions()->where('idempotency_key', $key)->exists()) {
                 return (int) $account->balance;
@@ -144,10 +147,19 @@ class CreditService
 
             $account->decrement('balance', $amount);
             $account->increment('lifetime_used', $amount);
-            $this->record($account->fresh(), $generation, 'text_task', -$amount, $key, $metadata);
+            $this->record($account->fresh(), $generation, $type, -$amount, $key, $metadata);
 
             return (int) $account->fresh()->balance;
         });
+    }
+
+    /**
+     * Return a failed one-shot task charge (image edits, ...). Idempotent
+     * through the caller-supplied key, so a retried job cannot refund twice.
+     */
+    public function refundTask(User $user, int $amount, string $key, array $metadata = []): int
+    {
+        return $this->grant($user, $amount, $key, 'refund', $metadata);
     }
 
     public function grantPurchase(User $user, int $amount, string $key, array $metadata = []): int

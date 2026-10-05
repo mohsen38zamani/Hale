@@ -18,4 +18,22 @@ class CreditEstimator
 
         return (int) config('credits.costs.video.base') + ($duration * (int) config('credits.costs.video.per_second'));
     }
+
+    /**
+     * One-shot cost of an AI utility tool run (charged upfront).
+     *
+     * upscale is priced per target resolution, the other operations are
+     * flat. Unknown operations fall back to the cheapest tier.
+     */
+    public function estimateEdit(string $operation, ?string $target = null): int
+    {
+        if ($operation === 'upscale') {
+            return (int) config(
+                'credits.costs.edit.upscale.'.($target ?: 'hd'),
+                (int) config('credits.costs.edit.upscale.hd', 5),
+            );
+        }
+
+        return (int) config("credits.costs.edit.{$operation}", 5);
+    }
 }

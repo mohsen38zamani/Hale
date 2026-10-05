@@ -94,6 +94,10 @@ class AiGateway
             return max(1, $input->durationSeconds ?? 5) * (float) ($pricing['video_per_second'] ?? 0.05);
         }
 
+        if ($input->type === 'image_edit') {
+            return (float) ($pricing['edit'] ?? $pricing['image'] ?? 0.04);
+        }
+
         return (float) ($pricing['image'] ?? 0.04);
     }
 }

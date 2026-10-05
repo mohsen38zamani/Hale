@@ -9,6 +9,7 @@ use App\Domains\Calendar\Models\Campaign;
 use App\Domains\Calendar\Models\ScheduledPost;
 use App\Domains\Creative\Models\CreativeProject;
 use App\Domains\Credits\Models\CreditAccount;
+use App\Domains\Editing\Models\ImageEdit;
 use App\Domains\Favorites\Models\Favorite;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Models\MediaAsset;
@@ -168,6 +169,11 @@ class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
     public function generations(): HasMany
     {
         return $this->hasMany(Generation::class);
+    }
+
+    public function imageEdits(): HasMany
+    {
+        return $this->hasMany(ImageEdit::class);
     }
 
     public function creditAccount(): HasOne

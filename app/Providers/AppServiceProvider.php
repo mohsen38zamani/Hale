@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domains\AI\Contracts\GenerationProvider;
+use App\Domains\AI\Providers\Google\GoogleImageEditProvider;
 use App\Domains\AI\Providers\Google\GoogleImagenProvider;
 use App\Domains\AI\Providers\Google\GoogleVeoProvider;
 use App\Domains\AI\Providers\Local\FakeGenerationProvider;
@@ -37,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
             if (config('ai.driver') === 'google') {
                 $providers[] = $app->make(GoogleImagenProvider::class);
                 $providers[] = $app->make(GoogleVeoProvider::class);
+                $providers[] = $app->make(GoogleImageEditProvider::class);
             }
             $providers[] = $app->make(FakeGenerationProvider::class);
 

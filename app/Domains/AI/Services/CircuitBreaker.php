@@ -96,6 +96,29 @@ class CircuitBreaker
         });
     }
 
+    /**
+     * Record actual spend for runs that never held a generation-keyed
+     * reservation (AI utility tools charge credits upfront instead, so the
+     * reservation table — whose generation FK is NOT NULL — does not apply).
+     * Idempotence is not guaranteed here: called exactly once per settled
+     * job, right after the output row flips to completed.
+     */
+    public function recordSpend(float $actualUsd): void
+    {
+        if ($actualUsd <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($actualUsd): void {
+            $date = now()->toDateString();
+            $budget = AiDailyBudget::query()->whereDate('budget_date', $date)->lockForUpdate()->first()
+                ?? AiDailyBudget::query()->create(['budget_date' => $date]);
+            $budget->increment('spent_usd', $actualUsd);
+        });
+
+        $this->checkBudgetAlert();
+    }
+
     public function checkBudgetAlert(float $thresholdPercentage = 80.0): bool
     {
         $limit = (float) config('ai.daily_budget_usd', 50.0);

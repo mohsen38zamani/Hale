@@ -15,7 +15,7 @@ class FakeGenerationProvider implements GenerationProvider
 
     public function supports(string $type, ?int $durationSeconds = null): bool
     {
-        return $type === 'image' || ($type === 'video' && in_array($durationSeconds, [5, 8, 10], true));
+        return $type === 'image' || $type === 'image_edit' || ($type === 'video' && in_array($durationSeconds, [5, 8, 10], true));
     }
 
     public function generate(GenerationInput $input): GenerationResult

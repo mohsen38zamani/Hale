@@ -25,4 +25,19 @@ class CreditEstimatorTest extends TestCase
         $this->assertSame((int) config('credits.costs.text'), $estimator->estimate('text'));
         $this->assertSame(3, $estimator->estimate('text'));
     }
+
+    public function test_it_estimates_utility_tool_operations(): void
+    {
+        $estimator = new CreditEstimator;
+
+        $this->assertSame(5, $estimator->estimateEdit('remove_bg'));
+        $this->assertSame(5, $estimator->estimateEdit('shadow'));
+        $this->assertSame(10, $estimator->estimateEdit('expand'));
+        $this->assertSame(5, $estimator->estimateEdit('upscale'));
+        $this->assertSame(5, $estimator->estimateEdit('upscale', 'hd'));
+        $this->assertSame(10, $estimator->estimateEdit('upscale', '2k'));
+        $this->assertSame(15, $estimator->estimateEdit('upscale', '4k'));
+        // Unknown operations degrade to the cheapest tier instead of 0.
+        $this->assertSame(5, $estimator->estimateEdit('unknown_tool'));
+    }
 }

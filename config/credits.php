@@ -8,6 +8,14 @@ return [
         'video' => ['base' => 20, 'per_second' => 5],
         // Non-image AI tasks (caption writing, ...).
         'text' => (int) env('CREDIT_COST_TEXT', 3),
+        // One-shot AI utility tools (charged upfront, refunded on failure).
+        'edit' => [
+            'remove_bg' => 5,
+            'shadow' => 5,
+            'expand' => 10,
+            // upscale targets: hd is free-for-all, 2k/4k need a premium plan.
+            'upscale' => ['hd' => 5, '2k' => 10, '4k' => 15],
+        ],
     ],
 
     /*
