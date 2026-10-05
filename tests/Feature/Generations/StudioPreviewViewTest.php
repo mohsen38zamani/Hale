@@ -54,4 +54,17 @@ class StudioPreviewViewTest extends TestCase
             ->assertSee('role="alert"', false)
             ->assertSee('aria-live="polite"', false);
     }
+
+    public function test_every_camera_angle_has_a_live_stage_preview_and_inspector_mirror(): void
+    {
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+
+        $this->assertStringContainsString('angle-${cameraAngle}', $script, 'The studio must tag the live stage with the selected camera angle.');
+        $this->assertStringContainsString('Camera angle (locked):', $script, 'The prompt inspector must mirror the front-loaded camera directive.');
+
+        foreach (array_keys(config('creative.camera_angles')) as $key) {
+            $this->assertStringContainsString(".studio-stage.angle-{$key}", $stylesheet, "Camera angle [{$key}] is missing a live preview style.");
+        }
+    }
 }

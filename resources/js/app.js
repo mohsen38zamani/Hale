@@ -1406,7 +1406,7 @@ if (builderForm) {
 		const customPromptText = (customPromptInput?.value || '').trim();
 
 		if (canvasStage) {
-			canvasStage.className = `studio-stage ${isVertical ? 'ratio-9-16' : 'ratio-1-1'} light-${lighting}`;
+			canvasStage.className = `studio-stage ${isVertical ? 'ratio-9-16' : 'ratio-1-1'} light-${lighting} angle-${cameraAngle}`;
 		}
 
 		if (canvasGround) {

@@ -1123,6 +1123,62 @@ mark.search-hit {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(255, 255, 255, 0.15);
 }
 
+/* --- Live camera angle preview (keys mirror config/creative.php) --- */
+.studio-stage[class*='angle-'] {
+  perspective: 700px;
+  perspective-origin: 50% 42%;
+}
+
+.studio-stage.angle-eye_level .stage-ground {
+  bottom: 34%;
+}
+
+.studio-stage.angle-flat_lay .stage-product {
+  transform: rotateX(56deg) translateY(5%);
+  transform-origin: 50% 66%;
+}
+
+.studio-stage.angle-flat_lay .stage-ground {
+  transform: translateX(-50%) scaleY(2.4);
+  bottom: 24%;
+}
+
+.studio-stage.angle-hero_shot .stage-product {
+  transform: rotateX(-26deg) scale(1.08) translateY(-3%);
+  transform-origin: 50% 80%;
+}
+
+.studio-stage.angle-hero_shot .stage-ground {
+  transform: translateX(-50%) scaleX(1.4);
+  bottom: 5%;
+}
+
+.studio-stage.angle-macro .stage-product {
+  transform: scale(1.42);
+}
+
+.studio-stage.angle-macro .stage-ground {
+  transform: translateX(-50%) scale(1.5);
+  filter: blur(9px);
+}
+
+.studio-stage.angle-isometric .stage-product {
+  transform: rotateX(34deg) rotateY(-34deg) translateY(-2%);
+}
+
+.studio-stage.angle-isometric .stage-ground {
+  transform: translateX(-50%) scaleY(1.8);
+  bottom: 26%;
+}
+
+.studio-stage.angle-side_angle .stage-product {
+  transform: rotateY(68deg);
+}
+
+.studio-stage.angle-side_angle .stage-ground {
+  transform: translateX(-50%) scaleX(0.5);
+}
+
 /* Scene Controls Form Styles */
 .scene-controls-panel {
   background: rgba(255, 255, 255, 0.02);
@@ -1189,6 +1245,7 @@ mark.search-hit {
   justify-content: center;
   padding: 24px;
   z-index: 3;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .stage-product img {
