@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\Subscription;
 use App\Domains\Brand\Models\BrandKit;
+use App\Domains\Calendar\Models\Campaign;
+use App\Domains\Calendar\Models\ScheduledPost;
 use App\Domains\Creative\Models\CreativeProject;
 use App\Domains\Credits\Models\CreditAccount;
 use App\Domains\Favorites\Models\Favorite;
@@ -201,5 +203,15 @@ class User extends Authenticatable implements CanResetPassword, MustVerifyEmail
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
+    }
+
+    public function scheduledPosts(): HasMany
+    {
+        return $this->hasMany(ScheduledPost::class);
     }
 }

@@ -96,6 +96,20 @@ class ContentCalendarTest extends TestCase
             'caption' => 'تغییر',
         ]);
 
+        // Nullable caption and notes can be cleared back to null
+        $this->patchJson("/api/calendar/posts/{$post->id}", ['caption' => null, 'notes' => null])
+            ->assertOk()
+            ->assertJsonPath('data.caption', null)
+            ->assertJsonPath('data.notes', null);
+
+        $this->assertDatabaseHas('scheduled_posts', [
+            'id' => $post->id,
+            'caption' => null,
+            'notes' => null,
+        ]);
+
+        $this->assertTrue($user->scheduledPosts()->whereKey($post->id)->exists());
+
         // Another user can neither edit nor delete someone else's post.
         Sanctum::actingAs(User::factory()->create());
         $this->patchJson("/api/calendar/posts/{$post->id}", ['status' => 'draft'])->assertNotFound();

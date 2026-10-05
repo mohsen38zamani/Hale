@@ -31,8 +31,7 @@ class CalendarController extends Controller
             'to.after_or_equal' => 'تاریخ پایان باید بعد یا مساوی تاریخ شروع باشد.',
         ]);
 
-        $posts = ScheduledPost::query()
-            ->where('user_id', $request->user()->id)
+        $posts = $request->user()->scheduledPosts()
             ->when($data['from'] ?? null, fn ($query, $from) => $query->whereDate('scheduled_at', '>=', $from))
             ->when($data['to'] ?? null, fn ($query, $to) => $query->whereDate('scheduled_at', '<=', $to))
             ->with(['generation.creativeProject.product', 'campaign'])
@@ -63,8 +62,7 @@ class CalendarController extends Controller
         $generation = Generation::query()->find($data['generation_id']);
         abort_unless($generation !== null && $generation->user_id === $request->user()->id, 404);
 
-        $post = ScheduledPost::query()->create([
-            'user_id' => $request->user()->id,
+        $post = $request->user()->scheduledPosts()->create([
             'generation_id' => $generation->id,
             'scheduled_at' => $data['scheduled_at'],
             'caption' => $data['caption'] ?? null,
@@ -80,10 +78,10 @@ class CalendarController extends Controller
         abort_unless($post->user_id === $request->user()->id, 404);
 
         $data = $request->validate([
-            'caption' => ['sometimes', 'string', 'max:2000'],
+            'caption' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'status' => ['sometimes', 'string', 'in:'.implode(',', ScheduledPost::STATUSES)],
             'scheduled_at' => ['sometimes', 'date', 'after_or_equal:today'],
-            'notes' => ['sometimes', 'string', 'max:500'],
+            'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
         ], [
             'caption.max' => 'کپشن حداکثر ۲۰۰۰ کاراکتر است.',
             'status.in' => 'وضعیت پست نامعتبر است.',
@@ -137,8 +135,7 @@ class CalendarController extends Controller
         abort_unless(count($owned) === count($ids), 404, 'یکی از خروجی‌های انتخاب‌شده یافت نشد.');
 
         $campaign = DB::transaction(function () use ($request, $data, $ids): Campaign {
-            $campaign = Campaign::query()->create([
-                'user_id' => $request->user()->id,
+            $campaign = $request->user()->campaigns()->create([
                 'name' => $data['name'],
                 'starts_at' => $data['start_date'],
                 'interval_days' => (int) $data['interval_days'],
@@ -146,8 +143,7 @@ class CalendarController extends Controller
 
             $start = Carbon::parse($data['start_date']);
             foreach ($ids as $index => $generationId) {
-                ScheduledPost::query()->create([
-                    'user_id' => $request->user()->id,
+                $request->user()->scheduledPosts()->create([
                     'campaign_id' => $campaign->id,
                     'generation_id' => $generationId,
                     'scheduled_at' => $start->copy()->addDays($index * (int) $data['interval_days']),
@@ -172,8 +168,7 @@ class CalendarController extends Controller
 
     public function campaigns(Request $request): JsonResponse
     {
-        $campaigns = Campaign::query()
-            ->where('user_id', $request->user()->id)
+        $campaigns = $request->user()->campaigns()
             ->withCount('posts')
             ->with('posts')
             ->orderByDesc('starts_at')
