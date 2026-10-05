@@ -16,14 +16,14 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.2'
+        php-version: '8.3'
         extensions: mbstring, xml, ctype, iconv, intl, pdo, sqlite, pdo_sqlite, gd, bcmath, redis
         coverage: none
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
         cache: 'npm'
 
     - name: Copy .env
