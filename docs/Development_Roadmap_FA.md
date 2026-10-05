@@ -31,7 +31,7 @@
 
 علامت `✅` یعنی Backend آن بخش پیاده‌سازی و تست شده است؛ نبودن علامت به معنی باقی‌ماندن کار یا تکمیل‌نبودن بخش Frontend/عملیاتی است.
 
-**وضعیت تا ۱۴۰۵/۰۷/۰۴:** Phase 1 (Sprintهای ۱–۶) از نظر Backend تکمیل است — ۳۴۴ تست / ۱۷۷۸ assertion سبز؛ CI شامل Pint/PHPStan/build و پیکربندی staging نیز آماده است. علاوه بر آن، آیتم‌هایی از Phase 2 و 3 زودتر از موعد اجرا شده‌اند: جستجو و علاقه‌مندی‌ها (2.7)، Push Notification (2.8)، Caption (3.3)، Content Calendar و Campaign (3.4)، Bulk Generation (3.5) و بخشی از بومی‌سازی/مناسبت‌ها (3.6 — Jalali در تقویم و ۸ تم فصلی). موارد باقی‌ماندهٔ Sprintها (مثل Webhook پذیرندهٔ Provider، Failed Job Handling، Security Audit و Soft Launch) در TODO.md ثبت‌اند.
+**وضعیت تا ۱۴۰۵/۰۷/۰۴:** Phase 1 (Sprintهای ۱–۶) از نظر Backend تکمیل است — ۳۶۷ تست / ۱۹۲۹ assertion سبز؛ CI شامل Pint/PHPStan/build و پیکربندی staging نیز آماده است. علاوه بر آن، آیتم‌هایی از Phase 2 و 3 زودتر از موعد اجرا شده‌اند: جستجو و علاقه‌مندی‌ها (2.7)، Push Notification (2.8)، Caption (3.3)، Content Calendar و Campaign (3.4)، Bulk Generation (3.5)، بخشی از بومی‌سازی/مناسبت‌ها (3.6 — Jalali در تقویم و ۸ تم فصلی) و ابزارهای کمکی تصویر (AI Utility Tools — حذف پس‌زمینه، ارتقای وضوح، بسط کادر، سایه/رفلکس). موارد باقی‌ماندهٔ Sprintها (مثل Webhook پذیرندهٔ Provider، Failed Job Handling، Security Audit و Soft Launch) در TODO.md ثبت‌اند.
 
 جزئیات موردهای باقی‌مانده، وابستگی‌ها و معیار پایان در فایل ریشهٔ [`TODO.md`](../TODO.md) نگهداری می‌شود.
 

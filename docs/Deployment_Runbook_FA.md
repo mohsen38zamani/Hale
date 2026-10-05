@@ -81,6 +81,7 @@ GOOGLE_AI_API_KEY=your_google_ai_api_key
 GOOGLE_AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 GOOGLE_IMAGEN_MODEL=imagen-3.0-generate-002
 GOOGLE_TEXT_MODEL=gemini-2.0-flash        # مدل کپشن
+GOOGLE_IMAGE_EDIT_MODEL=gemini-2.5-flash-image  # مدل ابزارهای ویرایش تصویر
 GOOGLE_VEO_MODEL=veo-2.0-generate-001
 GOOGLE_AI_TIMEOUT=60
 GOOGLE_VEO_TIMEOUT=120
@@ -91,6 +92,7 @@ AI_DAILY_BUDGET_USD=50
 # هزینهٔ رزرو بر اساس USD (قابل override برای هر provider)
 AI_PRICING_IMAGE_USD=0.04
 AI_PRICING_VIDEO_PER_SECOND_USD=0.05
+AI_PRICING_EDIT_USD=0.04                  # هر اجرای ابزار ویرایش تصویر
 # عمر نگهداری خروجی‌های AI و سقف حجم/مدت اجارهٔ پردازش
 AI_OUTPUT_RETENTION_DAYS=90
 AI_MAX_OUTPUT_BYTES=52428800

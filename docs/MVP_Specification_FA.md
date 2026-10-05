@@ -49,7 +49,7 @@
 - Admin Domain برای مشاهده و جستجوی کاربران، مانیتور صف، بازگشت دستی Credit، مسدودسازی (ban/suspend) و لغو تولید
 - Creative Builder با دکمه و الگوریتم پویای Auto Best، کنترل‌های صحنه، متن دلخواه و برآورد زنده هزینه Credit
 
-Frontend/PWA پایه شامل Landing بازنویسی‌شده، Auth، Dashboard (با تقویم محتوا و کیت برند)، Product Library (با جستجو، ستاره و حالت bulk)، استودیوی زنده، Progress/Result (با پنل کپشن)، Generation History، Notifications/Push و Pricing/Checkout (با بسته‌های اعتبار) آماده است. فهرست جزئیات اجرایی در `TODO.md` است و پوشش تست فعلی **۳۴۴ تست / ۱۷۷۸ assertion** است.
+Frontend/PWA پایه شامل Landing بازنویسی‌شده، Auth، Dashboard (با تقویم محتوا، کیت برند و ابزارهای تصویر)، Product Library (با جستجو، ستاره و حالت bulk)، استودیوی زنده، Progress/Result (با پنل کپشن و پنل ابزارهای هوشمند)، Generation History، Notifications/Push و Pricing/Checkout (با بسته‌های اعتبار) آماده است. فهرست جزئیات اجرایی در `TODO.md` است و پوشش تست فعلی **۳۶۷ تست / ۱۹۲۹ assertion** است.
 
 ---
 
@@ -373,10 +373,9 @@ Instagram Post (1:1) · Instagram Story (9:16) · Instagram Reel (9:16) · TikTo
 ❌ Marketplace / Community
 ❌ Native Mobile App (iOS/Android)
 ❌ Multi-language (فقط فارسی در MVP)
-❌ ابزارهای پردازش تصویر (حذف پس‌زمینه، Super-Resolution، Outpainting)
 ```
 
-> **✅ مواردی که از این فهرست خارج و پیاده‌سازی شدند:** Brand Kit، Content Calendar و کمپین زمان‌بندی‌شده، Caption Generator، Templates Library، تولید دسته‌ای (Bulk)، تقویم Jalali و مناسبت‌های ایرانی (تم‌های فصلی) — جزئیات در `TODO.md`.
+> **✅ مواردی که از این فهرست خارج و پیاده‌سازی شدند:** Brand Kit، Content Calendar و کمپین زمان‌بندی‌شده، Caption Generator، Templates Library، تولید دسته‌ای (Bulk)، تقویم Jalali و مناسبت‌های ایرانی (تم‌های فصلی)، ابزارهای پردازش تصویر (حذف پس‌زمینه، Super-Resolution، Outpainting، سایه و رفلکس) — جزئیات در `TODO.md`.
 
 ---
 

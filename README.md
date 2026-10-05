@@ -8,7 +8,7 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 
 ## وضعیت پروژه
 
-**Phase 1 (هستهٔ MVP) تکمیل شده است** و بخش بزرگی از آیتم‌های Phase 2 و 3 نیز زودتر از موعد اجرا شده‌اند: احراز هویت (ایمیل/موبایل، OTP، تأیید ایمیل الزامی)، محصولات و رسانه، Creative با الگوریتم پویا و حالت «خودت بهترینش رو بساز»، Generation صف‌محور با کیفیت استاندارد/پریمیوم و تولید دسته‌ای، AI Gateway با زنجیرهٔ Fallback چند Provider و Circuit Breaker، اعتبار و Billing با پلن، بسته‌های خرید اعتبار و درگاه زرین‌پال، جستجو، علاقه‌مندی‌ها، Push Notification، Brand Kit و قالب‌ها، تم‌های فصلی، کپشن هوشمند، تقویم محتوا، پنل مدیریت (شامل مسدودسازی کاربر و لغو تولید) و اعلانات پیاده‌سازی شده‌اند. **۳۴۴ تست خودکار (شامل ۱۷۷۸ Assertion)** در داکر کاملاً سبز هستند. جزئیات موارد اجرایی در [TODO.md](TODO.md) نگهداری می‌شود.
+**Phase 1 (هستهٔ MVP) تکمیل شده است** و بخش بزرگی از آیتم‌های Phase 2 و 3 نیز زودتر از موعد اجرا شده‌اند: احراز هویت (ایمیل/موبایل، OTP، تأیید ایمیل الزامی)، محصولات و رسانه، Creative با الگوریتم پویا و حالت «خودت بهترینش رو بساز»، Generation صف‌محور با کیفیت استاندارد/پریمیوم و تولید دسته‌ای، AI Gateway با زنجیرهٔ Fallback چند Provider و Circuit Breaker، اعتبار و Billing با پلن، بسته‌های خرید اعتبار و درگاه زرین‌پال، جستجو، علاقه‌مندی‌ها، Push Notification، Brand Kit و قالب‌ها، تم‌های فصلی، کپشن هوشمند، تقویم محتوا، ابزارهای کمکی تصویر (حذف پس‌زمینه، ارتقای وضوح تا 4K، بسط کادر و سایه/رفلکس)، پنل مدیریت (شامل مسدودسازی کاربر و لغو تولید) و اعلانات پیاده‌سازی شده‌اند. **۳۶۷ تست خودکار (شامل ۱۹۲۹ Assertion)** در داکر کاملاً سبز هستند. جزئیات موارد اجرایی در [TODO.md](TODO.md) نگهداری می‌شود.
 
 
 ```text
@@ -42,12 +42,13 @@ Hale یک پلتفرم SaaS فارسی و Mobile-first برای ساخت محت�
 - کیفیت خروجی استاندارد/پریمیوم با سقف ابعاد و گیت مجوز پلن
 - خرید اعتبار جداگانه (بسته‌های top-up) بدون نیاز به اشتراک
 - تولید کپشن فارسی/انگلیسی با AI و fallback قطعی در صورت قطعی بودن
+- ابزارهای کمکی تصویر با AI: حذف پس‌زمینه (شفاف/سفید)، ارتقای وضوح تا 4K، بسط کادر و سایه/رفلکس سه‌بعدی
 - تقویم محتوا و ساخت کمپین زمان‌بندی‌شده در داشبورد
 - تم‌های فصلی مناسبتی (نوروز، یلدا، جمعه سیاه و…) با پکیج پرامپت اختیاری
 
 ### خارج از محدوده MVP
 
-ویرایش مکالمه‌ای، تیم و Workspace، API عمومی، White Label، انتشار خودکار شبکه‌های اجتماعی، ابزارهای پردازش تصویر (حذف پس‌زمینه، ارتقای وضوح) و اپلیکیشن Native به فازهای بعد منتقل شده‌اند.
+ویرایش مکالمه‌ای، تیم و Workspace، API عمومی، White Label، انتشار خودکار شبکه‌های اجتماعی و اپلیکیشن Native به فازهای بعد منتقل شده‌اند.
 
 ## گزینه‌های تولید محتوا
 
@@ -129,6 +130,7 @@ app/Domains/
 │   ├── Router/
 │   ├── Providers/
 │   └── Services/          # PromptModerator، CaptionService
+├── Editing/               # ابزارهای کمکی تصویر (حذف پس‌زمینه، ارتقا، بسط، سایه)
 ├── Credits/
 ├── Billing/
 ├── Notifications/         # ایمیل، درون‌برنامه‌ای و Web Push
@@ -227,6 +229,13 @@ POST   /api/generations/{id}/feedback
 POST   /api/generations/{id}/caption  # کپشن AI (fa/en، ۳ لحن)
 GET    /api/generations/{id}/download # ?variant=web|original
 
+# AI Utility Tools (ابزارهای کمکی تصویر)
+GET    /api/edits/costs               # تعرفهٔ ابزارها و سقف پلن
+GET    /api/edits                     # فهرست ویرایش‌ها (?source_type=&source_id=)
+POST   /api/edits                     # حذف پس‌زمینه/ارتقا/بسط/سایه — شارژ upfront
+GET    /api/edits/{id}
+GET    /api/edits/{id}/download       # ?variant=web|original
+
 # Favorites & Search (جستجو با پارامتر ?search= روی products و generations)
 GET    /api/favorites
 POST   /api/favorites/toggle          # toggle ستاره (product/generation)
@@ -294,7 +303,7 @@ POST   /api/admin/generations/{generation}/cancel
 | Billing | Payment/Subscription، Checkout، بسته‌های top-up اعتبار، Webhook امضاشده و Callback زرین‌پال |
 | Notifications | ایمیل + درون‌برنامه‌ای + Web Push (VAPID) روی ۴ رویداد کلیدی |
 | Admin | کاربران، مانیتور صف، بازگشت Credit، مسدودسازی (ban/suspend) و لغو تولید |
-| باقی‌مانده | Conversational Editing، Organizations/RBAC، ابزارهای پردازش تصویر، E2E مرورگر و عملیات production |
+| باقی‌مانده | Conversational Editing، Organizations/RBAC، E2E مرورگر و عملیات production |
 
 ## مدل درآمد و Credit
 
