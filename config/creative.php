@@ -4,6 +4,43 @@ return [
     'environments' => ['studio', 'nature', 'luxury', 'urban', 'home', 'abstract'],
     'video_durations' => [5, 8, 10],
 
+    // How strongly a scene control steers the final image. `short` is the
+    // compact chip tag, `hint` is the caption/tooltip explaining the effect.
+    'impact_levels' => [
+        'high' => [
+            'key' => 'high',
+            'label' => 'تأثیر عمده',
+            'short' => 'عمده',
+            'hint' => 'این انتخاب ترکیب‌بندی و پرسپکتیو صحنه را می‌سازد و خروجی را کاملاً عوض می‌کند.',
+        ],
+        'medium' => [
+            'key' => 'medium',
+            'label' => 'تأثیر متوسط',
+            'short' => 'متوسط',
+            'hint' => 'این انتخاب فضا، مواد و پردازش نور صحنه را تغییر می‌دهد بدون اینکه چیدمان اصلی را جابه‌جا کند.',
+        ],
+        'subtle' => [
+            'key' => 'subtle',
+            'label' => 'تأثیر جزئی',
+            'short' => 'جزئی',
+            'hint' => 'این انتخاب جزئیات تزئینی و لهجه‌های صحنه را اضافه می‌کند و کل ترکیب را دست نمی‌زند.',
+        ],
+    ],
+
+    // Keyed by the studio field name (the radio `name`); every option of a
+    // control inherits its control level, so adding a config item never needs
+    // an impact decision here.
+    'impacts' => [
+        'goal' => 'high',
+        'style' => 'high',
+        'format' => 'high',
+        'environment' => 'medium',
+        'surface' => 'medium',
+        'lighting_setup' => 'medium',
+        'camera_angle' => 'high',
+        'props' => 'subtle',
+    ],
+
     'surfaces' => [
         'default' => [
             'key' => 'default',

@@ -323,6 +323,10 @@ class GenerationApiTest extends TestCase
                 'lighting_setups' => [
                     '*' => ['key', 'label', 'prompt', 'icon'],
                 ],
+                'impact_levels' => [
+                    '*' => ['key', 'label', 'short', 'hint'],
+                ],
+                'impacts',
             ],
         ]);
 

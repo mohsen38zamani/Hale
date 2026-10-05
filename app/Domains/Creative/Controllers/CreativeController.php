@@ -30,6 +30,8 @@ class CreativeController extends Controller
             'props' => array_values(config('creative.props')),
             'camera_angles' => array_values(config('creative.camera_angles')),
             'lighting_setups' => array_values(config('creative.lighting_setups')),
+            'impact_levels' => array_values(config('creative.impact_levels')),
+            'impacts' => config('creative.impacts'),
         ]);
     }
 
