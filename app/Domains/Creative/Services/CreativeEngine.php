@@ -110,15 +110,16 @@ class CreativeEngine
             $sceneParts[] = ucfirst($propsPrompt).'.';
         }
 
-        if (! empty($brief['camera_angle']) && ($cameraPrompt = config("creative.camera_angles.{$brief['camera_angle']}.prompt"))) {
-            $sceneParts[] = ucfirst($cameraPrompt).'.';
-        }
-
         if (! empty($brief['lighting_setup']) && ($lightingPrompt = config("creative.lighting_setups.{$brief['lighting_setup']}.prompt"))) {
             $sceneParts[] = ucfirst($lightingPrompt).'.';
         }
 
         $sceneClause = ! empty($sceneParts) ? ' '.implode(' ', $sceneParts) : '';
+
+        // Front-load the camera directive right after the opening sentence so
+        // the model treats it as a locked instruction instead of set dressing;
+        // surface/props/lighting stay in the trailing scene clause.
+        $cameraClause = $this->cameraClause($brief);
 
         $customPromptPart = '';
         if (! empty($brief['custom_prompt']) && is_string($brief['custom_prompt'])) {
@@ -132,8 +133,9 @@ class CreativeEngine
         $campaignPart = $this->campaignClause(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []);
 
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s. Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
+            'Create a professional commercial advertising visual for %s.%s Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
             $brief['product'],
+            $cameraClause,
             $brief['objective'],
             $brief['visual_direction'],
             $brief['environment'],
@@ -146,10 +148,44 @@ class CreativeEngine
         );
 
         if ($format->type() === 'video') {
-            $base .= ' Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.';
+            $base .= sprintf(
+                ' Dynamic motion: %s, fluid atmospheric movement, premium brand reel aesthetic, 4K render.',
+                $this->cameraMotion($brief)
+            );
         }
 
         return $base;
+    }
+
+    /**
+     * The locked camera directive, front-loaded into the prompt.
+     *
+     * @param  array<string, mixed>  $brief
+     */
+    private function cameraClause(array $brief): string
+    {
+        $angle = filled($brief['camera_angle'] ?? null) ? (string) $brief['camera_angle'] : '';
+        if ($angle === '') {
+            return '';
+        }
+
+        $prompt = config("creative.camera_angles.{$angle}.prompt");
+
+        return filled($prompt) ? sprintf(' Camera angle (locked): %s.', $prompt) : '';
+    }
+
+    /**
+     * Video camera movement that matches the chosen angle, falling back to the
+     * generic pan so prompts without a camera angle stay byte-for-byte stable.
+     *
+     * @param  array<string, mixed>  $brief
+     */
+    private function cameraMotion(array $brief): string
+    {
+        $angle = filled($brief['camera_angle'] ?? null) ? (string) $brief['camera_angle'] : '';
+        $motion = $angle === '' ? null : config("creative.camera_angles.{$angle}.motion");
+
+        return filled($motion) ? (string) $motion : 'smooth cinematic camera pan';
     }
 
     public function sanitizeCustomPrompt(string $input): string

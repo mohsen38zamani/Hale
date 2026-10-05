@@ -1456,9 +1456,11 @@ if (builderForm) {
 			const sceneParts = [];
 			if (surfaceObj?.prompt) sceneParts.push(capitalize(surfaceObj.prompt) + '.');
 			if (propsObj?.prompt) sceneParts.push(capitalize(propsObj.prompt) + '.');
-			if (cameraObj?.prompt) sceneParts.push(capitalize(cameraObj.prompt) + '.');
 			if (lightingObj?.prompt) sceneParts.push(capitalize(lightingObj.prompt) + '.');
 			const sceneClause = sceneParts.length ? ' ' + sceneParts.join(' ') : '';
+			// Mirrors CreativeEngine::cameraClause() - the directive is
+			// front-loaded right after the opening sentence.
+			const cameraClause = cameraObj?.prompt ? ` Camera angle (locked): ${cameraObj.prompt}.` : '';
 
 			let cleanCustom = customPromptText
 				.replace(/<[^>]*>/g, '')
@@ -1468,10 +1470,13 @@ if (builderForm) {
 				.replace(/[. ]+$/, '');
 
 			let customPart = cleanCustom ? ` Custom scene details: <mark>${cleanCustom}</mark>.` : '';
-			let videoPart = isVideo ? ' Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.' : '';
+			// Mirrors CreativeEngine::cameraMotion(): angle-aware movement with
+			// the generic pan as the fallback when no angle is configured.
+			const motion = cameraObj?.motion || 'smooth cinematic camera pan';
+			let videoPart = isVideo ? ` Dynamic motion: ${motion}, fluid atmospheric movement, premium brand reel aesthetic, 4K render.` : '';
 			const campaignPart = campaignEnabled && campaignPack ? ` Campaign mood: ${String(campaignPack.pack).replace(/[. ]+$/, '')}.` : '';
 
-			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}. Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
+			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}.${cameraClause} Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
 
 			inspectorCode.innerHTML = assembledPrompt;
 		}

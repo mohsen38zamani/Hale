@@ -82,30 +82,52 @@ return [
         ],
     ],
 
+    // Every entry carries:
+    //  - prompt: the locked camera directive, front-loaded into the prompt.
+    //  - motion: Veo/video camera movement that stays consistent with the
+    //    chosen angle instead of the generic horizontal pan.
     'camera_angles' => [
         'eye_level' => [
             'key' => 'eye_level',
             'label' => 'زاویه روبرو',
-            'prompt' => 'Camera perspective: straight eye-level studio commercial shot with natural perspective',
+            'prompt' => 'strict eye-level horizontal shot, straight-on camera angle with the lens exactly at product height, never looking down or up',
+            'motion' => 'smooth lateral dolly pan kept perfectly at eye level',
             'icon' => '👁️',
         ],
         'flat_lay' => [
             'key' => 'flat_lay',
             'label' => 'عکاسی از بالا (Flat-Lay)',
-            'prompt' => 'Camera perspective: crisp 90-degree overhead top-down flat-lay composition',
+            'prompt' => '90-degree overhead top-down flat-lay shot, camera pointing straight down at the product from directly above',
+            'motion' => 'slow overhead glide drifting directly above the flat-lay',
             'icon' => '📐',
         ],
         'hero_shot' => [
             'key' => 'hero_shot',
             'label' => 'زاویه پایین حماسی (Hero)',
-            'prompt' => 'Camera perspective: powerful low-angle heroic viewpoint creating grand scale and presence',
+            'prompt' => 'dramatic low-angle hero perspective looking upward at the product, camera below eye level making the product tower over the viewer',
+            'motion' => 'slow push-in rising from a low angle beneath the product',
             'icon' => '👑',
         ],
         'macro' => [
             'key' => 'macro',
             'label' => 'نمای کلوزآپ/ماکرو',
-            'prompt' => 'Camera perspective: intimate ultra-close macro detail shot highlighting premium texture and craftsmanship',
+            'prompt' => 'extreme close-up macro shot with shallow depth of field, camera tight on the product surface revealing texture and craftsmanship',
+            'motion' => 'subtle macro focus pull with almost no camera travel',
             'icon' => '🔍',
+        ],
+        'isometric' => [
+            'key' => 'isometric',
+            'label' => 'زاویه ۴۵ درجه ایزومتریک',
+            'prompt' => '45-degree isometric three-quarter view from above, tilted camera showing the top and the front side of the product at once',
+            'motion' => 'gentle orbital arc holding the 45-degree isometric viewpoint',
+            'icon' => '🧊',
+        ],
+        'side_angle' => [
+            'key' => 'side_angle',
+            'label' => 'زاویه جانبی',
+            'prompt' => 'side profile angle shot, camera positioned 90 degrees to the side of the product showing its silhouette edge-on',
+            'motion' => 'slow tracking shot sliding along the side profile of the product',
+            'icon' => '↔️',
         ],
     ],
 

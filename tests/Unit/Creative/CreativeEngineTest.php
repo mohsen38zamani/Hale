@@ -163,9 +163,64 @@ class CreativeEngineTest extends TestCase
 
         $this->assertStringContainsString('Elevated on a glossy black obsidian mirror surface with sharp glossy ground reflections.', $prompt);
         $this->assertStringContainsString('Flanked by floating geometric glass prisms and translucent crystal shards scattering spectrum colors.', $prompt);
-        $this->assertStringContainsString('Camera perspective: intimate ultra-close macro detail shot highlighting premium texture and craftsmanship.', $prompt);
+        $this->assertStringContainsString('Camera angle (locked): extreme close-up macro shot with shallow depth of field, camera tight on the product surface revealing texture and craftsmanship.', $prompt);
         $this->assertStringContainsString('Lighting: futuristic duotone cyber neon backlight with subtle magenta and cyan ambient glow.', $prompt);
         $this->assertStringContainsString('Custom scene details: جلوه بسیار درخشان.', $prompt);
+    }
+
+    public function test_camera_angle_is_front_loaded_before_objective_for_every_angle(): void
+    {
+        $angles = config('creative.camera_angles');
+        $this->assertCount(6, $angles, 'Every camera angle configured in config/creative.php must stay in sync with the studio UI.');
+
+        foreach ($angles as $key => $angle) {
+            $prompt = $this->engine->prompt([
+                'product' => 'عطر لوکس',
+                'objective' => 'sales',
+                'visual_direction' => 'luxury',
+                'environment' => 'studio',
+                'camera_angle' => $key,
+            ], CreativeFormat::InstagramPost);
+
+            $directive = sprintf('Camera angle (locked): %s.', $angle['prompt']);
+            $position = strpos($prompt, $directive);
+            $objective = strpos($prompt, 'Objective:');
+
+            $this->assertNotFalse($position, "Camera angle [{$key}] is missing from the prompt.");
+            $this->assertNotFalse($objective, 'Objective clause must stay in the prompt.');
+            $this->assertLessThan($objective, $position, "Camera angle [{$key}] must be front-loaded before the Objective clause.");
+            $this->assertNotEmpty($angle['motion'] ?? null, "Camera angle [{$key}] must define a video motion clause.");
+        }
+    }
+
+    public function test_video_motion_follows_the_selected_camera_angle(): void
+    {
+        foreach (config('creative.camera_angles') as $key => $angle) {
+            $prompt = $this->engine->prompt([
+                'product' => 'عطر لوکس',
+                'objective' => 'engagement',
+                'visual_direction' => 'cinematic',
+                'environment' => 'studio',
+                'camera_angle' => $key,
+            ], CreativeFormat::InstagramReel);
+
+            $this->assertStringContainsString('Dynamic motion: '.$angle['motion'].',', $prompt, "Video motion for [{$key}] must match its angle.");
+            $this->assertStringNotContainsString('Dynamic motion: smooth cinematic camera pan,', $prompt, "Generic pan must not override the [{$key}] angle.");
+        }
+    }
+
+    public function test_video_without_camera_angle_keeps_the_generic_pan(): void
+    {
+        $prompt = $this->engine->prompt([
+            'product' => 'عطر لوکس',
+            'objective' => 'engagement',
+            'visual_direction' => 'cinematic',
+            'environment' => 'studio',
+            'camera_angle' => null,
+        ], CreativeFormat::InstagramReel);
+
+        $this->assertStringNotContainsString('Camera angle (locked):', $prompt);
+        $this->assertStringContainsString('Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.', $prompt);
     }
 
     public function test_prompt_skips_default_or_none_scene_controls(): void
@@ -186,6 +241,7 @@ class CreativeEngineTest extends TestCase
         $this->assertStringNotContainsString('Surface pedestal:', $prompt);
         $this->assertStringNotContainsString('Accents and props:', $prompt);
         $this->assertStringNotContainsString('Camera composition:', $prompt);
+        $this->assertStringNotContainsString('Camera angle (locked):', $prompt);
         $this->assertStringNotContainsString('Studio lighting:', $prompt);
     }
 }

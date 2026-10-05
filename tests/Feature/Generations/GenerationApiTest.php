@@ -270,7 +270,7 @@ class GenerationApiTest extends TestCase
 
         $this->assertStringContainsString('Displayed on a luxury white veined Carrara marble pedestal with soft specular highlights.', $generation->creativeProject->prompt);
         $this->assertStringContainsString('Accented with lush monstera leaves, olive branches, and delicate pink orchid petals.', $generation->creativeProject->prompt);
-        $this->assertStringContainsString('Camera perspective: powerful low-angle heroic viewpoint creating grand scale and presence.', $generation->creativeProject->prompt);
+        $this->assertStringContainsString('Camera angle (locked): dramatic low-angle hero perspective looking upward at the product, camera below eye level making the product tower over the viewer.', $generation->creativeProject->prompt);
         $this->assertStringContainsString('Lighting: dramatic high-contrast edge rim lighting sculpting the product contours against a moody backdrop.', $generation->creativeProject->prompt);
     }
 
@@ -325,5 +325,13 @@ class GenerationApiTest extends TestCase
                 ],
             ],
         ]);
+
+        $angles = $response->json('data.camera_angles');
+        $this->assertSame(['eye_level', 'flat_lay', 'hero_shot', 'macro', 'isometric', 'side_angle'], array_column($angles, 'key'));
+
+        foreach ($angles as $angle) {
+            $this->assertNotEmpty($angle['prompt'], "Camera angle [{$angle['key']}] must expose a prompt directive.");
+            $this->assertNotEmpty($angle['motion'], "Camera angle [{$angle['key']}] must expose a video motion clause.");
+        }
     }
 }
