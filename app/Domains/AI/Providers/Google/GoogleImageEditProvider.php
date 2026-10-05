@@ -66,7 +66,7 @@ class GoogleImageEditProvider implements GenerationProvider
 
         $rawImage = Storage::disk($input->assetDisk)->get($input->assetPath);
         $sizeInfo = @getimagesizefromstring($rawImage);
-        $sourceMime = is_array($sizeInfo) && ! empty($sizeInfo[2]) ? (string) $sizeInfo[2] : 'image/png';
+        $sourceMime = is_array($sizeInfo) && ! empty($sizeInfo['mime']) ? (string) $sizeInfo['mime'] : 'image/png';
 
         $url = rtrim($this->baseUrl, '/')."/models/{$this->model}:generateContent?key={$this->apiKey}";
 
