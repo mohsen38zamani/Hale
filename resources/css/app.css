@@ -1227,6 +1227,53 @@ mark.search-hit {
   margin-bottom: 8px;
 }
 
+/* ==========================================================================
+   ITEM IMPACT INDICATOR — mirrors config/creative.php impacts + impact_levels
+   ========================================================================== */
+.impact-hint {
+  display: block;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.impact-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: 0.2px;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.choice .impact-badge {
+  display: block;
+  width: fit-content;
+  margin-top: 5px;
+}
+
+.impact-badge.impact-high {
+  color: #FDA4AF;
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.35);
+}
+
+.impact-badge.impact-medium {
+  color: #FCD34D;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.impact-badge.impact-subtle {
+  color: #94A3B8;
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
 .choice-grid.compact-grid {
   gap: 8px;
 }

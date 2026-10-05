@@ -1330,6 +1330,8 @@ if (builderForm) {
 	let propsData = [];
 	let cameraAnglesData = [];
 	let lightingSetupsData = [];
+	let impactsMap = {};
+	let impactLevels = [];
 
 	const aspectRatios = {
 		instagram_post: '1:1',
@@ -1530,11 +1532,16 @@ if (builderForm) {
 	};
 	const renderChoices = (target, values, name, withType = false, isObject = false) => {
 		if (!target) return;
+		const levelKey = impactsMap[name];
+		const level = impactLevels.find((item) => item.key === levelKey);
+		const badge = level
+			? `<small class="impact-badge impact-${level.key}" title="${String(level.hint || '').replace(/"/g, '&quot;')}">${level.short}</small>`
+			: '';
 		target.innerHTML = values.map((item) => {
 			const key = isObject ? item.key : (withType ? item.key : item);
 			const label = isObject ? `${item.icon ? `${item.icon} ` : ''}${item.label}` : (labels[key] || key);
 			const extra = withType ? `<small>${item.aspect_ratio}</small>` : '';
-			return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${label}${extra}</span></label>`;
+			return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${label}${extra}${badge}</span></label>`;
 		}).join('');
 	};
 	Promise.all([
@@ -1555,6 +1562,8 @@ if (builderForm) {
 		propsData = options.data.props || [];
 		cameraAnglesData = options.data.camera_angles || [];
 		lightingSetupsData = options.data.lighting_setups || [];
+		impactsMap = options.data.impacts || {};
+		impactLevels = options.data.impact_levels || [];
 
 		renderChoices(document.querySelector('[data-surfaces]'), surfacesData, 'surface', false, true);
 		renderChoices(document.querySelector('[data-props]'), propsData, 'props', false, true);

@@ -67,4 +67,31 @@ class StudioPreviewViewTest extends TestCase
             $this->assertStringContainsString(".studio-stage.angle-{$key}", $stylesheet, "Camera angle [{$key}] is missing a live preview style.");
         }
     }
+
+    public function test_every_impact_level_reaches_the_chips_and_section_captions(): void
+    {
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+        $view = (string) file_get_contents(resource_path('views/create.blade.php'));
+
+        $this->assertStringContainsString('options.data.impacts', $script, 'The studio must read the impact map from /api/creative/options.');
+        $this->assertStringContainsString('impact-badge', $script, 'Every chip must carry the impact tag of its control.');
+
+        $this->assertGreaterThanOrEqual(
+            count(config('creative.impacts')),
+            substr_count($view, 'data-impact-hint'),
+            'Every impact-aware control needs a caption explaining what it changes in the output.'
+        );
+
+        foreach (array_keys(config('creative.impact_levels')) as $key) {
+            $this->assertStringContainsString(".impact-badge.impact-{$key}", $stylesheet, "Impact level [{$key}] is missing a chip style.");
+        }
+
+        // The environment select cannot be tagged by JS, so the server must
+        // stamp its level directly from config while rendering the page.
+        $this->get('/create')
+            ->assertOk()
+            ->assertSee('impact-badge impact-medium', false)
+            ->assertSee('data-impact-hint', false);
+    }
 }
