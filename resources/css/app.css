@@ -145,17 +145,38 @@ button, a {
 
 .brand {
   color: var(--text-primary);
-  font-weight: 800;
-  font-size: 24px;
+  font-weight: 900;
+  font-size: 22px;
   letter-spacing: -0.5px;
   text-decoration: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 10px;
+  transition: opacity 0.2s ease;
+}
+
+.brand:hover {
+  opacity: 0.95;
+}
+
+.brand-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 0 14px rgba(108, 92, 231, 0.4);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  flex-shrink: 0;
+}
+
+.brand:hover .brand-logo-img {
+  transform: scale(1.08);
+  box-shadow: 0 0 18px rgba(46, 212, 198, 0.6);
 }
 
 .brand span {
-  color: var(--primary);
+  font-family: inherit;
+  font-weight: 900;
 }
 
 .btn-aurora {

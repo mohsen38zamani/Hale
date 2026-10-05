@@ -9,7 +9,6 @@
     font-family: 'Vazirmatn Variable', Tahoma, Arial, sans-serif;
 }
 
-.landing-page .brand,
 .landing-page .footer-mark {
     font-family: Georgia, 'Times New Roman', serif;
 }
@@ -986,7 +985,160 @@
 }
 
 .site-footer .brand {
-  font-size: 28px;
+  font-size: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bento-poster-card {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 36px;
+  background: radial-gradient(circle at 85% 50%, rgba(108, 92, 231, 0.25) 0%, rgba(15, 18, 38, 0.85) 100%);
+  border: 1px solid rgba(108, 92, 231, 0.35);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  border-radius: 24px;
+  padding: 36px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bento-poster-card::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(46, 212, 198, 0.25), transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.bento-poster-text {
+  flex: 1 1 55%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 1;
+}
+
+.poster-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(108, 92, 231, 0.18);
+  border: 1px solid rgba(108, 92, 231, 0.4);
+  color: #2ED4C6;
+  width: fit-content;
+}
+
+.poster-title {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.4;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.poster-slogan-highlight {
+  background: linear-gradient(135deg, #2ED4C6 0%, #6C5CE7 60%, #A29BFE 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: block;
+  font-size: 21px;
+  margin-top: 6px;
+}
+
+.poster-desc {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.poster-points {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.poster-point {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #F5F7FF;
+}
+
+.poster-point-icon {
+  font-size: 18px;
+}
+
+.bento-poster-media {
+  flex: 0 0 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+}
+
+.poster-img-wrapper {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(108, 92, 231, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  max-width: 100%;
+}
+
+.poster-img-wrapper:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 48px rgba(108, 92, 231, 0.35), 0 0 0 1px rgba(46, 212, 198, 0.6);
+}
+
+.poster-img-wrapper img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 380px;
+  object-fit: cover;
+  object-position: top center;
+}
+
+@media (max-width: 860px) {
+  .bento-poster-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .poster-badge {
+    margin: 0 auto;
+  }
+
+  .poster-points {
+    grid-template-columns: 1fr;
+    text-align: right;
+  }
+
+  .bento-poster-media {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 280px;
+  }
 }
 
 .site-footer-note {

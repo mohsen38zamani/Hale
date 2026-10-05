@@ -2,8 +2,10 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>پرداخت آزمایشی | Hale</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/apple-touch-icon.png">
+    <title>پرداخت آزمایشی | حله</title>
     @vite(['resources/css/app.css'])
 </head>
 <body class="dashboard-page">

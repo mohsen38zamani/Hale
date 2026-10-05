@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>پلن‌ها و اشتراک | Hale</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/apple-touch-icon.png">
+    <title>پلن‌ها و اشتراک | حله</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .payment-result-card {
@@ -234,7 +237,10 @@
 <body class="dashboard-page">
 <div class="app-shell">
     <header class="topbar">
-        <a class="brand" href="/">H<span>•</span>le</a>
+        <a class="brand" href="/" aria-label="حله - پلتفرم هوشمند تولید محتوا">
+            <img src="/images/brand/icon-rounded.png" alt="لوگو حله" class="brand-logo-img" width="32" height="32">
+            <span>حله</span>
+        </a>
         <div class="topbar-actions">
             <a class="text-button" href="/create">استودیو ساخت</a>
             <a class="text-button" href="/dashboard">داشبورد</a>
@@ -254,7 +260,7 @@
             </div>
         </div>
 
-        <p class="eyebrow">PRICING / HALE</p>
+        <p class="eyebrow">تعرفه‌ها و اشتراک / حله</p>
         <div class="pricing-heading">
             <h1>پلن مناسب<br><em>رشد تو.</em></h1>
             <p>اعتبار بیشتر، فضای بیشتر برای تولید هوشمند تصویر و ویدئوی تجاری.</p>
@@ -298,8 +304,11 @@
 <div class="invoice-modal" data-invoice-modal hidden>
     <div class="invoice-paper" role="dialog" aria-modal="true" aria-labelledby="invoice-title">
         <div class="invoice-header">
-            <h2 id="invoice-title">فاکتور رسمی فروش خدمات Hale</h2>
-            <strong style="font-size: 18px; color: #bf646e;">H<span>•</span>le</strong>
+            <h2 id="invoice-title">فاکتور رسمی فروش خدمات حله</h2>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <img src="/images/brand/icon-rounded.png" alt="لوگو حله" width="24" height="24" style="border-radius: 6px;">
+                <strong style="font-size: 18px; color: #0F1226; font-weight: 900;">حله</strong>
+            </div>
         </div>
         <div class="invoice-details-grid">
             <div>
@@ -324,7 +333,7 @@
                 <strong data-inv-plan>طرح اشتراک</strong>
                 <span data-inv-amount style="font-weight: 700;">- تومان</span>
             </div>
-            <p style="margin: 0; font-size: 12px; color: #666;">شامل شارژ ماهیانه اعتبارات، اولویت پردازش، و دسترسی کامل به موتور هوش مصنوعی استودیو Hale.</p>
+            <p style="margin: 0; font-size: 12px; color: #666;">شامل شارژ ماهیانه اعتبارات، اولویت پردازش، و دسترسی کامل به موتور هوش مصنوعی استودیو حله.</p>
         </div>
         <div class="invoice-modal-actions">
             <button type="button" class="btn-action" onclick="window.print()">چاپ فاکتور</button>

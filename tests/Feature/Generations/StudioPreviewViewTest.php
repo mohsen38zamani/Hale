@@ -11,7 +11,7 @@ class StudioPreviewViewTest extends TestCase
         $response = $this->get('/create');
 
         $response->assertOk()
-            ->assertSee('استودیوی ساخت محتوا | Hale')
+            ->assertSee('استودیوی ساخت محتوا | حله')
             ->assertSee('data-builder-form', false)
             ->assertSee('data-custom-prompt', false)
             ->assertSee('data-custom-prompt-counter', false)

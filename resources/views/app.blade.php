@@ -5,14 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/apple-touch-icon.png">
     <meta name="theme-color" content="#1d2420">
-    <title>{{ config('app.name', 'Hale') }} | استودیوی محتوای تبلیغاتی</title>
+    <title>حله | استودیوی محتوای تبلیغاتی</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
     <div class="app-shell">
         <header class="topbar">
-            <a class="brand" href="/" aria-label="Hale">H<span>•</span>le</a>
+            <a class="brand" href="/" aria-label="حله - پلتفرم هوشمند تولید محتوا">
+                <img src="/images/brand/icon-rounded.png" alt="لوگو حله" class="brand-logo-img" width="32" height="32">
+                <span>حله</span>
+            </a>
             <div class="topbar-actions">
                 <span class="status-dot"><i></i> آماده برای ساخت</span>
                 <button class="text-button" data-open-auth="login">ورود</button>
@@ -31,9 +37,9 @@
                     </div>
                     <div class="trust-row"><span>✓ ۳۰ Credit رایگان</span><span>✓ خروجی آماده اینستاگرام</span></div>
                 </div>
-                <div class="hero-art" aria-label="نمونه فضای ساخت محتوای Hale">
+                <div class="hero-art" aria-label="نمونه فضای ساخت محتوای حله">
                     <div class="art-label">CREATIVE / 2026</div>
-                    <div class="art-product"><div class="bottle-cap"></div><div class="bottle"><b>HALE</b><small>BOTANICAL<br>OBJECT 01</small></div></div>
+                    <div class="art-product"><div class="bottle-cap"></div><div class="bottle"><b>حله</b><small>BOTANICAL<br>OBJECT 01</small></div></div>
                     <div class="art-note">LIGHT / FORM<br><strong>01 — 04</strong></div>
                     <div class="art-stamp">H</div>
                 </div>
@@ -51,7 +57,7 @@
         <div class="modal-backdrop" data-close-auth></div>
         <section class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
             <button class="close-button" data-close-auth aria-label="بستن">×</button>
-            <p class="eyebrow">WELCOME TO HALE</p>
+            <p class="eyebrow">به حله خوش آمدید</p>
             <h2 id="auth-title">شروع ساخت</h2>
             <p class="modal-copy">با ایمیل یا شماره موبایل وارد شو.</p>
             <div class="auth-tabs"><button class="active" data-auth-tab="login">ورود</button><button data-auth-tab="register">ثبت‌نام</button></div>
@@ -61,7 +67,7 @@
                 <label>رمز عبور<input name="password" type="password" autocomplete="current-password" placeholder="حداقل ۸ کاراکتر"></label>
                 <label data-confirm-field hidden>تکرار رمز عبور<input name="password_confirmation" type="password" autocomplete="new-password"></label>
                 <p class="form-message" data-form-message role="alert"></p>
-                <button class="primary-button full-button" type="submit" data-submit-auth>ورود به Hale <span>←</span></button>
+                <button class="primary-button full-button" type="submit" data-submit-auth>ورود به حله <span>←</span></button>
             </form>
             <p class="modal-footnote">با ثبت‌نام، مسیر ساخت اولین محتوایت شروع می‌شود.</p>
         </section>

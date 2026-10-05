@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>میز کار استودیو | Hale</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/apple-touch-icon.png">
+    <title>میز کار استودیو | حله</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="dashboard-page">
@@ -16,7 +19,10 @@
 
     <div class="app-shell" style="position: relative; z-index: 1;">
         <header class="topbar">
-            <a class="brand" href="/">H<span>•</span>le</a>
+            <a class="brand" href="/" aria-label="حله - پلتفرم هوشمند تولید محتوا">
+                <img src="/images/brand/icon-rounded.png" alt="لوگو حله" class="brand-logo-img" width="32" height="32">
+                <span>حله</span>
+            </a>
             <div class="topbar-actions">
                 <a href="/create" class="btn-aurora" style="padding: 8px 18px; font-size: 13px;">
                     <span>+ ساخت محتوای جدید</span>
@@ -28,7 +34,7 @@
                     <a href="/pricing" style="font-size: 12px; margin-right: 4px; color: var(--primary);">+ شارژ</a>
                 </div>
                 <button class="btn-glass" data-install-pwa hidden style="padding: 6px 14px; font-size: 13px;">
-                    📲 نصب Hale
+                    📲 نصب حله
                 </button>
                 <button class="btn-glass" data-logout style="padding: 6px 14px; font-size: 13px;">
                     خروج

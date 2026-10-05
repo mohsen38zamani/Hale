@@ -4,24 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
+    <meta name="description" content="حله، استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
     <meta name="theme-color" content="#06070B">
     <meta name="robots" content="index, follow">
     <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="canonical" href="{{ url('/') }}">
-    <title>Hale | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار</title>
+    <title>حله | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار</title>
 
     {{-- Open Graph / Twitter: bare links shared in DMs and social feeds --}}
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Hale">
+    <meta property="og:site_name" content="حله">
     <meta property="og:locale" content="fa_IR">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:title" content="Hale | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار">
-    <meta property="og:description" content="Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
+    <meta property="og:title" content="حله | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار">
+    <meta property="og:description" content="حله، استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
+    <meta property="og:image" content="{{ asset('images/brand/poster.jpg') }}">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Hale | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار">
-    <meta name="twitter:description" content="Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
+    <meta name="twitter:title" content="حله | عکس محصولت، خروجی سینمایی و تبلیغاتی آماده انتشار">
+    <meta name="twitter:description" content="حله، استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt.">
+    <meta name="twitter:image" content="{{ asset('images/brand/poster.jpg') }}">
 
     @vite(['resources/css/app.css', 'resources/css/landing.css', 'resources/js/app.js'])
 
@@ -30,13 +34,13 @@
     {
         "@@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "Hale",
-        "alternateName": "Hale AI Content Studio",
+        "name": "حله",
+        "alternateName": "استودیو هوش مصنوعی حله",
         "url": "{{ url('/') }}",
         "applicationCategory": "DesignApplication",
         "operatingSystem": "Web",
         "inLanguage": "fa-IR",
-        "description": "Hale استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt."
+        "description": "حله، استودیوی هوش مصنوعی ساخت محتوای تبلیغاتی؛ عکس محصولت را بده، تصویر و ویدئوی آماده اینستاگرام تحویل بگیر. بدون عکاس، بدون Prompt."
     }
     </script>
     <script type="application/ld+json">
@@ -49,7 +53,7 @@
                 "name": "آیا نیاز به مهارت گرافیک یا نوشتن پرامپت دارم؟",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "خیر، به هیچ وجه. پلتفرم Hale طوری طراحی شده که شما تنها عکس معمولی محصولتان را با موبایل آپلود کرده و سبک مد نظرتان را با لمس دکمه‌ها انتخاب می‌کنید. مهندسی پرامپت و پردازش‌های تخصصی تماماً توسط الگوریتم خودکار ما انجام می‌شود."
+                    "text": "خیر، به هیچ وجه. پلتفرم حله طوری طراحی شده که شما تنها عکس معمولی محصولتان را با موبایل آپلود کرده و سبک مد نظرتان را با لمس دکمه‌ها انتخاب می‌کنید. مهندسی پرامپت و پردازش‌های تخصصی تماماً توسط الگوریتم خودکار ما انجام می‌شود."
                 }
             },
             {
@@ -92,7 +96,10 @@
 
     {{-- ============ FRAMER FLOATING PILL NAVBAR ============ --}}
     <header class="framer-pill-nav">
-        <a class="brand" href="/">H<span>•</span>le</a>
+        <a class="brand" href="/" aria-label="حله - پلتفرم هوشمند تولید محتوا">
+            <img src="/images/brand/icon-rounded.png" alt="لوگو حله" class="brand-logo-img" width="32" height="32">
+            <span>حله</span>
+        </a>
         <nav class="nav-links" aria-label="پیمایش اصلی">
             <a class="nav-link" href="#simulator">استودیوی تعاملی</a>
             <a class="nav-link" href="#compare">مقایسه کیفیت</a>
@@ -120,7 +127,7 @@
             </h1>
 
             <p class="hero-subtitle">
-                Hale عکس ساده موبایلی محصولت را می‌گیرد و تصویر لوکس استودیویی و ویدیوی آمادهٔ ریلز اینستاگرام تحویل می‌دهد. بدون عکاس، بدون دردسر هماهنگی، در چند ثانیه.
+                حله عکس ساده موبایلی محصولت را می‌گیرد و تصویر لوکس استودیویی و ویدیوی آمادهٔ ریلز اینستاگرام تحویل می‌دهد. بدون عکاس، بدون دردسر هماهنگی، در چند ثانیه.
             </p>
 
             <div class="hero-cta">
@@ -140,7 +147,7 @@
                     <div class="simulator-dots">
                         <span></span><span></span><span></span>
                     </div>
-                    <div class="simulator-title">HALE STUDIO ENGINE — پیش‌نمایش تعاملی زنده</div>
+                    <div class="simulator-title">موتور استودیو هوشمند حله — پیش‌نمایش تعاملی زنده</div>
                     <span class="sim-status">
                         <span class="sim-status-dot"></span>
                         موتور فعال
@@ -244,7 +251,7 @@
                     عکس روی میز کار در برابر <span class="text-gradient">استودیوی هالیوودی</span>
                 </h2>
                 <p class="section-lead">
-                    دستگیره وسط را به چپ و راست بکشید تا تفاوت عکس خام موبایلی را با خروجی پردازش‌شده توسط هوش مصنوعی Hale مقایسه کنید.
+                    دستگیره وسط را به چپ و راست بکشید تا تفاوت عکس خام موبایلی را با خروجی پردازش‌شده توسط هوش مصنوعی حله مقایسه کنید.
                 </p>
             </div>
 
@@ -253,7 +260,7 @@
                 <div class="ba-layer ba-layer-after">
                     <div class="ba-content">
                         <div class="ba-pill">
-                            ✦ خروجی هوش مصنوعی استودیو Hale
+                            ✦ خروجی هوش مصنوعی استودیو حله
                         </div>
                         <div class="ba-headline">
                             نورپردازی سینمایی، سایه‌های واقعی و بافت غنی
@@ -295,7 +302,7 @@
                     <span>مهندسی‌شده برای رشد فروش</span>
                 </div>
                 <h2 class="section-title">
-                    چرا فروشگاه‌ها <span class="text-gradient">Hale</span> را ترجیح می‌دهند؟
+                    چرا فروشگاه‌ها <span class="text-gradient">حله</span> را ترجیح می‌دهند؟
                 </h2>
                 <p class="section-lead">
                     پلتفرمی که صفر تا صد تولید محتوای شبکه‌های اجتماعی را اتوماتیک می‌کند.
@@ -359,6 +366,61 @@
                         <span>✓ بازگشت آنی در خطا</span>
                     </div>
                 </div>
+
+                {{-- Card 5 (Brand Showcase Poster Card) --}}
+                <div class="bento-poster-card">
+                    <div class="bento-poster-text">
+                        <div class="poster-badge">
+                            <span>✦</span>
+                            <span>هویت بصری جدید حله</span>
+                        </div>
+                        <h3 class="poster-title">
+                            با هوش مصنوعی، از یک عکس ساده محتوای حرفه‌ای بساز!
+                            <span class="poster-slogan-highlight">همه‌چیز رو راحت با این حل کن</span>
+                        </h3>
+                        <p class="poster-desc">
+                            دیگر نیازی به آتلیه گران‌قیمت یا فیلمبرداری پرهزینه ندارید. فقط عکس محصول خود را بارگذاری کنید؛ هوش مصنوعی استودیو <strong>حله</strong> همه مراحل از بازسازی صحنه تا ساخت ویدیوی ریلز، کپشن‌نویسی و آماده‌سازی برای اینستاگرام را در چند ثانیه انجام می‌دهد.
+                        </p>
+                        <div class="poster-points">
+                            <div class="poster-point">
+                                <span class="poster-point-icon">📸</span>
+                                <div>
+                                    <strong>فقط یک عکس ساده</strong>
+                                    <div>بقیه کارها رو به حله بسپار</div>
+                                </div>
+                            </div>
+                            <div class="poster-point">
+                                <span class="poster-point-icon">⚡</span>
+                                <div>
+                                    <strong>وقت تو باارزشه!</strong>
+                                    <div>تولید محتوای آماده انتشار در چند ثانیه</div>
+                                </div>
+                            </div>
+                            <div class="poster-point">
+                                <span class="poster-point-icon">🎬</span>
+                                <div>
+                                    <strong>ریلز و استوری عمودی</strong>
+                                    <div>ویدیوهای کوتاه با جلوه‌های سینمایی</div>
+                                </div>
+                            </div>
+                            <div class="poster-point">
+                                <span class="poster-point-icon">✍️</span>
+                                <div>
+                                    <strong>کپشن و هشتگ هدفمند</strong>
+                                    <div>متن‌های ترغیب‌کننده و مناسب اکسپلور</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bento-poster-media">
+                        <div class="poster-img-wrapper">
+                            <picture>
+                                <source srcset="/images/brand/poster.webp" type="image/webp">
+                                <img src="/images/brand/poster.jpg" alt="پوستر رسمی هوش مصنوعی حله - از یک عکس ساده محتوای حرفه‌ای بساز" width="480" height="895" loading="lazy" decoding="async">
+                            </picture>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -410,7 +472,7 @@
                         <li><span class="check">✓</span> ۳۰ کریدیت هدیه با تایید پیامک</li>
                         <li><span class="check">✓</span> تولید تصاویر نامحدود</li>
                         <li><span class="check">✓</span> دسترسی به تمام سبک‌های تصویری</li>
-                        <li><span class="check">✓</span> واترمارک نامحسوس Hale</li>
+                        <li><span class="check">✓</span> واترمارک نامحسوس حله</li>
                     </ul>
                     <button class="btn-glass pricing-cta" data-open-auth="register">
                         شروع رایگان
@@ -474,7 +536,7 @@
                 <details class="faq-item" open>
                     <summary>آیا نیاز به مهارت گرافیک یا نوشتن پرامپت دارم؟</summary>
                     <p>
-                        خیر، به هیچ وجه. پلتفرم Hale طوری طراحی شده که شما تنها عکس معمولی محصولتان را با موبایل آپلود کرده و سبک مد نظرتان را با لمس دکمه‌ها انتخاب می‌کنید. مهندسی پرامپت و پردازش‌های تخصصی تماماً توسط الگوریتم خودکار ما انجام می‌شود.
+                        خیر، به هیچ وجه. پلتفرم حله طوری طراحی شده که شما تنها عکس معمولی محصولتان را با موبایل آپلود کرده و سبک مد نظرتان را با لمس دکمه‌ها انتخاب می‌کنید. مهندسی پرامپت و پردازش‌های تخصصی تماماً توسط الگوریتم خودکار ما انجام می‌شود.
                     </p>
                 </details>
 
@@ -521,8 +583,12 @@
     {{-- ============ MODERN FOOTER ============ --}}
     <footer class="site-footer">
         <div class="site-footer-inner">
-            <a class="brand" href="/">H<span>•</span>le</a>
+            <a class="brand" href="/" aria-label="حله - پلتفرم هوشمند تولید محتوا">
+                <img src="/images/brand/icon-rounded.png" alt="لوگو حله" class="brand-logo-img" width="36" height="36">
+                <span>حله</span>
+            </a>
             <p class="site-footer-note">
+                <strong>همه‌چیز رو راحت با این حل کن</strong><br>
                 پلتفرم ابری هوش مصنوعی برای تولید محتوای تبلیغاتی محصولات فروشگاه‌ها
             </p>
             <div class="site-footer-links">
@@ -532,7 +598,7 @@
                 <a href="mailto:support@hale.ai">پشتیبانی</a>
             </div>
             <small class="site-footer-copy">
-                © ۱۴۰۵ تمامی حقوق برای استودیو هوشمند Hale محفوظ است.
+                © ۱۴۰۵ تمامی حقوق برای استودیو هوشمند حله محفوظ است.
             </small>
         </div>
     </footer>
@@ -542,9 +608,9 @@
         <div class="modal-backdrop" data-close-auth></div>
         <section class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
             <button class="close-button" data-close-auth aria-label="بستن">×</button>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                <span style="font-size: 18px; color: var(--primary);">✦</span>
-                <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px;">HALE AI STUDIO</span>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <img src="/images/brand/icon-rounded.png" alt="حله" width="28" height="28" style="border-radius: 8px;">
+                <span style="font-size: 13px; font-weight: 800; color: #6C5CE7; letter-spacing: 0.5px;">استودیو هوش مصنوعی حله</span>
             </div>
             <h2 id="auth-title" style="font-size: 26px; font-weight: 800; margin: 0 0 6px;">ورود به استودیو</h2>
             <p class="modal-copy" style="color: var(--text-secondary); font-size: 13px; margin: 0;">با ایمیل یا شماره موبایل وارد شو و بساز.</p>
@@ -558,7 +624,7 @@
                 <label>رمز عبور<input name="password" type="password" autocomplete="current-password" placeholder="حداقل ۸ کاراکتر"></label>
                 <label data-confirm-field hidden>تکرار رمز عبور<input name="password_confirmation" type="password" autocomplete="new-password"></label>
                 <p class="form-message" data-form-message role="alert"></p>
-                <button class="btn-aurora full-button" type="submit" data-submit-auth style="border-radius: 12px; padding: 13px;">ورود به Hale <span>←</span></button>
+                <button class="btn-aurora full-button" type="submit" data-submit-auth style="border-radius: 12px; padding: 13px;">ورود به حله <span>←</span></button>
             </form>
             <p class="modal-footnote" style="color: var(--text-muted); font-size: 11px; margin-top: 18px; text-align: center;">با ثبت‌نام، ۳۰ کریدیت هدیه جهت شروع به حسابتان افزوده می‌شود.</p>
         </section>

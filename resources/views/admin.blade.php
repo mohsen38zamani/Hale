@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>پنل مدیریت و پایش استودیو | Hale Command Center</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/apple-touch-icon.png">
+    <title>پنل مدیریت و پایش استودیو | مرکز کنترل حله</title>
     @vite(['resources/css/app.css'])
 </head>
 <body class="dashboard-page">
@@ -17,7 +20,10 @@
     <div class="app-shell" style="position: relative; z-index: 1;">
         <header class="topbar">
             <div style="display: flex; align-items: center; gap: 16px;">
-                <a class="brand" href="/">H<span>•</span>le</a>
+                <a class="brand" href="/" aria-label="حله - پلتفرم هوشمند تولید محتوا">
+                    <img src="/images/brand/icon-rounded.png" alt="لوگو حله" class="brand-logo-img" width="32" height="32">
+                    <span>حله</span>
+                </a>
                 <span class="badge-glow" style="margin-bottom: 0; font-size: 11px;">COMMAND CENTER</span>
             </div>
             <div class="topbar-actions">

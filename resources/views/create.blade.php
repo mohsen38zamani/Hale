@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>استودیوی ساخت محتوا | Hale</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/apple-touch-icon.png">
+    <title>استودیوی ساخت محتوا | حله</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="dashboard-page">
@@ -16,7 +19,10 @@
 
     <div class="app-shell" style="position: relative; z-index: 1;">
         <header class="topbar">
-            <a class="brand" href="/">H<span>•</span>le</a>
+            <a class="brand" href="/" aria-label="حله - پلتفرم هوشمند تولید محتوا">
+                <img src="/images/brand/icon-rounded.png" alt="لوگو حله" class="brand-logo-img" width="32" height="32">
+                <span>حله</span>
+            </a>
             <div class="topbar-actions">
                 <a class="btn-glass" href="/dashboard" style="font-size: 13px; padding: 6px 16px;">
                     بازگشت به داشبورد

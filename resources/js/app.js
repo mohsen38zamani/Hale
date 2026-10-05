@@ -67,7 +67,7 @@ const setAuthMode = (mode) => {
 	}
 	const authTitle = document.querySelector('#auth-title');
 	if (authTitle) authTitle.textContent = mode === 'register' ? 'حساب بساز' : 'خوش آمدی';
-	if (submit) submit.innerHTML = mode === 'register' ? 'ساخت حساب رایگان <span>←</span>' : 'ورود به Hale <span>←</span>';
+	if (submit) submit.innerHTML = mode === 'register' ? 'ساخت حساب رایگان <span>←</span>' : 'ورود به حله <span>←</span>';
 	document.querySelectorAll('[data-auth-tab]').forEach((tab) => tab.classList.toggle('active', tab.dataset.authTab === mode));
 	if (message) {
 		message.textContent = '';

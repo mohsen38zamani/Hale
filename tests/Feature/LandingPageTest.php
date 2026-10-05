@@ -108,7 +108,7 @@ class LandingPageTest extends TestCase
         $response->assertSee('<link rel="canonical" href="http://localhost"', false);
         $response->assertSee('<meta name="robots" content="index, follow">', false);
         $response->assertSee('<meta property="og:type" content="website">', false);
-        $response->assertSee('<meta property="og:site_name" content="Hale">', false);
+        $response->assertSee('<meta property="og:site_name" content="حله">', false);
         $response->assertSee('<meta property="og:locale" content="fa_IR">', false);
         $response->assertSee('<meta property="og:title"', false);
         $response->assertSee('<meta property="og:description"', false);
@@ -125,7 +125,7 @@ class LandingPageTest extends TestCase
 
         $software = json_decode($matches[1][0], true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame('SoftwareApplication', $software['@type']);
-        $this->assertSame('Hale', $software['name']);
+        $this->assertSame('حله', $software['name']);
         $this->assertSame('DesignApplication', $software['applicationCategory']);
         $this->assertSame('http://localhost', $software['url']);
 
