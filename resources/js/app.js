@@ -265,6 +265,250 @@ document.querySelector('[data-logout]')?.addEventListener('click', async () => {
 	window.location.href = '/';
 });
 
+// ---- AI utility tools: background removal, upscale, expand, shadow ----
+// Shared by the product-tile modal (dashboard) and the tools panel
+// (generation page): both render the same [data-tool-*] markup, this
+// module binds one controller per root element.
+
+let imageToolsCosts = null; // { costs, balance, plan }
+const loadedProductNames = new Map();
+
+const loadImageToolsCosts = async (force = false) => {
+	if (imageToolsCosts && !force) return imageToolsCosts;
+	const response = await authFetch('/api/edits/costs', { headers: { Accept: 'application/json' } });
+	if (!response.ok) throw new Error('دریافت تعرفهٔ ابزارها ممکن نیست.');
+	imageToolsCosts = (await response.json()).data;
+	return imageToolsCosts;
+};
+
+const toolErrorMessages = {
+	INSUFFICIENT_CREDITS: 'اعتبار کافی نیست.',
+	PREMIUM_QUALITY_REQUIRED: 'ارتقای تصویر به 2K/4K فقط در پلن پرمیوم فعال است.',
+	SOURCE_NOT_FOUND: 'منبع ویرایش یافت نشد.',
+	SOURCE_NOT_PROCESSABLE: 'این تصویر هنوز خروجی تکمیلی‌ای ندارد.',
+};
+
+const mountImageTools = (root, { sourceType, getSourceId }) => {
+	if (!root) return null;
+	const opButtons = [...root.querySelectorAll('[data-tool-op]')];
+	const optionLabels = [...root.querySelectorAll('[data-tool-opt]')];
+	const background = root.querySelector('[data-tool-background]');
+	const target = root.querySelector('[data-tool-target]');
+	const ratio = root.querySelector('[data-tool-ratio]');
+	const effect = root.querySelector('[data-tool-effect]');
+	const costLabel = root.querySelector('[data-tool-cost]');
+	const balanceLabel = root.querySelector('[data-tool-balance]');
+	const runButton = root.querySelector('[data-tool-run]');
+	const status = root.querySelector('[data-tool-status]');
+	const resultBox = root.querySelector('[data-tool-result]');
+	const preview = root.querySelector('[data-tool-preview]');
+	const download = root.querySelector('[data-tool-download]');
+	const meta = root.querySelector('[data-tool-meta]');
+	let operation = 'remove_bg';
+	let objectUrl = null;
+	let polling = false;
+
+	const setStatus = (text, isError = false) => {
+		if (!status) return;
+		status.textContent = text || '';
+		status.style.color = isError ? '#F87171' : 'var(--text-muted)';
+	};
+
+	const currentCost = () => {
+		const costs = imageToolsCosts?.costs;
+		if (!costs) return null;
+		return operation === 'upscale'
+			? (costs.upscale?.[target?.value || 'hd'] ?? null)
+			: (costs[operation] ?? null);
+	};
+
+	const refreshLabels = () => {
+		const cost = currentCost();
+		if (costLabel) costLabel.textContent = cost != null ? `هزینه: ${cost} Credit` : 'تعرفه در حال بارگذاری...';
+		if (balanceLabel && imageToolsCosts) balanceLabel.textContent = `موجودی: ${imageToolsCosts.balance} Credit`;
+	};
+
+	// Plan gate: free plans may only upscale to HD (server enforces it too).
+	const applyPremiumGate = () => {
+		const maxTarget = imageToolsCosts?.plan?.max_upscale_target || 'hd';
+		if (!target) return;
+		['2k', '4k'].forEach((value) => {
+			const option = target.querySelector(`option[value="${value}"]`);
+			if (!option) return;
+			option.disabled = maxTarget === 'hd';
+			if (maxTarget === 'hd' && !option.textContent.includes('پرمیوم')) option.textContent += ' (پرمیوم)';
+		});
+	};
+
+	const applyOperation = () => {
+		opButtons.forEach((button) => {
+			const active = button.dataset.toolOp === operation;
+			button.setAttribute('aria-pressed', String(active));
+			button.style.color = active ? '#FFFFFF' : '';
+			button.style.borderColor = active ? 'var(--primary)' : '';
+		});
+		optionLabels.forEach((label) => { label.hidden = label.dataset.toolOpt !== operation; });
+		refreshLabels();
+	};
+
+	const refreshCosts = async () => {
+		try {
+			await loadImageToolsCosts(true);
+			applyPremiumGate();
+			refreshLabels();
+		} catch {
+			// Keep the stale numbers; the run itself re-validates server-side.
+		}
+	};
+
+	const settleRun = () => {
+		polling = false;
+		if (runButton) runButton.disabled = false;
+	};
+
+	const showResult = async (edit) => {
+		try {
+			const response = await authFetch(`/api/edits/${edit.id}/download`, { headers: { Accept: 'image/*' } });
+			if (!response.ok) throw new Error('دریافت نتیجه ممکن نیست.');
+			if (objectUrl) URL.revokeObjectURL(objectUrl);
+			objectUrl = URL.createObjectURL(await response.blob());
+			if (preview) preview.src = objectUrl;
+			if (download) {
+				download.href = objectUrl;
+				const mime = response.headers.get('Content-Type') || 'image/png';
+				download.download = `edit-${edit.id}.${mime === 'image/webp' ? 'webp' : mime === 'image/jpeg' ? 'jpg' : 'png'}`;
+			}
+			if (resultBox) resultBox.hidden = false;
+			if (meta) meta.textContent = `هزینه: ${edit.credits_spent} Credit`;
+			setStatus('✓ ویرایش با موفقیت تکمیل شد.');
+		} catch (error) {
+			setStatus(error.message, true);
+		}
+		await refreshCosts();
+	};
+
+	const pollEdit = (editId, attempt = 0) => {
+		if (!polling) return;
+		setTimeout(async () => {
+			if (!polling) return;
+			try {
+				const response = await authFetch(`/api/edits/${editId}`, { headers: { Accept: 'application/json' } });
+				const result = await response.json();
+				if (!response.ok) throw new Error(result.error?.message || 'پیگیری نتیجه ممکن نیست.');
+				const edit = result.data;
+				if (edit.status === 'completed') {
+					settleRun();
+					await showResult(edit);
+					return;
+				}
+				if (edit.status === 'failed') {
+					settleRun();
+					setStatus('ویرایش ناموفق بود؛ اعتبار پرداخت‌شده برگشت داده شد.', true);
+					await refreshCosts();
+					return;
+				}
+				setStatus('در حال پردازش تصویر...');
+				pollEdit(editId, attempt + 1);
+			} catch (error) {
+				// Transient network blips: retry a few times before giving up.
+				if (attempt < 3) {
+					pollEdit(editId, attempt + 1);
+					return;
+				}
+				settleRun();
+				setStatus(error.message, true);
+			}
+		}, Math.min(10000, 2000 + attempt * 1500));
+	};
+
+	const run = async () => {
+		const sourceId = getSourceId();
+		if (!sourceId) {
+			setStatus('منبع ویرایش در دسترس نیست.', true);
+			return;
+		}
+		const payload = { source_type: sourceType, source_id: sourceId, operation };
+		if (operation === 'remove_bg' && background) payload.background = background.value;
+		if (operation === 'upscale' && target) payload.target = target.value;
+		if (operation === 'expand' && ratio) payload.aspect_ratio = ratio.value;
+		if (operation === 'shadow' && effect) payload.effect = effect.value;
+
+		if (runButton) runButton.disabled = true;
+		polling = true;
+		if (resultBox) resultBox.hidden = true;
+		setStatus('در حال ارسال درخواست...');
+		try {
+			const response = await authFetch('/api/edits', {
+				method: 'POST',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload),
+			});
+			const result = await response.json();
+			if (!response.ok) {
+				settleRun();
+				if (response.status === 402) {
+					setStatus(`${result.error?.message || 'اعتبار کافی نیست.'} — برای خرید اعتبار به صفحهٔ پلن‌ها بروید.`, true);
+				} else if (response.status === 429) {
+					setStatus('چند لحظه صبر کنید و دوباره تلاش کنید.', true);
+				} else {
+					const code = result.error?.code;
+					setStatus(result.error?.message || result.message || toolErrorMessages[code] || 'ویرایش انجام نشد.', true);
+				}
+				return;
+			}
+			const edit = result.data;
+			if (edit.status === 'completed') {
+				settleRun();
+				await showResult(edit);
+				return;
+			}
+			setStatus('در صف پردازش...');
+			pollEdit(edit.id);
+		} catch (error) {
+			settleRun();
+			setStatus(error.message, true);
+		}
+	};
+
+	opButtons.forEach((button) => button.addEventListener('click', () => {
+		operation = button.dataset.toolOp;
+		applyOperation();
+	}));
+	[background, target, ratio, effect].forEach((control) => control?.addEventListener('change', refreshLabels));
+	runButton?.addEventListener('click', run);
+	applyOperation();
+	loadImageToolsCosts()
+		.then(() => { applyPremiumGate(); refreshLabels(); })
+		.catch(() => setStatus('تعرفهٔ ابزارها بارگذاری نشد؛ دوباره تلاش کنید.', true));
+
+	return {
+		reset() {
+			polling = false;
+			if (runButton) runButton.disabled = false;
+			if (resultBox) resultBox.hidden = true;
+			setStatus('');
+		},
+	};
+};
+
+// Dashboard: the product tile button opens the shared tools modal.
+const editModal = document.querySelector('[data-edit-modal]');
+const editSourceLabel = document.querySelector('[data-edit-source]');
+let editProductId = null;
+const imageToolsController = mountImageTools(editModal, { sourceType: 'product', getSourceId: () => editProductId });
+
+// Delegated: tiles are re-rendered on every loadProducts() call.
+document.querySelector('[data-product-grid]')?.addEventListener('click', (event) => {
+	const button = event.target.closest('[data-tool-product]');
+	if (!button) return;
+	editProductId = Number(button.dataset.toolProduct);
+	const name = loadedProductNames.get(editProductId);
+	if (editSourceLabel) editSourceLabel.textContent = name ? `روی عکس خام «${name}»` : 'روی عکس خام محصول';
+	imageToolsController?.reset();
+	editModal?.removeAttribute('hidden');
+});
+document.querySelectorAll('[data-close-edit]').forEach((button) => button.addEventListener('click', () => editModal?.setAttribute('hidden', '')));
+
 const productModal = document.querySelector('[data-product-modal]');
 const productForm = document.querySelector('[data-product-form]');
 const productGrid = document.querySelector('[data-product-grid]');
@@ -447,6 +691,7 @@ const loadProducts = async () => {
 		}
 		const result = await response.json();
 		const products = result.data?.data || [];
+		products.forEach((product) => loadedProductNames.set(product.id, product.name));
 		const pagination = result.data || {};
 		productPagination.hidden = (pagination.last_page || 1) <= 1;
 		productPage.textContent = `${pagination.current_page || 1} / ${pagination.last_page || 1}`;
@@ -455,7 +700,7 @@ const loadProducts = async () => {
 		productGrid.innerHTML = products.length ? products.map((product) => {
 			const primary = product.assets?.[0];
 			const loved = Boolean(product.is_favorite);
-			return `<article class="product-tile"><label class="product-select-box"><input type="checkbox" data-bulk-select="${product.id}" aria-label="انتخاب ${escapeHtml(product.name)}"></label><div class="product-tile-art ${primary ? 'skeleton-shimmer is-loading' : ''}">${primary ? `<img data-product-asset="${primary.id}" alt="${escapeHtml(product.name)}" style="opacity: 0;">` : '<b>H</b>'}</div><strong>${highlight(product.name, productSearch?.value)}</strong><small>${product.description ? highlight(product.description, productSearch?.value) : 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions"><button class="favorite-star" type="button" data-favorite-product="${product.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`;
+			return `<article class="product-tile"><label class="product-select-box"><input type="checkbox" data-bulk-select="${product.id}" aria-label="انتخاب ${escapeHtml(product.name)}"></label><div class="product-tile-art ${primary ? 'skeleton-shimmer is-loading' : ''}">${primary ? `<img data-product-asset="${primary.id}" alt="${escapeHtml(product.name)}" style="opacity: 0;">` : '<b>H</b>'}</div><strong>${highlight(product.name, productSearch?.value)}</strong><small>${product.description ? highlight(product.description, productSearch?.value) : 'آماده برای ساخت محتوا'}</small><div class="product-tile-actions" style="flex-wrap: wrap;"><button class="favorite-star" type="button" data-favorite-product="${product.id}" aria-pressed="${loved}" aria-label="${loved ? 'حذف از موردعلاقه‌ها' : 'افزودن به موردعلاقه‌ها'}" title="موردعلاقه‌ها">${loved ? '★' : '☆'}</button><button class="small-button" type="button" data-tool-product="${product.id}" title="ابزارهای هوشمند تصویر روی عکس خام">ابزار ✦</button><button class="small-button" data-edit-product="${product.id}">ویرایش</button><button class="small-button" data-delete-product="${product.id}">حذف</button></div></article>`;
 		}).join('') : `<p class="empty-state">${productsFavoriteOnly ? 'هنوز محصولی به موردعلاقه‌ها اضافه نکرده‌ای.' : 'محصولی با این مشخصات پیدا نشد.'}</p>`;
 
 		syncBulkCheckboxes(products.map((product) => product.id));
@@ -1607,6 +1852,8 @@ if (generationPage) {
 	const retryButton = document.querySelector('[data-retry]');
 	const regenerateButton = document.querySelector('[data-regenerate]');
 	const captionButton = document.querySelector('[data-caption]');
+	const toolsButton = document.querySelector('[data-tools]');
+	const toolsPanel = document.querySelector('[data-tools-panel]');
 	const captionPanel = document.querySelector('[data-caption-panel]');
 	const captionLanguage = document.querySelector('[data-caption-language]');
 	const captionTone = document.querySelector('[data-caption-tone]');
@@ -1671,6 +1918,7 @@ if (generationPage) {
 			retryButton.hidden = true;
 			regenerateButton.hidden = false;
 			if (captionButton) captionButton.hidden = false;
+			if (toolsButton) toolsButton.hidden = false;
 			return;
 		}
 		if (generation.status === 'failed' || generation.status === 'cancelled') {
@@ -1683,6 +1931,7 @@ if (generationPage) {
 			retryButton.hidden = cancelled;
 			regenerateButton.hidden = true;
 			if (captionButton) captionButton.hidden = true;
+			if (toolsButton) toolsButton.hidden = true;
 			if (cancelled) document.querySelector('[data-download]').hidden = true;
 			return;
 		}
@@ -1772,6 +2021,8 @@ if (generationPage) {
 	});
 	captionLanguage?.addEventListener('change', () => { if (captionPanel && !captionPanel.hidden) generateCaption(false); });
 	captionTone?.addEventListener('change', () => { if (captionPanel && !captionPanel.hidden) generateCaption(false); });
+	toolsButton?.addEventListener('click', () => { if (toolsPanel) toolsPanel.hidden = !toolsPanel.hidden; });
+	mountImageTools(toolsPanel, { sourceType: 'generation', getSourceId: () => Number(generationId) });
 	retryButton?.addEventListener('click', async () => {
 		retryButton.disabled = true;
 		const response = await authFetch(`/api/generations/${generationId}/retry`, { method: 'POST', headers: { Accept: 'application/json' } });

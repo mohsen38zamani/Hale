@@ -76,6 +76,7 @@
                     <button class="btn-glass" data-retry hidden style="font-size: 13px;">تلاش مجدد</button>
                     <button class="btn-glass" data-regenerate style="font-size: 13px;">تولید دوباره ↺</button>
                     <button class="btn-glass" data-caption hidden style="font-size: 13px;">✨ تولید کپشن</button>
+                    <button class="btn-glass" data-tools hidden style="font-size: 13px;">🛠 ابزارهای تصویر</button>
                 </div>
 
                 <div style="display: flex; gap: 8px; align-items: center;">
@@ -106,6 +107,70 @@
                 <p data-caption-text style="margin: 0 0 10px; font-size: 14px; line-height: 1.9; color: #FFFFFF; white-space: pre-wrap;"></p>
                 <p data-caption-tags style="margin: 0 0 8px; font-size: 13px; color: var(--primary);"></p>
                 <p data-caption-meta style="margin: 0; font-size: 11px; color: var(--text-muted);"></p>
+            </div>
+
+            {{-- AI Utility Tools Panel --}}
+            <div class="tools-panel" data-tools-panel hidden style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 24px; margin-top: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+                    <strong style="font-size: 14px; color: #FFFFFF;">🛠 ابزارهای هوشمند تصویر</strong>
+                    <span data-tool-balance style="font-size: 12px; color: var(--text-muted);"></span>
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+                    <button class="small-button" type="button" data-tool-op="remove_bg" aria-pressed="true">حذف پس‌زمینه</button>
+                    <button class="small-button" type="button" data-tool-op="upscale" aria-pressed="false">ارتقای وضوح</button>
+                    <button class="small-button" type="button" data-tool-op="expand" aria-pressed="false">بسط کادر</button>
+                    <button class="small-button" type="button" data-tool-op="shadow" aria-pressed="false">سایه و رفلکس</button>
+                </div>
+
+                <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px;">
+                    <label data-tool-opt="remove_bg" style="font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+                        پس‌زمینه
+                        <select data-tool-background aria-label="پس‌زمینه خروجی" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0;">
+                            <option value="transparent">شفاف (PNG)</option>
+                            <option value="white">سفید استاندارد</option>
+                        </select>
+                    </label>
+                    <label data-tool-opt="upscale" hidden style="font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+                        وضوح مقصد
+                        <select data-tool-target aria-label="وضوح مقصد" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0;">
+                            <option value="hd">HD (۱۰۲۴)</option>
+                            <option value="2k">2K (۲۰۴۸)</option>
+                            <option value="4k">4K (۴۰۹۶)</option>
+                        </select>
+                    </label>
+                    <label data-tool-opt="expand" hidden style="font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+                        نسبت تصویر مقصد
+                        <select data-tool-ratio aria-label="نسبت تصویر مقصد" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0;">
+                            <option value="1:1">مربعی ۱:۱</option>
+                            <option value="4:5">پرتره ۴:۵</option>
+                            <option value="3:4">پرتره ۳:۴</option>
+                            <option value="16:9">افقی ۱۶:۹</option>
+                            <option value="9:16">عمودی ۹:۱۶</option>
+                        </select>
+                    </label>
+                    <label data-tool-opt="shadow" hidden style="font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+                        افکت
+                        <select data-tool-effect aria-label="افکت" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0;">
+                            <option value="shadow">سایه طبیعی</option>
+                            <option value="reflection">رفلکس سه‌بعدی</option>
+                        </select>
+                    </label>
+                    <div style="display: flex; gap: 12px; align-items: center; margin-inline-start: auto;">
+                        <span data-tool-cost style="font-size: 12px; color: var(--text-muted);"></span>
+                        <button class="btn-aurora" type="button" data-tool-run style="padding: 8px 18px; font-size: 13px;">اجرا ✦</button>
+                    </div>
+                </div>
+
+                <p data-tool-status role="status" style="margin: 0 0 10px; font-size: 12px; color: var(--text-muted);"></p>
+
+                <div data-tool-result hidden style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px;">
+                    <img data-tool-preview alt="نتیجه ویرایش تصویر" style="max-height: 170px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <a class="small-button" data-tool-download download style="text-decoration: none;">دانلود نتیجه ⬇</a>
+                        <span data-tool-meta style="font-size: 11px; color: var(--text-muted);"></span>
+                    </div>
+                </div>
             </div>
 
             <p class="form-message" data-generation-message role="alert" style="margin-top: 18px; text-align: center;"></p>

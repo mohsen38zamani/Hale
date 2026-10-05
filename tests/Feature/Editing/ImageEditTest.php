@@ -373,6 +373,24 @@ class ImageEditTest extends TestCase
         $this->getJson('/api/edits?status=queued')->assertOk()->assertJsonPath('data.total', 0);
     }
 
+    public function test_pages_expose_the_image_tools_ui(): void
+    {
+        // The tools modal lives in the dashboard shell (shared controller).
+        $this->get('/dashboard')
+            ->assertOk()
+            ->assertSee('data-edit-modal', false)
+            ->assertSee('data-tool-op="remove_bg"', false)
+            ->assertSee('data-tool-target', false)
+            ->assertSee('data-tool-run', false);
+
+        // The generation page hosts the inline tools panel next to caption.
+        $this->get('/generations/7')
+            ->assertOk()
+            ->assertSee('data-tools-panel', false)
+            ->assertSee('data-tool-opt="expand"', false)
+            ->assertSee('data-tool-effect', false);
+    }
+
     /**
      * A product with a real source photo on the (faked) s3 disk.
      */
