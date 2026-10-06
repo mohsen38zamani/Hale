@@ -39,6 +39,7 @@ return [
         'lighting_setup' => 'medium',
         'camera_angle' => 'high',
         'props' => 'subtle',
+        'character_consistency' => 'high',
     ],
 
     'surfaces' => [
@@ -192,6 +193,21 @@ return [
             'label' => 'نور نئون سایبرنتیک',
             'prompt' => 'Lighting: futuristic duotone cyber neon backlight with subtle magenta and cyan ambient glow',
             'icon' => '🟣',
+        ],
+    ],
+
+    'character_consistencies' => [
+        'dynamic' => [
+            'key' => 'dynamic',
+            'label' => 'تنوع و مدل جدید',
+            'prompt' => '',
+            'icon' => '🎲',
+        ],
+        'locked' => [
+            'key' => 'locked',
+            'label' => 'ثابت و بدون تغییر',
+            'prompt' => 'strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift',
+            'icon' => '🔒',
         ],
     ],
 ];

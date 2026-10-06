@@ -21,6 +21,7 @@ class CreativeImpactTest extends TestCase
         'lighting_setup',
         'camera_angle',
         'props',
+        'character_consistency',
     ];
 
     public function test_creative_options_exposes_impact_levels_and_map(): void
@@ -66,6 +67,7 @@ class CreativeImpactTest extends TestCase
             'style' => 'high',
             'format' => 'high',
             'camera_angle' => 'high',
+            'character_consistency' => 'high',
             'environment' => 'medium',
             'surface' => 'medium',
             'lighting_setup' => 'medium',
