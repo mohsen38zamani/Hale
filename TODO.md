@@ -534,19 +534,16 @@
     - پوشش کامل تست‌های واحد و Feature در `PromptCompilerTest` و `StudioPreviewViewTest`.
 
 ### ۷. کنترل و قفل ثبات کاراکتر/مدل در برابر تغییرپذیری (Character & Subject Consistency Control)
-- [ ] **طراحی کنترل ثبات کاراکتر/مدل انسانی (Consistent vs Dynamic Character Option):**
+- [x] **طراحی کنترل ثبات کاراکتر/مدل انسانی (Consistent vs Dynamic Character Option):**
   - **مسئله:** در تولید تصاویر تجاری که شامل مدل انسانی، چهره یا کاراکتر برند هستند، با هر بار جنریشن چهره و ویژگی‌های مدل تغییر می‌کند؛ همچنین در شرایطی که کاربر تمایل به تنوع چهره دارد کنترلی وجود ندارد. نیاز به یک آپشن دوحالته برای قفل هویت کاراکتر یا اجازه به خلق مدل جدید است.
-  - **نیازمندی در رابط کاربری (UI/UX استودیو `/create`):**
-    - افزودن کنترل اختصاصی «ثبات کاراکتر / مدل» در بخش تنظیمات صحنه با دو حالت:
-      - 🔒 **ثابت و بدون تغییر (Lock Character / Same Model):** مقید ساختن هوش مصنوعی به حفظ دقیق هویت، چهره، ساختار فیزیولوژیک و فیچرهای مدل در تمامی تولیدها (`strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift`).
-      - 🎲 **تنوع و مدل جدید (Dynamic / New Character):** اجازه به هوش مصنوعی برای تولید مدل‌های انسانی متنوع متناسب با سبک و سناریو.
-    - نمایش چیپ وضعیت در بازرس پرامپت (`Prompt Inspector`) جهت شفافیت برای کاربر.
-  - **نیازمندی فنی و معماری بک‌اند (DDD):**
-    - افزودن تنظیمات کاراکتر به `config/creative.php` با کلیدهای `locked` و `dynamic`.
-    - دریافت پارامتر `character_consistency` در `PreviewCreativeRequest`، `StoreGenerationRequest` و `BulkGenerationRequest`.
-    - ترکیب دستورات صریح تثبیت کاراکتر در `CreativeEngine::prompt()` در صورت فعال بودن وضعیت Locked.
-    - ذخیره در متادیتای ردیف `creative_projects`.
-    - تست‌های پوششی در `CreativeEngineTest` و `GenerationApiTest`.
+  - **اقدام انجام‌شده و راه‌حل نهایی:**
+    - **پیکربندی دامنه:** افزودن آرایه `character_consistencies` به [config/creative.php](file:///var/www/html/Hale'/config/creative.php) با دو حالت `dynamic` (پیش‌فرض، مدل جدید و تنوع) و `locked` (دستورات صریح تثبیت ساختار چهره و قومیت `strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift`)؛ تنظیم سطح اثرگذاری `character_consistency => high` در `creative.impacts`.
+    - **مایگریشن و مدل داده:** افزودن ستون `character_consistency` به جدول `creative_projects` با مایگریشن `2026_10_06_100000_add_character_consistency_to_creative_projects_table.php` و پر کردن امن آن در مدل [CreativeProject.php](file:///var/www/html/Hale'/app/Domains/Creative/Models/CreativeProject.php).
+    - **هسته پردازش دامنه:** متد `autoBest()` با مقدار پیش‌فرض `dynamic`، استخراج و اعتبارسنجی در `brief()`، و متد اختصاصی `characterClause()` در [CreativeEngine.php](file:///var/www/html/Hale'/app/Domains/Creative/Services/CreativeEngine.php) که در صورت فعال بودن وضعیت Locked، دستور تثبیت هویت را بلافاصله پس از زاویه دوربین و پیش از `Objective:` فرونت‌لود می‌کند و در حالت dynamic خروجی را دست‌نخورده حفظ می‌نماید.
+    - **لایه API و اعتبارسنجی:** دریافت و اعتبارسنجی پارامتر در `PreviewCreativeRequest`، `StoreGenerationRequest` و `BulkGenerationRequest` با قوانین `Rule::in` و پیام‌های خطای فارسی؛ انتشار گزینه‌ها در `/api/creative/options`؛ پشتیبانی از ذخیره و بازیابی در قالب‌های استودیو ([TemplateController.php](file:///var/www/html/Hale'/app/Domains/Templates/Controllers/TemplateController.php)).
+    - **رابط کاربری استودیو و بازرس پرامپت:** افزودن سلکتور اختصاصی دوحالته با نشانگر وزن اثرگذاری `<x-impact-badge control="character_consistency" />` و راهنمای فارسی در [create.blade.php](file:///var/www/html/Hale'/resources/views/create.blade.php)؛ چیپ اختصاصی `data-chip-character` در بازرس پرامپت؛ آینه‌سازی منطق ساخت پرامپت و همگام‌سازی آنی چیپ و پرامپت در [app.js](file:///var/www/html/Hale'/resources/js/app.js).
+    - **پوشش تست‌ها:** تمام ۴۰۱ تست کل سوئیت با ۲۲۹۸ assertion کاملاً سبز هستند (شامل تست‌های واحد `CreativeEngineTest`، تست‌های فیچر `GenerationApiTest`، `BulkGenerationTest`، `GenerationTemplateTest`، `CreativeImpactTest` و تست‌های UI در `StudioPreviewViewTest`).
+
 
 ### ۸. ممانعت قطعی از درج خودکار و ناخواسته متن/تایپوگرافی روی تصویر (Strict Suppression of Unwanted Generated Text)
 - [ ] **جلوگیری از تولید خودکار حروف و نوشته‌های نامفهوم روی تصاویر:**
