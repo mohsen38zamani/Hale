@@ -1238,10 +1238,19 @@ let campaignPack = null;
 // Pinned theme key handed to the generation API (null = follow the server),
 // so the pack the prompt inspector shows is the pack the prompt really gets.
 let seasonThemeKey = null;
-let seasonAutoTheme = null;
+// Server answer rendered into the status bar, so the first paint is correct
+// even when the JSON endpoint is unreachable (logged-out visitors, slow API).
+let seasonAutoTheme = (() => {
+	try {
+		const raw = seasonStatus?.dataset.seasonAuto || '';
+		return raw ? JSON.parse(raw) : null;
+	} catch (_) {
+		return null;
+	}
+})();
 let seasonThemes = [];
 // SEASON_THEME=off deployment kill switch: hides the picker entirely.
-let seasonEnabled = true;
+let seasonEnabled = seasonStatus?.dataset.seasonEnabled !== '0';
 // auto | off | theme key. Persisted so refresh and navigation never lose it.
 let seasonChoice = (() => {
 	try { return localStorage.getItem('hale-season-theme') || 'auto'; } catch (_) { return 'auto'; }

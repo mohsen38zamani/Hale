@@ -161,6 +161,28 @@ class SeasonThemeTest extends TestCase
         $this->assertStringContainsString('hale-season-theme', $script, 'The choice must persist across pages.');
     }
 
+    public function test_status_bar_renders_the_server_answer_for_the_first_paint(): void
+    {
+        config(['seasons.active' => 'yalda']);
+
+        $html = (string) $this->get('/create')->assertOk()->baseResponse->getContent();
+
+        $this->assertStringContainsString('data-season-enabled="1"', $html);
+        $this->assertMatchesRegularExpression('/data-season-auto="[^"]+"/', $html, 'The resolved theme must ship in the markup.');
+        preg_match('/data-season-auto="([^"]*)"/', $html, $match);
+        $auto = json_decode(html_entity_decode($match[1], ENT_QUOTES), true);
+        $this->assertSame('yalda', $auto['key'] ?? null, 'The first paint must show the pinned theme without waiting for JSON.');
+
+        config(['seasons.active' => 'off']);
+        $html = (string) $this->get('/create')->assertOk()->baseResponse->getContent();
+
+        $this->assertStringContainsString('data-season-enabled="0"', $html, 'The kill switch must reach the page.');
+        $this->assertStringContainsString('data-season-auto="null"', $html);
+
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $this->assertStringContainsString('dataset.seasonAuto', $script, 'The script must read the server-rendered answer.');
+    }
+
     public function test_service_respects_explicit_carbon_argument(): void
     {
         config(['seasons.active' => 'auto']);

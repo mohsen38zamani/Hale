@@ -4,8 +4,16 @@
     (name, colour swatches) with "change" and "off" buttons, and the picker
     lists every configured theme with a palette and an effect preview.
     State lives in localStorage under hale-season-theme (auto | off | {key}).
+    data-season-enabled / data-season-auto carry the server answer so the very
+    first paint is right even before (or without) the JSON endpoint answering.
 --}}
-<div class="season-status" data-season-status hidden>
+<div
+    class="season-status"
+    data-season-status
+    data-season-enabled="{{ in_array((string) config('seasons.active'), ['off', 'none'], true) ? '0' : '1' }}"
+    data-season-auto="{{ json_encode(app(\App\Domains\Creative\Services\SeasonThemeService::class)->active(), JSON_UNESCAPED_UNICODE) }}"
+    hidden
+>
     <button class="season-theme-badge" type="button" data-season-badge hidden></button>
     <span class="season-swatches" data-season-swatches hidden aria-hidden="true"></span>
     <span class="season-status-text" data-season-status-text hidden>تم فصلی فعال نیست</span>
