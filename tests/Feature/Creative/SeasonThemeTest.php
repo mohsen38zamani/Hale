@@ -42,10 +42,43 @@ class SeasonThemeTest extends TestCase
         Sanctum::actingAs(User::factory()->create());
 
         config(['seasons.active' => 'off']);
-        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme', null);
+        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme', null)->assertJsonPath('data.enabled', false);
 
         config(['seasons.active' => 'no_such_theme']);
-        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme', null);
+        $this->getJson('/api/creative/theme')->assertOk()->assertJsonPath('data.theme', null)->assertJsonPath('data.enabled', true);
+    }
+
+    public function test_theme_endpoint_lists_every_configured_theme(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        config(['seasons.active' => 'auto']);
+
+        $data = $this->getJson('/api/creative/theme')->assertOk()->json('data');
+
+        $themes = $data['themes'];
+        $this->assertCount(8, $themes, 'The picker must be able to list all eight seasonal themes.');
+        $this->assertSame(array_column(config('seasons.themes'), 'key'), array_column($themes, 'key'));
+        $this->assertTrue($data['enabled']);
+
+        foreach ($themes as $theme) {
+            foreach (['key', 'name', 'emoji', 'decor', 'campaign_label', 'prompt_pack'] as $field) {
+                $this->assertNotEmpty($theme[$field], "Theme [{$theme['key']}] is missing [{$field}].");
+            }
+
+            $this->assertCount(3, $theme['palette'], "Theme [{$theme['key']}] must expose a three-colour palette.");
+        }
+    }
+
+    public function test_the_deployment_kill_switch_keeps_the_catalogue_but_disables_theming(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        config(['seasons.active' => 'off']);
+
+        $data = $this->getJson('/api/creative/theme')->assertOk()->json('data');
+
+        $this->assertNull($data['theme']);
+        $this->assertFalse($data['enabled']);
+        $this->assertCount(8, $data['themes'], 'The catalogue stays published so clients keep parsing it.');
     }
 
     public function test_auto_detection_uses_date_windows_with_precedence(): void

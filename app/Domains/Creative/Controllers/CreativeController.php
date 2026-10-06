@@ -37,7 +37,15 @@ class CreativeController extends Controller
 
     public function theme(SeasonThemeService $seasons): JsonResponse
     {
-        return $this->success(['theme' => $seasons->active()]);
+        return $this->success([
+            'theme' => $seasons->active(),
+            // Full catalogue so the studio picker can list, preview and pin
+            // every seasonal theme instead of only the resolved one.
+            'themes' => config('seasons.themes'),
+            // Deployment kill switch: SEASON_THEME=off hides the picker and
+            // wins over any client-side selection.
+            'enabled' => ! in_array((string) config('seasons.active'), ['off', 'none'], true),
+        ]);
     }
 
     public function preview(PreviewCreativeRequest $request, CreativeEngine $engine, CreditEstimator $estimator): JsonResponse
