@@ -52,6 +52,32 @@ const highlight = (value, term) => {
 	return result + rest;
 };
 
+const copyTextToClipboard = async (text) => {
+	if (!text) return false;
+	if (navigator.clipboard && window.isSecureContext) {
+		try {
+			await navigator.clipboard.writeText(text);
+			return true;
+		} catch (_) {}
+	}
+	try {
+		const textArea = document.createElement('textarea');
+		textArea.value = text;
+		textArea.style.position = 'fixed';
+		textArea.style.left = '-9999px';
+		textArea.style.top = '0';
+		textArea.style.opacity = '0';
+		document.body.appendChild(textArea);
+		textArea.focus();
+		textArea.select();
+		const successful = document.execCommand('copy');
+		document.body.removeChild(textArea);
+		return Boolean(successful);
+	} catch (_) {
+		return false;
+	}
+};
+
 const setAuthMode = (mode) => {
 	authMode = mode;
 	modal?.removeAttribute('hidden');
@@ -1611,10 +1637,22 @@ if (builderForm) {
 
 	if (copyPromptBtn && inspectorCode) {
 		copyPromptBtn.addEventListener('click', async () => {
-			const text = inspectorCode.innerText || inspectorCode.textContent;
-			if (!text || text.includes('انتخاب کنید')) return;
-			try {
-				await navigator.clipboard.writeText(text);
+			const text = (inspectorCode.innerText || inspectorCode.textContent || '').trim();
+			const isPlaceholder = !select.value || text.includes('منتظر انتخاب') || text.includes('انتخاب کنید');
+			if (isPlaceholder || !text) {
+				const prev = copyPromptBtn.innerHTML;
+				copyPromptBtn.innerHTML = '⚠️ محصولی انتخاب نشده';
+				copyPromptBtn.style.color = '#F59E0B';
+				copyPromptBtn.style.borderColor = '#F59E0B';
+				setTimeout(() => {
+					copyPromptBtn.innerHTML = prev;
+					copyPromptBtn.style.color = '';
+					copyPromptBtn.style.borderColor = '';
+				}, 2000);
+				return;
+			}
+			const ok = await copyTextToClipboard(text);
+			if (ok) {
 				const prev = copyPromptBtn.innerHTML;
 				copyPromptBtn.innerHTML = '✓ کپی شد!';
 				copyPromptBtn.style.color = '#10B981';
@@ -1624,7 +1662,7 @@ if (builderForm) {
 					copyPromptBtn.style.color = '';
 					copyPromptBtn.style.borderColor = '';
 				}, 2000);
-			} catch (_) {}
+			}
 		});
 	}
 
@@ -2147,10 +2185,10 @@ if (generationPage) {
 	document.querySelector('[data-caption-copy]')?.addEventListener('click', async () => {
 		const payload = `${captionText?.textContent || ''}\n\n${captionTags?.textContent || ''}`.trim();
 		if (!payload) return;
-		try {
-			await navigator.clipboard.writeText(payload);
+		const ok = await copyTextToClipboard(payload);
+		if (ok) {
 			message.textContent = 'کپشن کپی شد.';
-		} catch {
+		} else {
 			message.textContent = 'کپی در دسترس نیست؛ متن را دستی انتخاب کن.';
 		}
 	});

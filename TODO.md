@@ -533,6 +533,32 @@
     - ذخیره `target_ai` در متادیتای ردیف `generations` جهت ردیابی و ارزیابی کیفیت پرامپت‌ها.
     - پوشش کامل تست‌های واحد و Feature در `PromptCompilerTest` و `StudioPreviewViewTest`.
 
+### ۷. کنترل و قفل ثبات کاراکتر/مدل در برابر تغییرپذیری (Character & Subject Consistency Control)
+- [ ] **طراحی کنترل ثبات کاراکتر/مدل انسانی (Consistent vs Dynamic Character Option):**
+  - **مسئله:** در تولید تصاویر تجاری که شامل مدل انسانی، چهره یا کاراکتر برند هستند، با هر بار جنریشن چهره و ویژگی‌های مدل تغییر می‌کند؛ همچنین در شرایطی که کاربر تمایل به تنوع چهره دارد کنترلی وجود ندارد. نیاز به یک آپشن دوحالته برای قفل هویت کاراکتر یا اجازه به خلق مدل جدید است.
+  - **نیازمندی در رابط کاربری (UI/UX استودیو `/create`):**
+    - افزودن کنترل اختصاصی «ثبات کاراکتر / مدل» در بخش تنظیمات صحنه با دو حالت:
+      - 🔒 **ثابت و بدون تغییر (Lock Character / Same Model):** مقید ساختن هوش مصنوعی به حفظ دقیق هویت، چهره، ساختار فیزیولوژیک و فیچرهای مدل در تمامی تولیدها (`strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift`).
+      - 🎲 **تنوع و مدل جدید (Dynamic / New Character):** اجازه به هوش مصنوعی برای تولید مدل‌های انسانی متنوع متناسب با سبک و سناریو.
+    - نمایش چیپ وضعیت در بازرس پرامپت (`Prompt Inspector`) جهت شفافیت برای کاربر.
+  - **نیازمندی فنی و معماری بک‌اند (DDD):**
+    - افزودن تنظیمات کاراکتر به `config/creative.php` با کلیدهای `locked` و `dynamic`.
+    - دریافت پارامتر `character_consistency` در `PreviewCreativeRequest`، `StoreGenerationRequest` و `BulkGenerationRequest`.
+    - ترکیب دستورات صریح تثبیت کاراکتر در `CreativeEngine::prompt()` در صورت فعال بودن وضعیت Locked.
+    - ذخیره در متادیتای ردیف `creative_projects`.
+    - تست‌های پوششی در `CreativeEngineTest` و `GenerationApiTest`.
+
+### ۸. ممانعت قطعی از درج خودکار و ناخواسته متن/تایپوگرافی روی تصویر (Strict Suppression of Unwanted Generated Text)
+- [ ] **جلوگیری از تولید خودکار حروف و نوشته‌های نامفهوم روی تصاویر:**
+  - **مسئله:** مدل‌های تصویرساز گاهی به صورت خودکار متن‌ها و حروف نامفهوم (Gibberish text)، تایپوگرافی‌های مصنوعی یا نوشته‌های ناخواسته روی پس‌زمینه و بسته‌بندی رندر می‌کنند در حالی که کاربر هیچ متنی تعریف نکرده است.
+  - **نیازمندی فنی و مهندسی پرامپت:**
+    - بازبینی عبارت پایانی در `CreativeEngine::prompt()`: ارتقای عبارت ساده `no unwanted text` به دستورات انکاری قاطع و سخت‌گیرانه در حالت پیش‌فرض:
+      `strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage`.
+    - **قاعده مشروط (Conditional Rule):** درج هرگونه متن در تصویر ممنوع باشد، مگر اینکه کاربر صریحاً در فیلد اختصاصی متن، شعار برند (Brand Kit Tagline) یا بریف، متنی مشخص کرده باشد؛ در آن صورت فقط همان متن مشخص با راهنمای خوانایی هدایت شود.
+    - اطمینان از اینکه توصیف‌های استودیو، متریال سطوح یا استایل‌ها کلماتی که تداعی‌کننده پوستر متنی یا فونت هستند در پرامپت درج نکنند.
+    - تست‌های واحد در `CreativeEngineTest` برای سنجش وجود دستورات اکید منع متن در حالت عادی و فعال شدن گزینشی متن در صورت تعریف صریح کاربر.
+
+
 
 ## ترتیب پیشنهادی اجرا
 
