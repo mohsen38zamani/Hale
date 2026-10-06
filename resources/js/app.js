@@ -1476,6 +1476,7 @@ if (builderForm) {
 	const chipProps = document.querySelector('[data-chip-props]');
 	const chipCamera = document.querySelector('[data-chip-camera]');
 	const chipLighting = document.querySelector('[data-chip-lighting]');
+	const chipCharacter = document.querySelector('[data-chip-character]');
 	const productsMap = new Map();
 	const cachedProductBlobUrls = new Map();
 
@@ -1483,6 +1484,7 @@ if (builderForm) {
 	let propsData = [];
 	let cameraAnglesData = [];
 	let lightingSetupsData = [];
+	let characterConsistenciesData = [];
 
 	const aspectRatios = {
 		instagram_post: '1:1',
@@ -1552,6 +1554,7 @@ if (builderForm) {
 		const props = builderForm.querySelector('input[name="props"]:checked')?.value || 'none';
 		const cameraAngle = builderForm.querySelector('input[name="camera_angle"]:checked')?.value || 'eye_level';
 		const lighting = builderForm.querySelector('input[name="lighting_setup"]:checked')?.value || 'softbox';
+		const characterConsistency = builderForm.querySelector('input[name="character_consistency"]:checked')?.value || 'dynamic';
 
 		const selectedProductId = select.value;
 		const product = productsMap.get(String(selectedProductId));
@@ -1584,6 +1587,7 @@ if (builderForm) {
 		const propsObj = propsData.find((p) => p.key === props);
 		const cameraObj = cameraAnglesData.find((c) => c.key === cameraAngle);
 		const lightingObj = lightingSetupsData.find((l) => l.key === lighting);
+		const characterObj = characterConsistenciesData.find((ch) => ch.key === characterConsistency);
 
 		if (chipProduct) chipProduct.textContent = `محصول: ${product ? product.name : 'انتخاب نشده'}`;
 		if (chipGoal) chipGoal.textContent = `هدف: ${labels[goal] || goal}`;
@@ -1593,6 +1597,7 @@ if (builderForm) {
 		if (chipProps) chipProps.textContent = `اکسسوری: ${propsObj?.label || 'ساده'}`;
 		if (chipCamera) chipCamera.textContent = `دوربین: ${cameraObj?.label || 'روبرو'}`;
 		if (chipLighting) chipLighting.textContent = `نور: ${lightingObj?.label || 'سافت‌باکس'}`;
+		if (chipCharacter) chipCharacter.textContent = `کاراکتر: ${characterObj?.label || 'مدل جدید'}`;
 		if (chipFormat) chipFormat.textContent = `فرمت: ${aspectRatios[format] || '۱:۱'}`;
 
 		if (inspectorCode) {
@@ -1614,6 +1619,9 @@ if (builderForm) {
 			// Mirrors CreativeEngine::cameraClause() - the directive is
 			// front-loaded right after the opening sentence.
 			const cameraClause = cameraObj?.prompt ? ` Camera angle (locked): ${cameraObj.prompt}.` : '';
+			// Mirrors CreativeEngine::characterClause() - locked consistency
+			// directive when the user requests the character to stay unchanged.
+			const characterClause = characterObj?.prompt ? ` Character consistency (locked): ${characterObj.prompt}.` : '';
 
 			let cleanCustom = customPromptText
 				.replace(/<[^>]*>/g, '')
@@ -1629,7 +1637,7 @@ if (builderForm) {
 			let videoPart = isVideo ? ` Dynamic motion: ${motion}, fluid atmospheric movement, premium brand reel aesthetic, 4K render.` : '';
 			const campaignPart = campaignEnabled && campaignPack ? ` Campaign mood: ${String(campaignPack.pack).replace(/[. ]+$/, '')}.` : '';
 
-			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}.${cameraClause} Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
+			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}.${cameraClause}${characterClause} Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
 
 			inspectorCode.innerHTML = assembledPrompt;
 		}
@@ -1720,11 +1728,13 @@ if (builderForm) {
 		propsData = options.data.props || [];
 		cameraAnglesData = options.data.camera_angles || [];
 		lightingSetupsData = options.data.lighting_setups || [];
+		characterConsistenciesData = options.data.character_consistencies || [];
 
 		renderChoices(document.querySelector('[data-surfaces]'), surfacesData, 'surface', false, true);
 		renderChoices(document.querySelector('[data-props]'), propsData, 'props', false, true);
 		renderChoices(document.querySelector('[data-camera-angles]'), cameraAnglesData, 'camera_angle', false, true);
 		renderChoices(document.querySelector('[data-lighting-setups]'), lightingSetupsData, 'lighting_setup', false, true);
+		renderChoices(document.querySelector('[data-character-consistencies]'), characterConsistenciesData, 'character_consistency', false, true);
 
 		// Initialize default radio selections if needed
 		const defaultGoal = builderForm.querySelector('input[name="goal"]');
@@ -1742,6 +1752,8 @@ if (builderForm) {
 		if (defaultCamera) defaultCamera.checked = true;
 		const defaultLighting = builderForm.querySelector('input[name="lighting_setup"][value="softbox"]') || builderForm.querySelector('input[name="lighting_setup"]');
 		if (defaultLighting) defaultLighting.checked = true;
+		const defaultCharacter = builderForm.querySelector('input[name="character_consistency"][value="dynamic"]') || builderForm.querySelector('input[name="character_consistency"]');
+		if (defaultCharacter) defaultCharacter.checked = true;
 
 		updateCanvasState();
 	}).catch(() => { message.textContent = 'دریافت گزینه‌ها انجام نشد. دوباره تلاش کن.'; });
@@ -1833,7 +1845,7 @@ if (builderForm) {
 	const templateConfirm = document.querySelector('[data-template-confirm]');
 	const templateCancel = document.querySelector('[data-template-cancel]');
 	const templateMessage = document.querySelector('[data-template-message]');
-	const TEMPLATE_KEYS = ['goal', 'style', 'format', 'environment', 'surface', 'props', 'camera_angle', 'lighting_setup', 'video_duration_seconds', 'custom_prompt'];
+	const TEMPLATE_KEYS = ['goal', 'style', 'format', 'environment', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'video_duration_seconds', 'custom_prompt'];
 	let templatesCache = [];
 
 	const renderTemplates = () => {
@@ -1854,7 +1866,7 @@ if (builderForm) {
 				radio.dispatchEvent(new Event('change', { bubbles: true }));
 			}
 		};
-		['goal', 'style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup'].forEach((key) => {
+		['goal', 'style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency'].forEach((key) => {
 			if (settings[key] !== undefined && settings[key] !== null) setRadio(key, String(settings[key]));
 		});
 		const envSelect = document.querySelector('[data-environment]');
@@ -1973,6 +1985,7 @@ if (builderForm) {
 			props: values.props || null,
 			camera_angle: values.camera_angle || null,
 			lighting_setup: values.lighting_setup || null,
+			character_consistency: values.character_consistency || 'dynamic',
 			custom_prompt: rawCustomPrompt || null,
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null,
 			campaign: Boolean(campaignEnabled && campaignPack),

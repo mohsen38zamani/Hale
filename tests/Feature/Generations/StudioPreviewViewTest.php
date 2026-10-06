@@ -36,11 +36,13 @@ class StudioPreviewViewTest extends TestCase
             ->assertSee('data-chip-props', false)
             ->assertSee('data-chip-camera', false)
             ->assertSee('data-chip-lighting', false)
+            ->assertSee('data-chip-character', false)
             ->assertSee('data-scene-controls-panel', false)
             ->assertSee('data-surfaces', false)
             ->assertSee('data-props', false)
             ->assertSee('data-camera-angles', false)
             ->assertSee('data-lighting-setups', false)
+            ->assertSee('data-character-consistencies', false)
             ->assertSee('data-inspector-code', false);
     }
 
@@ -62,6 +64,7 @@ class StudioPreviewViewTest extends TestCase
 
         $this->assertStringContainsString('angle-${cameraAngle}', $script, 'The studio must tag the live stage with the selected camera angle.');
         $this->assertStringContainsString('Camera angle (locked):', $script, 'The prompt inspector must mirror the front-loaded camera directive.');
+        $this->assertStringContainsString('Character consistency (locked):', $script, 'The prompt inspector must mirror the character consistency directive.');
 
         foreach (array_keys(config('creative.camera_angles')) as $key) {
             $this->assertStringContainsString(".studio-stage.angle-{$key}", $stylesheet, "Camera angle [{$key}] is missing a live preview style.");

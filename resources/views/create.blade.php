@@ -172,6 +172,13 @@
                                     <small class="impact-hint" data-impact-hint>نورپردازی، سایه‌ها و درخشش سطح را تنظیم می‌کند؛ فضا و حس صحنه عوض می‌شود ولی چیدمان نه.</small>
                                     <div class="choice-grid compact-grid" data-lighting-setups></div>
                                 </div>
+
+                                {{-- 5. Character & Model Consistency --}}
+                                <div class="scene-control-group">
+                                    <label class="group-title">ثبات کاراکتر و مدل انسانی (Character Consistency): <x-impact-badge control="character_consistency" /></label>
+                                    <small class="impact-hint" data-impact-hint>قفل هویت چهره و مدل در تولیدهای متوالی، یا اجازه به هوش مصنوعی برای خلق مدل‌های جدید و متنوع.</small>
+                                    <div class="choice-grid compact-grid" data-character-consistencies></div>
+                                </div>
                             </div>
                         </div>
 
@@ -284,6 +291,7 @@
                             <span class="inspector-chip" data-chip-props>اکسسوری: ساده</span>
                             <span class="inspector-chip" data-chip-camera>دوربین: روبرو</span>
                             <span class="inspector-chip" data-chip-lighting>نور: سافت‌باکس</span>
+                            <span class="inspector-chip" data-chip-character>کاراکتر: مدل جدید</span>
                             <span class="inspector-chip" data-chip-format>فرمت: ۱:۱</span>
                         </div>
                         <div class="inspector-code" data-inspector-code>
