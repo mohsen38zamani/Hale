@@ -141,6 +141,26 @@ class SeasonThemeTest extends TestCase
             ->assertSee('data-season-badge', false);
     }
 
+    public function test_dashboard_has_a_permanent_seasonal_theme_section(): void
+    {
+        $html = (string) $this->get('/dashboard')->assertOk()->baseResponse->getContent();
+
+        $this->assertStringContainsString('data-season-theme-section', $html, 'The dashboard must host the theme section.');
+        $this->assertStringContainsString('data-season-status', $html, 'The status bar must render on the dashboard too.');
+        $this->assertStringContainsString('data-season-picker-grid', $html, 'The picker must render on the dashboard too.');
+        $this->assertStringContainsString('data-season-change', $html, 'The change button must stay reachable from the dashboard.');
+
+        // Same catalogue as the studio, so both pages share one selection.
+        foreach (config('seasons.themes') as $theme) {
+            $this->assertStringContainsString("data-season-choice=\"{$theme['key']}\"", $html);
+        }
+
+        // The picker module must work on a page that has no studio canvas.
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $this->assertStringContainsString('seasonStatus || seasonStage', $script);
+        $this->assertStringContainsString('hale-season-theme', $script, 'The choice must persist across pages.');
+    }
+
     public function test_service_respects_explicit_carbon_argument(): void
     {
         config(['seasons.active' => 'auto']);

@@ -290,6 +290,18 @@
                     <p class="form-message" data-brand-message style="margin: 0; font-size: 13px;"></p>
                 </div>
             </section>
+
+            {{-- Seasonal & campaign themes: permanent home of the studio picker --}}
+            <section class="season-theme-section" data-season-theme-section style="margin-bottom: 60px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 18px; margin-bottom: 24px;">
+                    <div>
+                        <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 4px;">تم‌های فصلی و کمپینی</h2>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">همان پنل استودیو؛ انتخاب تو در همهٔ صفحات و پس از رفرش حفظ می‌شود</p>
+                    </div>
+                </div>
+
+                <x-season-picker />
+            </section>
         </main>
     </div>
 
