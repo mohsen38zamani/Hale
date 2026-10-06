@@ -52,6 +52,9 @@
             <div class="builder-layout">
                 {{-- Form Controls Column --}}
                 <div class="builder-panel">
+                    {{-- Permanent seasonal theme status + picker, above the studio form --}}
+                    <x-season-picker />
+
                     <form class="builder-form" data-builder-form>
                         {{-- Step 1: Product --}}
                         <div style="margin-bottom: 24px;">
@@ -233,7 +236,6 @@
                             <span>بوم تعاملی استودیو · LIVE PREVIEW</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="season-theme-badge" type="button" data-season-badge hidden></button>
                             <button class="campaign-badge" type="button" data-campaign-badge aria-pressed="false" hidden></button>
                             <div class="canvas-format-chip" data-canvas-format-chip>۱:۱ · پست اینستاگرام</div>
                         </div>

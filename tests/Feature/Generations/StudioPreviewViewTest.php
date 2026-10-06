@@ -106,4 +106,66 @@ class StudioPreviewViewTest extends TestCase
             'Exactly one impact tag must be rendered per box.'
         );
     }
+
+    public function test_the_studio_has_a_permanent_seasonal_theme_status_and_picker(): void
+    {
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+        $html = (string) $this->get('/create')->assertOk()->baseResponse->getContent();
+
+        // Status bar sits above the studio form: name, colour swatches and the
+        // change/off buttons are always reachable without scrolling to the canvas.
+        $status = strpos($html, 'data-season-status');
+        $form = strpos($html, 'data-builder-form');
+        $this->assertNotFalse($status, 'The seasonal status bar must render on the studio page.');
+        $this->assertNotFalse($form, 'The studio form must render.');
+        $this->assertLessThan($form, $status, 'The status bar must sit above the studio form.');
+
+        foreach (['data-season-badge', 'data-season-swatches', 'data-season-status-text', 'data-season-change', 'data-season-toggle', 'data-season-picker', 'data-season-picker-grid', 'data-season-picker-close'] as $marker) {
+            $this->assertStringContainsString($marker, $html, "Seasonal control [{$marker}] is missing from the studio page.");
+        }
+
+        // Every configured theme is listed with its palette and its effect.
+        foreach (config('seasons.themes') as $theme) {
+            $this->assertStringContainsString(
+                "data-season-choice=\"{$theme['key']}\"",
+                $html,
+                "Theme [{$theme['key']}] must be listed in the picker."
+            );
+            $this->assertStringContainsString(
+                "data-decor=\"{$theme['decor']}\"",
+                $html,
+                "Theme [{$theme['key']}] must preview its [{$theme['decor']}] effect."
+            );
+            $this->assertStringContainsString(
+                'data-palette="'.implode(',', $theme['palette']).'"',
+                $html,
+                "Theme [{$theme['key']}] must preview its palette."
+            );
+        }
+
+        // The state machine persists the choice and hands the pinned key to
+        // the generation API so the prompt matches what the inspector showed.
+        foreach (['hale-season-theme', 'season_theme: seasonThemeKey', 'writeSeasonChoice', 'applySeasonTheme'] as $snippet) {
+            $this->assertStringContainsString($snippet, $script, "Studio script is missing [{$snippet}].");
+        }
+
+        $this->assertStringNotContainsString(
+            'seasonOptedOut',
+            $script,
+            'The old read-once opt-out flag must be gone: the choice now lives in one shared reader.'
+        );
+
+        // The picker reuses the stage keyframes for its effect previews.
+        $this->assertStringContainsString('.season-status', $stylesheet);
+        $this->assertStringContainsString('.season-picker', $stylesheet);
+        $this->assertStringContainsString('.season-tile.is-active', $stylesheet);
+        foreach (['snowfall', 'vignette', 'sparkle', 'rain'] as $decor) {
+            $this->assertStringContainsString(
+                ".season-tile-preview[data-decor=\"{$decor}\"]",
+                $stylesheet,
+                "Effect preview [{$decor}] is missing from the picker tiles."
+            );
+        }
+    }
 }

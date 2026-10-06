@@ -1217,9 +1217,17 @@ if (brandKitBox) {
 	});
 }
 
-// --- Seasonal studio theme: decorate the canvas when a season is active ---
+// --- Seasonal studio theme: permanent picker with a persistent choice ---
 const seasonStage = document.querySelector('[data-canvas-stage]');
+const seasonStatus = document.querySelector('[data-season-status]');
+const seasonPicker = document.querySelector('[data-season-picker]');
+const seasonGrid = document.querySelector('[data-season-picker-grid]');
 const seasonBadge = document.querySelector('[data-season-badge]');
+const seasonSwatches = document.querySelector('[data-season-swatches]');
+const seasonStateText = document.querySelector('[data-season-status-text]');
+const seasonChange = document.querySelector('[data-season-change]');
+const seasonToggle = document.querySelector('[data-season-toggle]');
+const seasonClose = document.querySelector('[data-season-picker-close]');
 const campaignBadge = document.querySelector('[data-campaign-badge]');
 // Shared with the builder below: opt-in campaign pack state. The pack only
 // applies when a theme is active AND the user flipped the chip on.
@@ -1227,70 +1235,180 @@ let campaignEnabled = (() => {
 	try { return localStorage.getItem('hale-campaign-pack') === 'on'; } catch (_) { return false; }
 })();
 let campaignPack = null;
+// Pinned theme key handed to the generation API (null = follow the server),
+// so the pack the prompt inspector shows is the pack the prompt really gets.
+let seasonThemeKey = null;
+let seasonAutoTheme = null;
+let seasonThemes = [];
+// SEASON_THEME=off deployment kill switch: hides the picker entirely.
+let seasonEnabled = true;
+// auto | off | theme key. Persisted so refresh and navigation never lose it.
+let seasonChoice = (() => {
+	try { return localStorage.getItem('hale-season-theme') || 'auto'; } catch (_) { return 'auto'; }
+})();
 let refreshPromptInspector = () => {};
-if (seasonStage) {
-	const seasonOptedOut = (() => {
-		try { return localStorage.getItem('hale-season-theme') === 'off'; } catch (_) { return false; }
-	})();
 
-	if (!seasonOptedOut) {
-		const renderCampaignChip = () => {
-			if (!campaignBadge || !campaignPack) return;
-			campaignBadge.hidden = false;
-			campaignBadge.setAttribute('aria-pressed', String(campaignEnabled));
-			campaignBadge.textContent = campaignEnabled ? `✅ ${campaignPack.label}` : `🔥 ${campaignPack.label}`;
-			campaignBadge.title = campaignEnabled
-				? 'غیرفعال‌کردن پکیج کمپینی؛ پرامپت بدون استایل کمپینی ساخته می‌شود'
-				: 'افزودن استایل کمپینی فصلی به پرامپت تولید';
-		};
+const writeSeasonChoice = (choice) => {
+	seasonChoice = choice;
+	try { localStorage.setItem('hale-season-theme', choice); } catch (_) {}
+};
 
-		const applySeasonTheme = (theme) => {
-			if (!theme) return;
+const renderCampaignChip = () => {
+	if (!campaignBadge) return;
+	if (!campaignPack) {
+		campaignBadge.hidden = true;
+		return;
+	}
+	campaignBadge.hidden = false;
+	campaignBadge.setAttribute('aria-pressed', String(campaignEnabled));
+	campaignBadge.textContent = campaignEnabled ? `✅ ${campaignPack.label}` : `🔥 ${campaignPack.label}`;
+	campaignBadge.title = campaignEnabled
+		? 'غیرفعال‌کردن پکیج کمپینی؛ پرامپت بدون استایل کمپینی ساخته می‌شود'
+		: 'افزودن استایل کمپینی فصلی به پرامپت تولید';
+};
+
+const seasonTile = (key) => {
+	if (!seasonGrid) return null;
+	return Array.from(seasonGrid.querySelectorAll('[data-season-choice]'))
+		.find((tile) => tile.dataset.seasonChoice === key) || null;
+};
+
+// Resolve what the studio shows: 'off' hides everything, a pinned key wins
+// over the calendar, 'auto' follows the server-resolved (date-based) theme.
+const resolveSeasonTheme = () => {
+	if (!seasonEnabled || seasonChoice === 'off') return null;
+
+	if (seasonChoice !== 'auto') {
+		const pinned = seasonThemes.find((theme) => theme.key === seasonChoice);
+		if (pinned) return pinned;
+
+		// Catalogue not fetched yet: the server-rendered tile still carries
+		// the label, palette and decor needed to decorate the stage.
+		const tile = seasonTile(seasonChoice);
+		if (tile && tile.dataset.palette) {
+			const label = (tile.querySelector('.season-tile-name')?.textContent || seasonChoice).trim().split(/\s+/);
+			return {
+				key: seasonChoice,
+				emoji: label[0] || '',
+				name: label.slice(1).join(' ') || seasonChoice,
+				decor: tile.dataset.decor || '',
+				palette: tile.dataset.palette.split(','),
+			};
+		}
+		// Unknown key (theme removed from the config): fall back to auto.
+		writeSeasonChoice('auto');
+	}
+
+	return seasonAutoTheme;
+};
+
+const applySeasonTheme = () => {
+	const theme = resolveSeasonTheme();
+	seasonThemeKey = theme && seasonChoice !== 'auto' ? theme.key : null;
+
+	if (seasonStage) {
+		if (theme) {
 			seasonStage.dataset.seasonTheme = theme.key;
 			seasonStage.dataset.seasonDecor = theme.decor;
 			const [bg, accent, glow] = Array.isArray(theme.palette) ? theme.palette : [];
 			if (bg) seasonStage.style.setProperty('--season-bg', bg);
 			if (accent) seasonStage.style.setProperty('--season-accent', accent);
 			if (glow) seasonStage.style.setProperty('--season-glow', glow);
-			if (seasonBadge) {
-				seasonBadge.hidden = false;
-				seasonBadge.textContent = `${theme.emoji} تم ${theme.name}`;
-				seasonBadge.title = 'کلیک برای خاموش‌کردن موقت تم فصلی';
-			}
-			if (theme.prompt_pack) {
-				campaignPack = {
-					key: theme.key,
-					label: theme.campaign_label || `کمپین ${theme.name}`,
-					pack: theme.prompt_pack,
-				};
-				renderCampaignChip();
-			}
-		};
-
-		authFetch('/api/creative/theme', { headers: { Accept: 'application/json' } })
-			.then((response) => (response.ok ? response.json() : null))
-			.then((result) => applySeasonTheme(result?.data?.theme))
-			.catch(() => {});
-
-		campaignBadge?.addEventListener('click', () => {
-			if (!campaignPack) return;
-			campaignEnabled = !campaignEnabled;
-			try { localStorage.setItem('hale-campaign-pack', campaignEnabled ? 'on' : 'off'); } catch (_) {}
-			renderCampaignChip();
-			refreshPromptInspector();
-		});
-
-		seasonBadge?.addEventListener('click', () => {
+		} else {
 			seasonStage.removeAttribute('data-season-theme');
 			seasonStage.removeAttribute('data-season-decor');
-			seasonBadge.hidden = true;
-			// Turning the seasonal theme off also drops the campaign pack for
-			// this session; the chip disappears with it.
-			campaignEnabled = false;
-			if (campaignBadge) campaignBadge.hidden = true;
-			try { localStorage.setItem('hale-season-theme', 'off'); } catch (_) {}
+			['--season-bg', '--season-accent', '--season-glow'].forEach((prop) => seasonStage.style.removeProperty(prop));
+		}
+	}
+
+	if (seasonStatus) {
+		seasonStatus.hidden = !seasonEnabled;
+		if (seasonBadge) {
+			seasonBadge.hidden = !theme;
+			seasonBadge.textContent = theme ? `${theme.emoji} تم ${theme.name}` : '';
+			seasonBadge.title = theme ? 'کلیک برای باز کردن پنل انتخاب تم' : '';
+		}
+		if (seasonSwatches) {
+			seasonSwatches.hidden = !theme;
+			seasonSwatches.innerHTML = theme
+				? (Array.isArray(theme.palette) ? theme.palette : []).map((color) => `<i style="background: ${color};"></i>`).join('')
+				: '';
+		}
+		if (seasonStateText) {
+			seasonStateText.hidden = Boolean(theme);
+			seasonStateText.textContent = 'تم فصلی فعال نیست';
+		}
+		if (seasonToggle) {
+			seasonToggle.textContent = theme ? 'خاموش' : 'روشن';
+			seasonToggle.setAttribute('aria-pressed', String(Boolean(theme)));
+		}
+	}
+
+	if (seasonGrid) {
+		seasonGrid.querySelectorAll('[data-season-choice]').forEach((tile) => {
+			tile.classList.toggle('is-active', tile.dataset.seasonChoice === seasonChoice);
 		});
 	}
+
+	// The campaign pack always tracks the resolved theme: turning a theme off
+	// drops the chip, re-enabling it restores the saved campaign preference.
+	campaignPack = theme && theme.prompt_pack
+		? {
+			key: theme.key,
+			label: theme.campaign_label || `کمپین ${theme.name}`,
+			pack: theme.prompt_pack,
+		}
+		: null;
+	renderCampaignChip();
+
+	refreshPromptInspector();
+};
+
+if (seasonStatus || seasonStage) {
+	const setPickerOpen = (open) => {
+		if (seasonPicker) seasonPicker.hidden = !open;
+	};
+
+	seasonChange?.addEventListener('click', () => setPickerOpen(Boolean(seasonPicker?.hidden)));
+	seasonBadge?.addEventListener('click', () => setPickerOpen(true));
+	seasonClose?.addEventListener('click', () => setPickerOpen(false));
+
+	seasonToggle?.addEventListener('click', () => {
+		writeSeasonChoice(seasonChoice === 'off' ? 'auto' : 'off');
+		applySeasonTheme();
+	});
+
+	seasonGrid?.addEventListener('click', (event) => {
+		const tile = event.target.closest('[data-season-choice]');
+		if (!tile) return;
+		writeSeasonChoice(tile.dataset.seasonChoice);
+		applySeasonTheme();
+		setPickerOpen(false);
+	});
+
+	campaignBadge?.addEventListener('click', () => {
+		if (!campaignPack) return;
+		campaignEnabled = !campaignEnabled;
+		try { localStorage.setItem('hale-campaign-pack', campaignEnabled ? 'on' : 'off'); } catch (_) {}
+		renderCampaignChip();
+		refreshPromptInspector();
+	});
+
+	// Paint immediately from the server-rendered tiles, then refine once the
+	// catalogue (auto theme + enabled flag) arrives.
+	applySeasonTheme();
+
+	authFetch('/api/creative/theme', { headers: { Accept: 'application/json' } })
+		.then((response) => (response.ok ? response.json() : null))
+		.then((result) => {
+			const data = result?.data;
+			if (!data) return;
+			seasonEnabled = data.enabled !== false;
+			seasonAutoTheme = data.theme || null;
+			seasonThemes = Array.isArray(data.themes) ? data.themes : [];
+			applySeasonTheme();
+		})
+		.catch(() => {});
 }
 
 const builderForm = document.querySelector('[data-builder-form]');
@@ -1810,7 +1928,10 @@ if (builderForm) {
 			lighting_setup: values.lighting_setup || null,
 			custom_prompt: rawCustomPrompt || null,
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null,
-			campaign: Boolean(campaignEnabled && campaignPack)
+			campaign: Boolean(campaignEnabled && campaignPack),
+			// Pinned seasonal theme, so the stored prompt matches the pack the
+			// prompt inspector displayed; null lets the server pick by date.
+			season_theme: seasonThemeKey
 		};
 		try {
 			const response = await authFetch('/api/generations', {
