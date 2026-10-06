@@ -83,9 +83,12 @@ class CreativeEngine
 
         // Opt-in campaign style: only an explicit truthy flag plus an active
         // theme with a pack adds the campaign block to the brief, so default
-        // prompts stay byte-for-byte identical to before.
+        // prompts stay byte-for-byte identical to before. season_theme lets the
+        // studio picker pin the theme, so the pack the inspector shows is the
+        // pack the generated prompt actually gets.
         if (! empty($settings['campaign'])) {
-            $theme = $this->seasons->active();
+            $pinned = (string) ($settings['season_theme'] ?? '');
+            $theme = $pinned !== '' ? $this->seasons->byKey($pinned) : $this->seasons->active();
             if (is_array($theme) && filled($theme['prompt_pack'] ?? null)) {
                 $brief['campaign'] = [
                     'key' => (string) $theme['key'],

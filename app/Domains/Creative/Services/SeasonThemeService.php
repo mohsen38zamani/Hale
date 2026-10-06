@@ -41,6 +41,22 @@ class SeasonThemeService
         return null;
     }
 
+    /**
+     * Resolve a single theme by its key, used when the user pinned one.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function byKey(string $key): ?array
+    {
+        foreach (config('seasons.themes', []) as $theme) {
+            if (($theme['key'] ?? null) === $key) {
+                return $theme;
+            }
+        }
+
+        return null;
+    }
+
     /** Month-day windows may wrap around New Year (start > end). */
     private function inRange(string $date, string $start, string $end): bool
     {

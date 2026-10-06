@@ -60,6 +60,9 @@ class CreativeController extends Controller
         if ($request->boolean('campaign')) {
             $settings['campaign'] = true;
         }
+        if ($request->filled('season_theme')) {
+            $settings['season_theme'] = $request->string('season_theme')->toString();
+        }
         $brief = $engine->brief($product, $settings, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);
         $creditCost = $estimator->estimate($format->type(), $suggestion['video_duration_seconds'] ?? null);

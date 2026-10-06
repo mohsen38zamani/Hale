@@ -93,8 +93,9 @@ class GenerationController extends Controller
         abort_unless($moderator->passes($prompt), 422, 'درخواست با سیاست محتوایی سازگار نیست.');
         // The campaign flag lives on inside the brief; creative_projects has
         // no such column and must not receive it in the insert. Quality is
-        // likewise carried by generation metadata, not the project row.
-        unset($data['campaign'], $data['quality']);
+        // likewise carried by generation metadata, not the project row, and
+        // season_theme only decides which pack the brief above received.
+        unset($data['campaign'], $data['quality'], $data['season_theme']);
 
         try {
             $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format, $limits, $credits, $estimator, $quality): Generation {

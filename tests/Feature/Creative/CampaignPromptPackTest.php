@@ -4,6 +4,7 @@ namespace Tests\Feature\Creative;
 
 use App\Domains\Generations\Models\Generation;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -11,6 +12,12 @@ use Tests\TestCase;
 class CampaignPromptPackTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        Carbon::setTestNow();
+    }
 
     /**
      * Decode the persisted brief whether the column casts to array or not.
@@ -126,5 +133,69 @@ class CampaignPromptPackTest extends TestCase
         $this->get('/create')
             ->assertOk()
             ->assertSee('data-campaign-badge', false);
+    }
+
+    public function test_preview_honours_the_selected_season_theme(): void
+    {
+        Sanctum::actingAs($user = User::factory()->create());
+        // Mid-July resolves to the summer window, so picking Yalda proves the
+        // pinned key wins over date detection.
+        Carbon::setTestNow('2026-07-15 12:00:00');
+        config(['seasons.active' => 'auto']);
+        $product = $user->products()->create(['name' => 'عطر']);
+
+        $data = $this->postJson('/api/creative/preview', [
+            'product_id' => $product->id,
+            'campaign' => true,
+            'season_theme' => 'yalda',
+        ])->assertOk()->json('data');
+
+        $this->assertSame('yalda', $data['brief']['campaign']['key'] ?? null);
+        $this->assertStringContainsString('Campaign mood:', $data['prompt_preview']);
+        $this->assertStringContainsString('pomegranate', $data['prompt_preview']);
+        $this->assertStringNotContainsString('summer tones', $data['prompt_preview']);
+    }
+
+    public function test_store_persists_the_selected_theme_pack_without_the_flag_columns(): void
+    {
+        Sanctum::actingAs($user = User::factory()->create());
+        Carbon::setTestNow('2026-07-15 12:00:00');
+        config(['seasons.active' => 'auto']);
+        $product = $user->products()->create(['name' => 'عطر']);
+
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'environment' => 'studio',
+            'campaign' => true,
+            'season_theme' => 'yalda',
+        ])->assertStatus(202);
+
+        $project = Generation::query()->latest('id')->firstOrFail()->creativeProject;
+
+        // Neither the flag nor the pinned key may reach the insert.
+        $this->assertArrayNotHasKey('campaign', $project->getAttributes());
+        $this->assertArrayNotHasKey('season_theme', $project->getAttributes());
+
+        $brief = $this->briefOf($project->brief);
+        $this->assertSame('yalda', $brief['campaign']['key'] ?? null);
+        $this->assertStringContainsString('pomegranate', (string) $project->prompt);
+        $this->assertStringNotContainsString('summer tones', (string) $project->prompt);
+    }
+
+    public function test_an_unknown_season_theme_is_rejected(): void
+    {
+        Sanctum::actingAs($user = User::factory()->create());
+        $product = $user->products()->create(['name' => 'عطر']);
+
+        $this->postJson('/api/creative/preview', [
+            'product_id' => $product->id,
+            'campaign' => true,
+            'season_theme' => 'no_such_theme',
+        ])->assertUnprocessable()->assertJsonValidationErrors([
+            'season_theme' => 'تم فصلی انتخاب‌شده نامعتبر است.',
+        ]);
     }
 }

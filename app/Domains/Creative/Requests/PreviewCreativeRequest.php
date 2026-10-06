@@ -19,6 +19,7 @@ class PreviewCreativeRequest extends FormRequest
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'goal' => ['sometimes', Rule::enum(CreativeGoal::class)],
             'campaign' => ['sometimes', 'boolean'],
+            'season_theme' => ['nullable', 'string', Rule::in(array_column(config('seasons.themes'), 'key'))],
         ];
     }
 
@@ -29,6 +30,7 @@ class PreviewCreativeRequest extends FormRequest
             'product_id.exists' => 'محصول انتخاب‌شده یافت نشد.',
             'goal.enum' => 'هدف انتخاب‌شده نامعتبر است.',
             'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
+            'season_theme.in' => 'تم فصلی انتخاب‌شده نامعتبر است.',
         ];
     }
 }

@@ -32,6 +32,7 @@ class StoreGenerationRequest extends FormRequest
             'lighting_setup' => ['nullable', 'string', Rule::in(array_keys(config('creative.lighting_setups')))],
             'quality' => ['sometimes', Rule::in(['standard', 'premium'])],
             'campaign' => ['sometimes', 'boolean'],
+            'season_theme' => ['nullable', 'string', Rule::in(array_column(config('seasons.themes'), 'key'))],
             'settings' => ['sometimes', 'array'],
         ];
     }
@@ -70,6 +71,7 @@ class StoreGenerationRequest extends FormRequest
             'lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
             'quality.in' => 'کیفیت خروجی باید استاندارد (standard) یا پرمیوم (premium) باشد.',
             'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
+            'season_theme.in' => 'تم فصلی انتخاب‌شده نامعتبر است.',
             'settings.array' => 'تنظیمات باید به صورت ساختار معتبر ارسال شوند.',
         ];
     }
