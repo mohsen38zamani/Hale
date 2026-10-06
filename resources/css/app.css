@@ -1247,13 +1247,8 @@ mark.search-hit {
   line-height: 1.6;
   letter-spacing: 0.2px;
   vertical-align: middle;
+  margin: 0 6px;
   cursor: help;
-}
-
-.choice .impact-badge {
-  display: block;
-  width: fit-content;
-  margin-top: 5px;
 }
 
 .impact-badge.impact-high {

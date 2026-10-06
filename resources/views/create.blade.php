@@ -77,6 +77,7 @@
                         <fieldset style="border: 0; padding: 0; margin: 0 0 28px 0;">
                             <legend style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
                                 ۲. هدف این کمپین چیست؟
+                                <x-impact-badge control="goal" />
                             </legend>
                             <small class="impact-hint" data-impact-hint>هدف، جملهٔ Objective پرامپت را می‌سازد؛ نوع خروجی و پیام اصلی تصویر را تعیین می‌کند.</small>
                             <div class="choice-grid" data-goals></div>
@@ -86,6 +87,7 @@
                         <fieldset style="border: 0; padding: 0; margin: 0 0 28px 0;">
                             <legend style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
                                 ۳. سبک و فضای بصری را انتخاب کن:
+                                <x-impact-badge control="style" />
                             </legend>
                             <small class="impact-hint" data-impact-hint>سبک کلی، ترکیب‌بندی، پالت رنگ و حال‌وهوای صحنه را می‌سازد و بیشترین اثر را روی خروجی نهایی دارد.</small>
                             <div class="choice-grid style-choices" data-styles></div>
@@ -95,6 +97,7 @@
                         <fieldset style="border: 0; padding: 0; margin: 0 0 28px 0;">
                             <legend style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
                                 ۴. فرمت خروجی:
+                                <x-impact-badge control="format" />
                             </legend>
                             <small class="impact-hint" data-impact-hint>نسبت ابعاد، کراپ و چیدمان نهایی تصویر را جابه‌جا می‌کند؛ جای محصول در قاب عوض می‌شود.</small>
                             <div class="choice-grid" data-formats></div>
@@ -104,7 +107,7 @@
                         <div data-environment-field style="margin-bottom: 24px;">
                             <label style="display: block; font-size: 13px; font-weight: 600; color: #FFFFFF; margin-bottom: 8px;">
                                 پس‌زمینه و محیط صحنه:
-                                <span class="impact-badge impact-{{ config('creative.impacts.environment') }}" title="{{ config('creative.impact_levels.'.config('creative.impacts.environment').'.hint') }}">{{ config('creative.impact_levels.'.config('creative.impacts.environment').'.short') }}</span>
+                                <x-impact-badge control="environment" />
                             </label>
                             <select name="environment" data-environment style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;"></select>
                             <small class="impact-hint" data-impact-hint>محیط، پس‌زمینه و فضای صحنه را عوض می‌کند؛ محصول روی همان پایه با فضای تازه نمایش داده می‌شود.</small>
@@ -141,28 +144,28 @@
                             <div class="scene-controls-body" data-scene-controls-body>
                                 {{-- 1. Surfaces & Pedestals --}}
                                 <div class="scene-control-group">
-                                    <label class="group-title">جنس سطح و پایه کالا (Surfaces & Pedestals):</label>
+                                    <label class="group-title">جنس سطح و پایه کالا (Surfaces & Pedestals): <x-impact-badge control="surface" /></label>
                                     <small class="impact-hint" data-impact-hint>جنس پایه، متریال زیر محصول و بازتاب‌هایش را تغییر می‌دهد؛ چیدمان کلی صحنه دست‌نخورده می‌ماند.</small>
                                     <div class="choice-grid compact-grid" data-surfaces></div>
                                 </div>
 
                                 {{-- 2. Props & Accents --}}
                                 <div class="scene-control-group">
-                                    <label class="group-title">آبجکت‌های مکمل و اکسسوری (Props & Accents):</label>
+                                    <label class="group-title">آبجکت‌های مکمل و اکسسوری (Props & Accents): <x-impact-badge control="props" /></label>
                                     <small class="impact-hint" data-impact-hint>اکسسوری‌ها لهجه‌های تزئینی (برگ، قطره، مه) اضافه می‌کنند و ترکیب اصلی صحنه را دست نمی‌زنند.</small>
                                     <div class="choice-grid compact-grid" data-props></div>
                                 </div>
 
                                 {{-- 3. Camera Angles --}}
                                 <div class="scene-control-group">
-                                    <label class="group-title">تنظیم زاویه دوربین (Camera Angles):</label>
+                                    <label class="group-title">تنظیم زاویه دوربین (Camera Angles): <x-impact-badge control="camera_angle" /></label>
                                     <small class="impact-hint" data-impact-hint>زاویه دوربین، پرسپکتیو و خط افق صحنه را تعیین می‌کند و خروجی را کاملاً عوض می‌کند.</small>
                                     <div class="choice-grid compact-grid" data-camera-angles></div>
                                 </div>
 
                                 {{-- 4. Lighting Setup --}}
                                 <div class="scene-control-group">
-                                    <label class="group-title">کنترل نورپردازی استودیو (Lighting Setup):</label>
+                                    <label class="group-title">کنترل نورپردازی استودیو (Lighting Setup): <x-impact-badge control="lighting_setup" /></label>
                                     <small class="impact-hint" data-impact-hint>نورپردازی، سایه‌ها و درخشش سطح را تنظیم می‌کند؛ فضا و حس صحنه عوض می‌شود ولی چیدمان نه.</small>
                                     <div class="choice-grid compact-grid" data-lighting-setups></div>
                                 </div>
