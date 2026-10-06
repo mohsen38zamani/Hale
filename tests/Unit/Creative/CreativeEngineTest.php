@@ -243,5 +243,89 @@ class CreativeEngineTest extends TestCase
         $this->assertStringNotContainsString('Camera composition:', $prompt);
         $this->assertStringNotContainsString('Camera angle (locked):', $prompt);
         $this->assertStringNotContainsString('Studio lighting:', $prompt);
+        $this->assertStringNotContainsString('Character consistency (locked):', $prompt);
+    }
+
+    public function test_auto_best_provides_dynamic_character_consistency(): void
+    {
+        $product = new Product(['name' => 'عینک دودی']);
+        $result = $this->engine->autoBest($product, CreativeGoal::Sales);
+
+        $this->assertSame('dynamic', $result['character_consistency']);
+    }
+
+    public function test_brief_includes_character_consistency_defaulting_to_dynamic(): void
+    {
+        $product = new Product(['name' => 'تی‌شرت ورزشی']);
+        $brief = $this->engine->brief($product, [
+            'goal' => CreativeGoal::Sales->value,
+            'style' => CreativeStyle::Colorful->value,
+            'environment' => 'urban',
+            'format' => CreativeFormat::InstagramPost->value,
+        ]);
+
+        $this->assertSame('dynamic', $brief['character_consistency']);
+    }
+
+    public function test_brief_honors_explicit_locked_character_consistency(): void
+    {
+        $product = new Product(['name' => 'کت و شلوار']);
+        $brief = $this->engine->brief($product, [
+            'goal' => CreativeGoal::Branding->value,
+            'style' => CreativeStyle::Luxury->value,
+            'environment' => 'studio',
+            'format' => CreativeFormat::InstagramPost->value,
+            'character_consistency' => 'locked',
+        ]);
+
+        $this->assertSame('locked', $brief['character_consistency']);
+    }
+
+    public function test_prompt_cleanly_incorporates_locked_character_consistency(): void
+    {
+        $brief = [
+            'product' => 'کت مردانه برند',
+            'objective' => 'branding',
+            'visual_direction' => 'luxury',
+            'environment' => 'studio',
+            'character_consistency' => 'locked',
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $expectedDirective = 'Character consistency (locked): strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift.';
+        $this->assertStringContainsString($expectedDirective, $prompt);
+
+        // Verify it is front-loaded right after opening product sentence
+        $position = strpos($prompt, $expectedDirective);
+        $objective = strpos($prompt, 'Objective:');
+        $this->assertNotFalse($position);
+        $this->assertNotFalse($objective);
+        $this->assertLessThan($objective, $position, 'Character consistency directive must be front-loaded before Objective.');
+    }
+
+    public function test_prompt_omits_character_consistency_clause_when_dynamic_or_null(): void
+    {
+        $briefDynamic = [
+            'product' => 'کت مردانه برند',
+            'objective' => 'branding',
+            'visual_direction' => 'luxury',
+            'environment' => 'studio',
+            'character_consistency' => 'dynamic',
+        ];
+
+        $promptDynamic = $this->engine->prompt($briefDynamic, CreativeFormat::InstagramPost);
+        $this->assertStringNotContainsString('Character consistency', $promptDynamic);
+
+        $briefNull = [
+            'product' => 'کت مردانه برند',
+            'objective' => 'branding',
+            'visual_direction' => 'luxury',
+            'environment' => 'studio',
+            'character_consistency' => null,
+        ];
+
+        $promptNull = $this->engine->prompt($briefNull, CreativeFormat::InstagramPost);
+        $this->assertStringNotContainsString('Character consistency', $promptNull);
     }
 }

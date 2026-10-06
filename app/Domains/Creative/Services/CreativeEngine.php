@@ -49,6 +49,7 @@ class CreativeEngine
             'environment' => $environment,
             'aspect_ratio' => $format->aspectRatio(),
             'video_duration_seconds' => $duration,
+            'character_consistency' => 'dynamic',
         ];
     }
 
@@ -69,6 +70,9 @@ class CreativeEngine
             'props' => $settings['props'] ?? null,
             'camera_angle' => $settings['camera_angle'] ?? null,
             'lighting_setup' => $settings['lighting_setup'] ?? null,
+            'character_consistency' => isset($settings['character_consistency']) && filled($settings['character_consistency'])
+                ? (string) $settings['character_consistency']
+                : 'dynamic',
             'custom_prompt' => ($customPrompt !== null && $customPrompt !== '') ? $customPrompt : null,
             'audience' => 'Iranian social commerce shoppers',
             'generated_at' => now()->toIso8601String(),
@@ -123,6 +127,7 @@ class CreativeEngine
         // the model treats it as a locked instruction instead of set dressing;
         // surface/props/lighting stay in the trailing scene clause.
         $cameraClause = $this->cameraClause($brief);
+        $characterClause = $this->characterClause($brief);
 
         $customPromptPart = '';
         if (! empty($brief['custom_prompt']) && is_string($brief['custom_prompt'])) {
@@ -136,9 +141,10 @@ class CreativeEngine
         $campaignPart = $this->campaignClause(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []);
 
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s.%s Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
+            'Create a professional commercial advertising visual for %s.%s%s Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
             $brief['product'],
             $cameraClause,
+            $characterClause,
             $brief['objective'],
             $brief['visual_direction'],
             $brief['environment'],
@@ -175,6 +181,26 @@ class CreativeEngine
         $prompt = config("creative.camera_angles.{$angle}.prompt");
 
         return filled($prompt) ? sprintf(' Camera angle (locked): %s.', $prompt) : '';
+    }
+
+    /**
+     * The locked character consistency directive, front-loaded into the prompt.
+     *
+     * @param  array<string, mixed>  $brief
+     */
+    private function characterClause(array $brief): string
+    {
+        $consistency = filled($brief['character_consistency'] ?? null)
+            ? (string) $brief['character_consistency']
+            : 'dynamic';
+
+        if ($consistency !== 'locked') {
+            return '';
+        }
+
+        $prompt = config('creative.character_consistencies.locked.prompt');
+
+        return filled($prompt) ? sprintf(' Character consistency (locked): %s.', $prompt) : '';
     }
 
     /**
