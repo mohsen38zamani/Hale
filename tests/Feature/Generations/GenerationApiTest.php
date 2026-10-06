@@ -323,6 +323,9 @@ class GenerationApiTest extends TestCase
                 'lighting_setups' => [
                     '*' => ['key', 'label', 'prompt', 'icon'],
                 ],
+                'character_consistencies' => [
+                    '*' => ['key', 'label', 'prompt', 'icon'],
+                ],
                 'impact_levels' => [
                     '*' => ['key', 'label', 'short', 'hint'],
                 ],
@@ -337,5 +340,73 @@ class GenerationApiTest extends TestCase
             $this->assertNotEmpty($angle['prompt'], "Camera angle [{$angle['key']}] must expose a prompt directive.");
             $this->assertNotEmpty($angle['motion'], "Camera angle [{$angle['key']}] must expose a video motion clause.");
         }
+
+        $characters = $response->json('data.character_consistencies');
+        $this->assertSame(['dynamic', 'locked'], array_column($characters, 'key'));
+    }
+
+    public function test_creative_preview_supports_character_consistency(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر لوکس']);
+
+        $response = $this->postJson('/api/creative/preview', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'character_consistency' => 'locked',
+        ])->assertOk();
+
+        $this->assertSame('locked', $response->json('data.brief.character_consistency'));
+        $this->assertStringContainsString('Character consistency (locked):', $response->json('data.prompt_preview'));
+    }
+
+    public function test_user_can_create_generation_with_locked_character_consistency(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'محصول کاراکتر']);
+
+        $response = $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'environment' => 'studio',
+            'character_consistency' => 'locked',
+        ])->assertAccepted();
+
+        $generationId = $response->json('data.id');
+        $generation = $user->generations()->with('creativeProject')->findOrFail($generationId);
+
+        $this->assertSame('locked', $generation->creativeProject->character_consistency);
+        $this->assertSame('locked', $generation->creativeProject->brief['character_consistency']);
+        $this->assertStringContainsString('Character consistency (locked): strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift.', $generation->creativeProject->prompt);
+    }
+
+    public function test_invalid_character_consistency_returns_persian_validation_error(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'محصول تست']);
+
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'minimal',
+            'format' => 'instagram_post',
+            'character_consistency' => 'invalid_choice',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'character_consistency' => 'تنظیمات ثبات کاراکتر انتخاب‌شده نامعتبر است.',
+            ]);
+
+        $this->postJson('/api/creative/preview', [
+            'product_id' => $product->id,
+            'character_consistency' => 'invalid_choice',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'character_consistency' => 'تنظیمات ثبات کاراکتر انتخاب‌شده نامعتبر است.',
+            ]);
     }
 }

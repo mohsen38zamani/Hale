@@ -30,6 +30,7 @@ class CreativeController extends Controller
             'props' => array_values(config('creative.props')),
             'camera_angles' => array_values(config('creative.camera_angles')),
             'lighting_setups' => array_values(config('creative.lighting_setups')),
+            'character_consistencies' => array_values(config('creative.character_consistencies')),
             'impact_levels' => array_values(config('creative.impact_levels')),
             'impacts' => config('creative.impacts'),
         ]);
@@ -62,6 +63,9 @@ class CreativeController extends Controller
         }
         if ($request->filled('season_theme')) {
             $settings['season_theme'] = $request->string('season_theme')->toString();
+        }
+        if ($request->filled('character_consistency')) {
+            $settings['character_consistency'] = $request->string('character_consistency')->toString();
         }
         $brief = $engine->brief($product, $settings, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);

@@ -183,4 +183,20 @@ class BulkGenerationTest extends TestCase
             ->assertSee('data-bulk-toggle', false)
             ->assertSee('data-bulk-run', false);
     }
+
+    public function test_bulk_supports_locked_character_consistency(): void
+    {
+        Queue::fake();
+        Sanctum::actingAs($user = User::factory()->create());
+        $id = $user->products()->create(['name' => 'شومیز زنانه'])->id;
+
+        $this->postJson('/api/generations/bulk', [
+            'product_ids' => [$id],
+            'character_consistency' => 'locked',
+        ])->assertAccepted()->assertJsonPath('data.created', 1);
+
+        $project = $user->creativeProjects()->first();
+        $this->assertSame('locked', $project->character_consistency);
+        $this->assertStringContainsString('Character consistency (locked):', $project->prompt);
+    }
 }

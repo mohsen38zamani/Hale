@@ -137,7 +137,7 @@ class GenerationController extends Controller
 
         // Only these keys exist as creative_projects columns; everything else
         // from autoBest (aspect_ratio, ...) stays out of the insert.
-        $persistable = ['goal', 'style', 'format', 'environment', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup'];
+        $persistable = ['goal', 'style', 'format', 'environment', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency'];
         $provided = array_filter($validated, fn ($value): bool => $value !== null && $value !== '');
         $goal = CreativeGoal::from($provided['goal'] ?? CreativeGoal::Introduction->value);
         // One shared quality tier for the whole batch: same gate as store().

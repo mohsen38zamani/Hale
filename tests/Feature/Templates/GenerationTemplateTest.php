@@ -122,4 +122,24 @@ class GenerationTemplateTest extends TestCase
             ->assertSee('data-template-list', false)
             ->assertSee('data-template-save', false);
     }
+
+    public function test_template_supports_character_consistency(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $id = $this->postJson('/api/templates', $this->payload([
+            'settings' => ['character_consistency' => 'locked'],
+        ]))->assertCreated()
+            ->assertJsonPath('data.settings.character_consistency', 'locked')
+            ->json('data.id');
+
+        $this->getJson("/api/templates/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.settings.character_consistency', 'locked');
+
+        $this->postJson('/api/templates', $this->payload([
+            'settings' => ['character_consistency' => 'invalid_state'],
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors(['settings.character_consistency']);
+    }
 }

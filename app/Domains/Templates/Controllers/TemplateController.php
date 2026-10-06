@@ -86,6 +86,7 @@ class TemplateController extends Controller
                 'settings.props' => ['nullable', Rule::in(array_keys(config('creative.props')))],
                 'settings.camera_angle' => ['nullable', Rule::in(array_keys(config('creative.camera_angles')))],
                 'settings.lighting_setup' => ['nullable', Rule::in(array_keys(config('creative.lighting_setups')))],
+                'settings.character_consistency' => ['nullable', Rule::in(array_keys(config('creative.character_consistencies')))],
             ];
         }
 
@@ -117,6 +118,7 @@ class TemplateController extends Controller
             'settings.props.in' => 'اکسسوری صحنه انتخاب‌شده نامعتبر است.',
             'settings.camera_angle.in' => 'زاویه دوربین انتخاب‌شده نامعتبر است.',
             'settings.lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
+            'settings.character_consistency.in' => 'ثبات کاراکتر انتخاب‌شده در قالب نامعتبر است.',
         ];
     }
 }
