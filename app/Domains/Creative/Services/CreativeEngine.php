@@ -141,7 +141,7 @@ class CreativeEngine
         $campaignPart = $this->campaignClause(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []);
 
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s.%s%s Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.',
+            'Create a professional commercial advertising visual for %s.%s%s Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, %s.',
             $brief['product'],
             $cameraClause,
             $characterClause,
@@ -153,7 +153,8 @@ class CreativeEngine
             $sceneClause,
             $customPromptPart,
             $brandPart,
-            $campaignPart
+            $campaignPart,
+            $this->textSuppressionClause($brief)
         );
 
         if ($format->type() === 'video') {
@@ -214,6 +215,53 @@ class CreativeEngine
         $key = (string) config('creative.character_consistency_default', '');
 
         return $key !== '' ? $key : 'dynamic';
+    }
+
+    /**
+     * What may be written inside the frame: nothing, unless the brief itself
+     * asks for wording. The strict tail would otherwise contradict the brand
+     * clause that keeps a tagline legible and the custom scene details the
+     * user explicitly filled in.
+     *
+     * @param  array<string, mixed>  $brief
+     */
+    private function textSuppressionClause(array $brief): string
+    {
+        return $this->requestsRenderedText($brief)
+            ? (string) config('creative.text_suppression.permissive')
+            : (string) config('creative.text_suppression.strict');
+    }
+
+    /**
+     * Does the brief ask for rendered wording, either through the brand
+     * tagline or through a text request inside the custom scene details?
+     *
+     * Keywords match as whole words in both languages, so `متناسب` does not
+     * count as `متن` and `context` does not count as `text`.
+     *
+     * @param  array<string, mixed>  $brief
+     */
+    private function requestsRenderedText(array $brief): bool
+    {
+        if (filled($brief['brand']['tagline'] ?? null)) {
+            return true;
+        }
+
+        $custom = is_string($brief['custom_prompt'] ?? null) ? mb_strtolower($brief['custom_prompt']) : '';
+
+        if ($custom === '') {
+            return false;
+        }
+
+        foreach ((array) config('creative.text_suppression.request_keywords', []) as $keyword) {
+            $keyword = mb_strtolower((string) $keyword);
+
+            if ($keyword !== '' && preg_match('/(?<!\p{L})'.preg_quote($keyword, '/').'(?!\p{L})/u', $custom) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

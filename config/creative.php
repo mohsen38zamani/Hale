@@ -214,4 +214,51 @@ return [
             'icon' => '🔒',
         ],
     ],
+
+    // Redesign 8: what may be written inside the frame. `strict` is the tail of
+    // every prompt; `permissive` applies only when the brief itself asks for
+    // wording (brand tagline, or a text request inside the custom scene
+    // details) - otherwise the two would contradict each other. Both are plain
+    // sentences without placeholders, so the studio mirror can render them
+    // straight from the form markup.
+    'text_suppression' => [
+        'strict' => 'strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, keep the original product packaging and label artwork exactly as it is',
+        'permissive' => 'strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, except the wording the brief explicitly requests, rendered exactly as written and legibly, and nothing else',
+        // Whole-word matches (Persian and Latin) inside the custom scene details.
+        'request_keywords' => [
+            'متن',
+            'نوشته',
+            'تایپوگرافی',
+            'شعار',
+            'عنوان',
+            'تیتر',
+            'فونت',
+            'حروف',
+            'text',
+            'typography',
+            'lettering',
+            'headline',
+            'slogan',
+            'font',
+            'typeface',
+        ],
+        // Scene descriptors must never suggest a text-bearing composition.
+        'banned_prompt_words' => [
+            'poster',
+            'typograph',
+            'font',
+            'typeface',
+            'lettering',
+            'calligraph',
+            'graffiti',
+            'billboard',
+            'signage',
+            'banner',
+            'magazine',
+            'newspaper',
+            'headline',
+            'printed text',
+            'written text',
+        ],
+    ],
 ];

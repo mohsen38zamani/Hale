@@ -71,7 +71,7 @@ class CreativeEngineTest extends TestCase
 
         $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
 
-        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.';
+        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, keep the original product packaging and label artwork exactly as it is.';
 
         $this->assertSame($expected, $prompt);
     }
@@ -88,7 +88,7 @@ class CreativeEngineTest extends TestCase
 
         $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
 
-        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). Custom scene details: روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی. High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.';
+        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). Custom scene details: روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی. High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, keep the original product packaging and label artwork exactly as it is.';
 
         $this->assertSame($expected, $prompt);
     }
@@ -394,5 +394,78 @@ class CreativeEngineTest extends TestCase
             'Character consistency (locked): strict character consistency',
             $this->engine->prompt($brief, CreativeFormat::InstagramPost)
         );
+    }
+
+    public function test_prompt_forbids_generated_text_but_keeps_the_products_own_label(): void
+    {
+        $prompt = $this->engine->prompt([
+            'product' => 'عطر سلطنتی',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'custom_prompt' => null,
+        ], CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString(
+            ' '.config('creative.text_suppression.strict').'.',
+            $prompt,
+            'A brief without wording must end on the strict suppression directive.'
+        );
+        $this->assertStringNotContainsString('no unwanted text', $prompt, 'The old weak tail must be gone.');
+        $this->assertStringNotContainsString(
+            (string) config('creative.text_suppression.permissive'),
+            $prompt,
+            'Nothing grants written wording when the brief asked for none.'
+        );
+    }
+
+    public function test_brand_tagline_switches_the_suppression_to_the_permissive_directive(): void
+    {
+        $prompt = $this->engine->prompt([
+            'product' => 'عطر سلطنتی',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'custom_prompt' => null,
+            'brand' => ['primary_color' => '#111827', 'tagline' => 'حس سلطنتی'],
+        ], CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString(' Keep the brand tagline "حس سلطنتی" legible in the frame.', $prompt);
+        $this->assertStringContainsString(
+            ' '.config('creative.text_suppression.permissive').'.',
+            $prompt,
+            'The strict tail would contradict the tagline the brand clause keeps legible.'
+        );
+        $this->assertStringNotContainsString(' '.config('creative.text_suppression.strict').'.', $prompt);
+    }
+
+    public function test_custom_scene_details_asking_for_wording_switch_to_the_permissive_directive(): void
+    {
+        $prompt = $this->engine->prompt([
+            'product' => 'عطر سلطنتی',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'custom_prompt' => 'شعار برند را زیر محصول بنویس',
+        ], CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString(' '.config('creative.text_suppression.permissive').'.', $prompt);
+        $this->assertStringNotContainsString(' '.config('creative.text_suppression.strict').'.', $prompt);
+    }
+
+    public function test_wording_detection_only_matches_whole_words(): void
+    {
+        // «متناسب» hides «متن» and context hides text: neither asks for wording,
+        // so the strict directive must survive both languages.
+        $prompt = $this->engine->prompt([
+            'product' => 'عطر سلطنتی',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'luxury',
+            'custom_prompt' => 'چیدمان متناسب با فصل و پس‌زمینه context محور',
+        ], CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString(' '.config('creative.text_suppression.strict').'.', $prompt);
+        $this->assertStringNotContainsString(' '.config('creative.text_suppression.permissive').'.', $prompt);
     }
 }
