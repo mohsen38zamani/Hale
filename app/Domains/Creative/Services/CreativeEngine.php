@@ -6,11 +6,20 @@ use App\Domains\Brand\Models\BrandKit;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
+use App\Domains\Creative\Prompts\PromptClauses;
+use App\Domains\Creative\Prompts\PromptCompilerFactory;
 use App\Domains\Products\Models\Product;
 
 class CreativeEngine
 {
-    public function __construct(private readonly SeasonThemeService $seasons) {}
+    /**
+     * The compiler factory has a default so `new CreativeEngine($seasons)`
+     * keeps working in tests; the container injects its own otherwise.
+     */
+    public function __construct(
+        private readonly SeasonThemeService $seasons,
+        private readonly PromptCompilerFactory $compilers = new PromptCompilerFactory
+    ) {}
 
     public function autoBest(Product $product, CreativeGoal $goal): array
     {
@@ -49,7 +58,7 @@ class CreativeEngine
             'environment' => $environment,
             'aspect_ratio' => $format->aspectRatio(),
             'video_duration_seconds' => $duration,
-            'character_consistency' => $this->defaultCharacterConsistency(),
+            'character_consistency' => PromptClauses::defaultCharacterConsistency(),
         ];
     }
 
@@ -72,7 +81,7 @@ class CreativeEngine
             'lighting_setup' => $settings['lighting_setup'] ?? null,
             'character_consistency' => isset($settings['character_consistency']) && filled($settings['character_consistency'])
                 ? (string) $settings['character_consistency']
-                : $this->defaultCharacterConsistency(),
+                : PromptClauses::defaultCharacterConsistency(),
             'custom_prompt' => ($customPrompt !== null && $customPrompt !== '') ? $customPrompt : null,
             'audience' => 'Iranian social commerce shoppers',
             'generated_at' => now()->toIso8601String(),
@@ -102,241 +111,37 @@ class CreativeEngine
             }
         }
 
+        // Redesign 6: which model the prompt is written for travels inside the
+        // brief, exactly like the campaign pack, so the compiled prompt, the
+        // stored project and the preview endpoint all read one value. An empty
+        // target keeps the brief free of the key and prompt() stays generic.
+        if (filled($settings['target_ai'] ?? null)) {
+            $brief['target_ai'] = (string) $settings['target_ai'];
+        }
+
         return $brief;
     }
 
+    /**
+     * Compile the brief for the target it carries. A brief without one (or
+     * with a key no compiler answers to) takes the generic path, which is
+     * byte-for-byte the sentence this engine has always produced.
+     *
+     * @param  array<string, mixed>  $brief
+     */
     public function prompt(array $brief, CreativeFormat $format): string
     {
-        $sceneParts = [];
+        $target = is_string($brief['target_ai'] ?? null) ? $brief['target_ai'] : null;
 
-        if (! empty($brief['surface']) && ($surfacePrompt = config("creative.surfaces.{$brief['surface']}.prompt"))) {
-            $sceneParts[] = ucfirst($surfacePrompt).'.';
-        }
-
-        if (! empty($brief['props']) && ($propsPrompt = config("creative.props.{$brief['props']}.prompt"))) {
-            $sceneParts[] = ucfirst($propsPrompt).'.';
-        }
-
-        if (! empty($brief['lighting_setup']) && ($lightingPrompt = config("creative.lighting_setups.{$brief['lighting_setup']}.prompt"))) {
-            $sceneParts[] = ucfirst($lightingPrompt).'.';
-        }
-
-        $sceneClause = ! empty($sceneParts) ? ' '.implode(' ', $sceneParts) : '';
-
-        // Front-load the camera directive right after the opening sentence so
-        // the model treats it as a locked instruction instead of set dressing;
-        // surface/props/lighting stay in the trailing scene clause.
-        $cameraClause = $this->cameraClause($brief);
-        $characterClause = $this->characterClause($brief);
-
-        $customPromptPart = '';
-        if (! empty($brief['custom_prompt']) && is_string($brief['custom_prompt'])) {
-            $sanitized = $this->sanitizeCustomPrompt($brief['custom_prompt']);
-            if ($sanitized !== '') {
-                $customPromptPart = sprintf(' Custom scene details: %s.', $sanitized);
-            }
-        }
-
-        $brandPart = $this->brandClause(is_array($brief['brand'] ?? null) ? $brief['brand'] : []);
-        $campaignPart = $this->campaignClause(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []);
-
-        $base = sprintf(
-            'Create a professional commercial advertising visual for %s.%s%s Objective: %s. Aesthetic style: %s. Environment: %s. Composition: %s ratio (%s).%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, %s.',
-            $brief['product'],
-            $cameraClause,
-            $characterClause,
-            $brief['objective'],
-            $brief['visual_direction'],
-            $brief['environment'],
-            $format->aspectRatio(),
-            $format->value,
-            $sceneClause,
-            $customPromptPart,
-            $brandPart,
-            $campaignPart,
-            $this->textSuppressionClause($brief)
-        );
-
-        if ($format->type() === 'video') {
-            $base .= sprintf(
-                ' Dynamic motion: %s, fluid atmospheric movement, premium brand reel aesthetic, 4K render.',
-                $this->cameraMotion($brief)
-            );
-        }
-
-        return $base;
+        return $this->compilers->for($target)->compile($brief, $format);
     }
 
     /**
-     * The locked camera directive, front-loaded into the prompt.
-     *
-     * @param  array<string, mixed>  $brief
+     * The clause builder owns the wording rules; the engine keeps this entry
+     * point because sanitizing user text is part of its public contract.
      */
-    private function cameraClause(array $brief): string
-    {
-        $angle = filled($brief['camera_angle'] ?? null) ? (string) $brief['camera_angle'] : '';
-        if ($angle === '') {
-            return '';
-        }
-
-        $prompt = config("creative.camera_angles.{$angle}.prompt");
-
-        return filled($prompt) ? sprintf(' Camera angle (locked): %s.', $prompt) : '';
-    }
-
-    /**
-     * The locked character directive, front-loaded into the prompt.
-     *
-     * The catalogue in config/creative.php is the only source: a state whose
-     * prompt is empty (dynamic) contributes nothing, and the directive title
-     * carries the state key, so a future state with its own prompt needs no
-     * change here.
-     *
-     * @param  array<string, mixed>  $brief
-     */
-    private function characterClause(array $brief): string
-    {
-        $key = filled($brief['character_consistency'] ?? null)
-            ? (string) $brief['character_consistency']
-            : $this->defaultCharacterConsistency();
-
-        $entry = config("creative.character_consistencies.{$key}");
-        $prompt = is_array($entry) ? (string) ($entry['prompt'] ?? '') : '';
-
-        return filled($prompt) ? sprintf(' Character consistency (%s): %s.', $key, $prompt) : '';
-    }
-
-    /**
-     * The state a request without one inherits, decided by a single config key
-     * so autoBest(), the brief and the prompt clause can never disagree.
-     */
-    private function defaultCharacterConsistency(): string
-    {
-        $key = (string) config('creative.character_consistency_default', '');
-
-        return $key !== '' ? $key : 'dynamic';
-    }
-
-    /**
-     * What may be written inside the frame: nothing, unless the brief itself
-     * asks for wording. The strict tail would otherwise contradict the brand
-     * clause that keeps a tagline legible and the custom scene details the
-     * user explicitly filled in.
-     *
-     * @param  array<string, mixed>  $brief
-     */
-    private function textSuppressionClause(array $brief): string
-    {
-        return $this->requestsRenderedText($brief)
-            ? (string) config('creative.text_suppression.permissive')
-            : (string) config('creative.text_suppression.strict');
-    }
-
-    /**
-     * Does the brief ask for rendered wording, either through the brand
-     * tagline or through a text request inside the custom scene details?
-     *
-     * Keywords match as whole words in both languages, so `متناسب` does not
-     * count as `متن` and `context` does not count as `text`.
-     *
-     * @param  array<string, mixed>  $brief
-     */
-    private function requestsRenderedText(array $brief): bool
-    {
-        if (filled($brief['brand']['tagline'] ?? null)) {
-            return true;
-        }
-
-        $custom = is_string($brief['custom_prompt'] ?? null) ? mb_strtolower($brief['custom_prompt']) : '';
-
-        if ($custom === '') {
-            return false;
-        }
-
-        foreach ((array) config('creative.text_suppression.request_keywords', []) as $keyword) {
-            $keyword = mb_strtolower((string) $keyword);
-
-            if ($keyword !== '' && preg_match('/(?<!\p{L})'.preg_quote($keyword, '/').'(?!\p{L})/u', $custom) === 1) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Video camera movement that matches the chosen angle, falling back to the
-     * generic pan so prompts without a camera angle stay byte-for-byte stable.
-     *
-     * @param  array<string, mixed>  $brief
-     */
-    private function cameraMotion(array $brief): string
-    {
-        $angle = filled($brief['camera_angle'] ?? null) ? (string) $brief['camera_angle'] : '';
-        $motion = $angle === '' ? null : config("creative.camera_angles.{$angle}.motion");
-
-        return filled($motion) ? (string) $motion : 'smooth cinematic camera pan';
-    }
-
     public function sanitizeCustomPrompt(string $input): string
     {
-        $stripped = strip_tags($input);
-        $clean = preg_replace('/[\x00-\x1F\x7F]/u', '', $stripped) ?? '';
-        $normalized = preg_replace('/\s+/u', ' ', $clean) ?? '';
-
-        return rtrim(trim($normalized), '. ');
-    }
-
-    /**
-     * Turn the brand identity stored in the brief into prompt language.
-     *
-     * @param  array<string, string>  $brand
-     */
-    private function brandClause(array $brand): string
-    {
-        $palette = [];
-        foreach (['primary_color' => 'primary', 'secondary_color' => 'secondary', 'accent_color' => 'accent'] as $key => $label) {
-            if (filled($brand[$key] ?? null)) {
-                $palette[] = $label.' '.$brand[$key];
-            }
-        }
-
-        $bits = [];
-        if ($palette !== []) {
-            $bits[] = 'palette '.implode(', ', $palette);
-        }
-        if (filled($brand['tone'] ?? null)) {
-            $bits[] = 'tone '.$this->sanitizeCustomPrompt((string) $brand['tone']);
-        }
-
-        $clause = $bits !== [] ? sprintf(' Brand identity: %s.', implode('; ', $bits)) : '';
-
-        if (filled($brand['tagline'] ?? null)) {
-            $sanitizedTagline = $this->sanitizeCustomPrompt((string) $brand['tagline']);
-            if ($sanitizedTagline !== '') {
-                $clause .= sprintf(' Keep the brand tagline "%s" legible in the frame.', $sanitizedTagline);
-            }
-        }
-
-        return $clause;
-    }
-
-    /**
-     * Turn the campaign block stored in the brief into prompt language.
-     *
-     * @param  array<string, mixed>  $campaign
-     */
-    private function campaignClause(array $campaign): string
-    {
-        if (! filled($campaign['pack'] ?? null)) {
-            return '';
-        }
-
-        $pack = $this->sanitizeCustomPrompt((string) $campaign['pack']);
-        if ($pack === '') {
-            return '';
-        }
-
-        return sprintf(' Campaign mood: %s.', $pack);
+        return $this->compilers->clauses()->sanitize($input);
     }
 }

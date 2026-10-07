@@ -342,4 +342,111 @@ return [
             'written text',
         ],
     ],
+
+    // Redesign 6: the four tabs of the Target AI selector. The keys are the
+    // `category` of the entries in target_ais below, so the studio builds its
+    // tabs from this list and a new group needs no view change.
+    'target_ai_categories' => [
+        'text' => ['label' => 'مدل‌های متنی و چت', 'hint' => 'برای نوشتن بریف، کپشن و ایدهٔ کمپین'],
+        'image' => ['label' => 'تولید عکس', 'hint' => 'موتورهای تخصصی ساخت تصویر تبلیغاتی'],
+        'video' => ['label' => 'تولید ویدیو', 'hint' => 'فرمول‌های حرکت دوربین و ریل تبلیغاتی'],
+        'edit' => ['label' => 'ویرایش تصویر', 'hint' => 'تغییر زمینه و روتوش با ثابت‌ماندن کالا'],
+    ],
+
+    // Redesign 6: which model the studio writes its prompt for. Keyed by the
+    // `target_ai` field, exactly like the other studio catalogues, so the same
+    // list drives the selector, the validation rule and the compiler factory.
+    //   label    - what the user sees next to the key
+    //   category - a key of target_ai_categories, or `default` for the fallback
+    //   mode     - `generate` when our own pipeline can build it here,
+    //              `copy` when the compiled prompt is meant to be pasted into
+    //              that tool instead
+    //   types    - format types this target can serve (image / video)
+    //   note     - one Persian clause saying what its compiler changes
+    'target_ais' => [
+        'generic' => [
+            'label' => 'پیش‌فرض سیستم',
+            'category' => 'default',
+            'mode' => 'generate',
+            'types' => ['image', 'video'],
+            'note' => 'پرامپت عمومی استودیو که با سرویس داخلی ساخته می‌شود و برای همهٔ موتورها جواب می‌دهد.',
+        ],
+        'chatgpt' => [
+            'label' => 'ChatGPT',
+            'category' => 'text',
+            'mode' => 'copy',
+            'types' => ['image', 'video'],
+            'note' => 'بریف ساختاریافتهٔ مارکتینگ دوزبانه با قلاب فروش و سناریوی کپشن.',
+        ],
+        'claude' => [
+            'label' => 'Claude',
+            'category' => 'text',
+            'mode' => 'copy',
+            'types' => ['image', 'video'],
+            'note' => 'پرامپت مهندسی‌شده با تگ‌های XML مرتب و بخش‌بندی شفاف.',
+        ],
+        'deepseek' => [
+            'label' => 'DeepSeek',
+            'category' => 'text',
+            'mode' => 'copy',
+            'types' => ['image', 'video'],
+            'note' => 'تحلیل زنجیرهٔ تفکر: مخاطب، زاویهٔ برندهٔ تبلیغاتی و بهینه‌سازی کپی.',
+        ],
+        'grok' => [
+            'label' => 'Grok',
+            'category' => 'text',
+            'mode' => 'copy',
+            'types' => ['image', 'video'],
+            'note' => 'لحن جسورانه و آمادهٔ ترندهای وایرال شبکه‌های اجتماعی.',
+        ],
+        'imagen' => [
+            'label' => 'Imagen 3',
+            'category' => 'image',
+            'mode' => 'generate',
+            'types' => ['image'],
+            'note' => 'اصطلاحات دقیق عکاسی استودیویی: فاصلهٔ کانونی، نور سه‌نقطه‌ای و حذف واژگان کلیشه‌ای.',
+        ],
+        'midjourney' => [
+            'label' => 'Midjourney v6',
+            'category' => 'image',
+            'mode' => 'copy',
+            'types' => ['image'],
+            'note' => 'ساختار فشردهٔ عبارتی با پارامترهای --ar، --style raw و --v 6.1.',
+        ],
+        'flux' => [
+            'label' => 'FLUX.1',
+            'category' => 'image',
+            'mode' => 'copy',
+            'types' => ['image'],
+            'note' => 'شرح عینی متریال، پرسپکتیو و فیزیک نور، بدون واژگان تبلیغاتی تکراری.',
+        ],
+        'stable_diffusion' => [
+            'label' => 'Stable Diffusion',
+            'category' => 'image',
+            'mode' => 'copy',
+            'types' => ['image'],
+            'note' => 'تفکیک بلوک مثبت و منفی با سینتکس استاندارد وزن‌دهی.',
+        ],
+        'veo' => [
+            'label' => 'Veo 2',
+            'category' => 'video',
+            'mode' => 'generate',
+            'types' => ['video'],
+            'note' => 'فرمول سینمایی: حرکت دوربین در ابتدای پرامپت (Front-loading).',
+        ],
+        'runway' => [
+            'label' => 'Runway Gen-3',
+            'category' => 'video',
+            'mode' => 'copy',
+            'types' => ['video'],
+            'note' => 'برچسب‌های کارگردانی برای دوربین، حرکت عناصر و نورپردازی.',
+        ],
+        'gemini_edit' => [
+            'label' => 'Gemini Edit',
+            'category' => 'edit',
+            'mode' => 'copy',
+            'types' => ['image'],
+            'note' => 'پرامپت تفاضلی: زمینه را عوض می‌کند و کالای اصلی را در همان کادر نگه می‌دارد.',
+        ],
+    ],
 ];
