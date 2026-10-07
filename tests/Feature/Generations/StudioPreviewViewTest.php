@@ -245,4 +245,38 @@ class StudioPreviewViewTest extends TestCase
         $this->assertStringNotContainsString('no unwanted text', $script, 'The weak tail must be gone from the mirror.');
         $this->assertStringNotContainsString('no unwanted text', $engine, 'The weak tail must be gone from the engine.');
     }
+
+    public function test_the_studio_renders_the_scene_summary_from_the_config_template(): void
+    {
+        $html = (string) $this->get('/create')->assertOk()->baseResponse->getContent();
+
+        $this->assertStringContainsString('data-scene-summary role="status"', $html, 'The summary bar must sit under the canvas.');
+        $this->assertStringContainsString('data-scene-summary-text', $html, 'The summary needs its writable line.');
+        $this->assertStringContainsString(
+            'data-summary-template="'.config('creative.summary_template').'"',
+            $html,
+            'The grammar of the summary must come from config, not from the script.'
+        );
+        $this->assertStringContainsString(
+            'data-scene-effects="'.e(json_encode(config('creative.effects'), JSON_UNESCAPED_UNICODE)).'"',
+            $html,
+            'The clauses must reach the studio with the page, not only through the authenticated API.'
+        );
+
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+
+        $this->assertStringContainsString('builderForm.dataset.sceneEffects', $script);
+        $this->assertStringContainsString('builderForm.dataset.summaryTemplate', $script);
+        $this->assertStringContainsString('[data-scene-summary-text]', $script);
+        $this->assertStringContainsString('updateSceneSummary(', $script, 'The summary must be rewritten on every change.');
+        $this->assertStringContainsString(
+            'updateSceneSummary({',
+            $script,
+            'The summary must be fed by the same selections the inspector uses.'
+        );
+
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+        $this->assertStringContainsString('.scene-summary {', $stylesheet);
+        $this->assertStringContainsString('.scene-summary-text {', $stylesheet);
+    }
 }

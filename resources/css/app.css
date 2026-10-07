@@ -866,6 +866,32 @@ mark.search-hit {
 /* ==========================================================================
    LIVE STUDIO INTERACTIVE PREVIEW CANVAS
    ========================================================================== */
+
+/* Scene Summary Bar (redesign 4): one Persian sentence describing the scene
+   that is currently configured, assembled from config/creative.php. */
+.scene-summary {
+  background: rgba(139, 92, 246, 0.07);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 2;
+  color: #E9D5FF;
+}
+
+.scene-summary-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: rgba(196, 181, 253, 0.75);
+  margin-bottom: 2px;
+}
+
+.scene-summary-text {
+  color: #DDD6FE;
+}
+
 .studio-canvas-panel {
   position: sticky;
   top: 24px;

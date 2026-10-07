@@ -59,7 +59,9 @@
                         data-default-character="{{ config('creative.character_consistency_default') }}"
                         data-text-strict="{{ config('creative.text_suppression.strict') }}"
                         data-text-permissive="{{ config('creative.text_suppression.permissive') }}"
-                        data-text-keywords="{{ json_encode(config('creative.text_suppression.request_keywords'), JSON_UNESCAPED_UNICODE) }}">
+                        data-text-keywords="{{ json_encode(config('creative.text_suppression.request_keywords'), JSON_UNESCAPED_UNICODE) }}"
+                        data-scene-effects="{{ json_encode(config('creative.effects'), JSON_UNESCAPED_UNICODE) }}"
+                        data-summary-template="{{ config('creative.summary_template') }}">
                         {{-- Step 1: Product --}}
                         <div style="margin-bottom: 24px;">
                             <label style="display: block; font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
@@ -274,6 +276,14 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {{-- Scene Summary Bar (redesign 4): one Persian sentence
+                         describing the configured scene, written live by
+                         updateSceneSummary() from the config template. --}}
+                    <div class="scene-summary" data-scene-summary role="status">
+                        <span class="scene-summary-label">خلاصهٔ صحنه</span>
+                        <span class="scene-summary-text" data-scene-summary-text>چیدمان صحنه پس از بارگذاری گزینه‌ها اینجا نوشته می‌شود.</span>
                     </div>
 
                     {{-- Prompt Inspector Box --}}

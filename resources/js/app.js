@@ -1465,6 +1465,7 @@ if (builderForm) {
 	const canvasPlaceholder = document.querySelector('[data-canvas-placeholder]');
 	const canvasPlaceholderTitle = document.querySelector('[data-canvas-placeholder-title]');
 	const canvasGround = document.querySelector('[data-canvas-ground]');
+	const sceneSummaryText = document.querySelector('[data-scene-summary-text]');
 	const copyPromptBtn = document.querySelector('[data-copy-prompt]');
 	const inspectorCode = document.querySelector('[data-inspector-code]');
 	const chipProduct = document.querySelector('[data-chip-product]');
@@ -1505,6 +1506,16 @@ if (builderForm) {
 		const escaped = String(keyword).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 		return new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'ui').test(text);
 	});
+	// Scene summary (redesign 4): the grammar arrives with the markup and every
+	// {control} slot is filled from the same catalogue the option cards quote,
+	// so the wording of the summary lives in config/creative.php alone.
+	let sceneEffects = {};
+	try {
+		sceneEffects = JSON.parse(builderForm.dataset.sceneEffects || '{}');
+	} catch (error) {
+		sceneEffects = {};
+	}
+	const summaryTemplate = builderForm.dataset.summaryTemplate || '';
 
 	const aspectRatios = {
 		instagram_post: '1:1',
@@ -1562,6 +1573,20 @@ if (builderForm) {
 			canvasPlaceholder.style.display = 'flex';
 			if (canvasPlaceholderTitle) canvasPlaceholderTitle.textContent = product.name;
 		}
+	};
+
+	// Fills the Persian scene summary under the canvas: {product} becomes the
+	// selected product (or a neutral placeholder) and every other slot is
+	// resolved through the effects catalogue keyed by the studio field name.
+	const updateSceneSummary = (selection) => {
+		if (!sceneSummaryText || !summaryTemplate) return;
+		const resolved = { '{product}': selection.product ? `${selection.product} شما` : 'محصول شما' };
+		Object.keys(selection).forEach((control) => {
+			if (control === 'product') return;
+			const key = selection[control];
+			resolved[`{${control}}`] = (sceneEffects[control] && sceneEffects[control][key]) || labels[key] || key;
+		});
+		sceneSummaryText.textContent = summaryTemplate.replace(/\{(\w+)\}/g, (slot) => resolved[slot] || slot);
 	};
 
 	const updateCanvasState = () => {
@@ -1622,6 +1647,21 @@ if (builderForm) {
 		if (chipLighting) chipLighting.textContent = `نور: ${lightingObj?.label || 'سافت‌باکس'}`;
 		if (chipCharacter) chipCharacter.textContent = `کاراکتر: ${characterObj?.label || 'مدل جدید'}`;
 		if (chipFormat) chipFormat.textContent = `فرمت: ${aspectRatios[format] || '۱:۱'}`;
+
+		// The summary stays independent from the prompt inspector: it must also
+		// describe a scene whose product has not been picked yet.
+		updateSceneSummary({
+			product: product ? product.name : '',
+			goal,
+			style,
+			format,
+			environment: env,
+			surface,
+			props,
+			camera_angle: cameraAngle,
+			lighting_setup: lighting,
+			character_consistency: characterConsistency,
+		});
 
 		if (inspectorCode) {
 			if (!product) {
