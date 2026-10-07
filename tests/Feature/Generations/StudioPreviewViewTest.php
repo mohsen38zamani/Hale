@@ -334,4 +334,53 @@ class StudioPreviewViewTest extends TestCase
             );
         }
     }
+
+    public function test_every_choice_card_carries_a_before_and_after_peek(): void
+    {
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+
+        $this->assertStringContainsString(
+            "const stagePreviewControls = ['style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup']",
+            $script,
+            'Goal and character consistency only rewrite the prompt, so their cards must stay text-only.'
+        );
+        $this->assertStringContainsString('sceneEffects[name]', $script, 'Every card must quote its configured effect.');
+        $this->assertStringContainsString('class="choice-peek"', $script);
+        $this->assertStringContainsString('data-peek-now', $script);
+        $this->assertStringContainsString('data-peek-next', $script);
+        $this->assertStringContainsString('data-peek-control=', $script, 'The "with this option" miniature must know which key to swap.');
+        $this->assertStringContainsString("addEventListener('pointerenter'", $script, 'The card must be filled when it is opened.');
+        $this->assertStringContainsString("addEventListener('focusin'", $script, 'Keyboard users need the same explanation.');
+        $this->assertStringContainsString(
+            'studio-stage mini-stage',
+            $script,
+            'The miniature must be a real stage, otherwise the comparison would lie.'
+        );
+        $this->assertStringContainsString('--stage-product-image', $script, 'The comparison must show the real product photograph.');
+        $this->assertStringContainsString(
+            '.choice:hover .choice-peek',
+            $script,
+            'A radio clicked while hovering must refresh the card that is still open.'
+        );
+
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+
+        foreach (['.choice-peek {', '.choice-peek-text {', '.choice-peek-caption {', '.mini-stage {', '.mini-product {'] as $rule) {
+            $this->assertStringContainsString($rule, $stylesheet, "Peek rule [{$rule}] is missing.");
+        }
+
+        $this->assertStringContainsString('var(--stage-product-image', $stylesheet);
+        $this->assertStringContainsString('.choice:hover .choice-peek', $stylesheet);
+        $this->assertStringContainsString('.choice:focus-within .choice-peek', $stylesheet);
+        $this->assertStringContainsString(
+            '.choice > span:not(.choice-peek)',
+            $stylesheet,
+            'The label rules must not paint over the card.'
+        );
+        $this->assertStringContainsString(
+            '@media (hover: hover)',
+            $stylesheet,
+            'Touch devices must not be given a hover card.'
+        );
+    }
 }

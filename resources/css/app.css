@@ -837,7 +837,9 @@ mark.search-hit {
   position: absolute;
 }
 
-.choice span {
+/* The label span only: the peek card and its miniatures are also spans and
+   must never inherit the label's frame. */
+.choice > span:not(.choice-peek) {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -1446,6 +1448,171 @@ mark.search-hit {
   background: conic-gradient(from 210deg at 60% 40%, rgba(139, 92, 246, 0.32), rgba(34, 211, 238, 0.24), rgba(244, 63, 94, 0.26), rgba(139, 92, 246, 0.32));
 }
 
+/* ==========================================================================
+   MICRO VISUAL CARDS (redesign 4)
+   A floating card beside every option: its configured effect in Persian and,
+   for the controls that can be drawn, a real "now / with this option" pair of
+   miniatures built from the very same rules as the canvas.
+   ========================================================================== */
+
+.choice {
+  position: relative;
+}
+
+.choice-peek {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  width: max-content;
+  max-width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(14, 12, 24, 0.97);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 20px 44px -20px rgba(0, 0, 0, 0.95);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 40;
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
+}
+
+/* Pointer cards are a desktop affordance; on touch the scene summary bar is
+   the explanation. */
+@media (hover: hover) and (pointer: fine) {
+  .choice:hover .choice-peek {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.choice:focus-within .choice-peek {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.choice-peek-visuals {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+}
+
+.choice-peek-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.choice-peek-caption {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(203, 213, 225, 0.7);
+}
+
+.choice-peek-text {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #E9D5FF;
+  max-width: 264px;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-peek {
+    transition: none;
+  }
+}
+
+/* The miniature is a real .studio-stage, so the horizon, light, prop and
+   atmosphere rules all paint it too; only its box is resized here. */
+.mini-stage {
+  box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.9);
+  border-radius: 10px;
+  transition: none;
+}
+
+.mini-stage.ratio-1-1 {
+  width: 76px;
+  max-width: 76px;
+}
+
+.mini-stage.ratio-9-16 {
+  width: 58px;
+  max-width: 58px;
+}
+
+.mini-stage .stage-product {
+  padding: 6px;
+}
+
+.mini-stage .stage-ground {
+  width: 74%;
+  height: 8px;
+}
+
+.mini-stage .stage-atmosphere::after {
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.75);
+}
+
+.mini-stage .stage-badge {
+  display: none;
+}
+
+/* Proportions that only make sense on the full canvas. */
+.mini-stage.props-crystals .stage-props::before {
+  width: 18px;
+  height: 18px;
+}
+
+.mini-stage.props-crystals .stage-props::after {
+  width: 12px;
+  height: 12px;
+}
+
+.mini-stage.props-splash .stage-props::before {
+  width: 5px;
+  height: 5px;
+}
+
+.mini-stage.props-smoke .stage-props::before {
+  filter: blur(6px);
+}
+
+.mini-stage.props-smoke .stage-props::after {
+  filter: blur(7px);
+}
+
+/* The real product photograph, shared with the canvas through one custom
+   property; until one is picked the miniature shows a neutral bottle. */
+.mini-product {
+  position: absolute;
+  inset: 14%;
+  background-image: var(--stage-product-image, none);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.mini-product::before {
+  content: '';
+  position: absolute;
+  inset: 6% 24%;
+  border-radius: 26% 26% 16% 16%;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05));
+}
+
+html.has-stage-product .mini-product::before {
+  content: none;
+}
+
 /* Scene Controls Form Styles */
 .scene-controls-panel {
   background: rgba(255, 255, 255, 0.02);
@@ -1540,7 +1707,7 @@ mark.search-hit {
   gap: 8px;
 }
 
-.choice-grid.compact-grid .choice span {
+.choice-grid.compact-grid .choice > span:not(.choice-peek) {
   padding: 8px 12px;
   font-size: 12px;
   border-radius: 10px;

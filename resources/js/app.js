@@ -1480,6 +1480,24 @@ if (builderForm) {
 	const chipCharacter = document.querySelector('[data-chip-character]');
 	const productsMap = new Map();
 	const cachedProductBlobUrls = new Map();
+	// The scene the studio is currently describing. The peek cards read it so
+	// their "now" miniature matches the canvas without being repainted on every
+	// radio click.
+	let currentSelection = {};
+	// Lets every miniature show the real product photo: one custom property on
+	// the document, written together with the canvas artwork.
+	const setPeekProduct = (src) => {
+		const root = document.documentElement;
+		if (src) {
+			root.style.setProperty('--stage-product-image', `url("${src}")`);
+			// Drops the neutral bottle silhouette once the real photograph is
+			// available to the miniatures.
+			root.classList.add('has-stage-product');
+		} else {
+			root.style.removeProperty('--stage-product-image');
+			root.classList.remove('has-stage-product');
+		}
+	};
 
 	let surfacesData = [];
 	let propsData = [];
@@ -1530,6 +1548,7 @@ if (builderForm) {
 				canvasProductImg.style.display = 'none';
 				canvasProductImg.src = '';
 			}
+			setPeekProduct('');
 			if (canvasPlaceholder) {
 				canvasPlaceholder.style.display = 'flex';
 				if (canvasPlaceholderTitle) canvasPlaceholderTitle.textContent = 'محصول را انتخاب کن';
@@ -1559,6 +1578,7 @@ if (builderForm) {
 					canvasProductImg.alt = product.name;
 					canvasProductImg.style.display = 'block';
 					canvasProductImg.style.opacity = '1';
+					setPeekProduct(blobUrl);
 					if (canvasPlaceholder) canvasPlaceholder.style.display = 'none';
 					return;
 				}
@@ -1569,6 +1589,7 @@ if (builderForm) {
 			canvasProductImg.style.display = 'none';
 			canvasProductImg.src = '';
 		}
+		setPeekProduct('');
 		if (canvasPlaceholder) {
 			canvasPlaceholder.style.display = 'flex';
 			if (canvasPlaceholderTitle) canvasPlaceholderTitle.textContent = product.name;
@@ -1648,10 +1669,9 @@ if (builderForm) {
 		if (chipCharacter) chipCharacter.textContent = `کاراکتر: ${characterObj?.label || 'مدل جدید'}`;
 		if (chipFormat) chipFormat.textContent = `فرمت: ${aspectRatios[format] || '۱:۱'}`;
 
-		// The summary stays independent from the prompt inspector: it must also
-		// describe a scene whose product has not been picked yet.
-		updateSceneSummary({
-			product: product ? product.name : '',
+		// One selection object feeds both the summary and the peek cards, so
+		// the canvas, the sentence and the miniatures describe the same scene.
+		currentSelection = {
 			goal,
 			style,
 			format,
@@ -1661,6 +1681,20 @@ if (builderForm) {
 			camera_angle: cameraAngle,
 			lighting_setup: lighting,
 			character_consistency: characterConsistency,
+		};
+
+		// The summary stays independent from the prompt inspector: it must also
+		// describe a scene whose product has not been picked yet.
+		updateSceneSummary({
+			...currentSelection,
+			product: product ? product.name : '',
+		});
+
+		// A card left open while its own radio changed must not keep the
+		// previous scene in its "now" miniature.
+		['.choice:hover .choice-peek', '.choice:focus-within .choice-peek'].forEach((selector) => {
+			const openPeek = document.querySelector(selector);
+			if (openPeek) fillChoicePeek(openPeek, currentSelection);
 		});
 
 		if (inspectorCode) {
@@ -1764,14 +1798,73 @@ if (builderForm) {
 		}
 		estimate.dataset.insufficient = result.data.sufficient ? 'false' : 'true';
 	};
+	// Choices whose key can be drawn on the stage get a before/after pair of
+	// miniatures. Goal and character consistency only rewrite the prompt, so
+	// their cards stay text-only instead of pretending to change the picture.
+	const stagePreviewControls = ['style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup'];
+
+	// The miniature is a real .studio-stage: the same three class writes the
+	// canvas gets, so every horizon, light, prop and atmosphere rule paints it
+	// too and the two previews can never disagree.
+	const fillMiniStage = (stage, selection) => {
+		const vertical = ['instagram_story', 'instagram_reel', 'tiktok'].includes(selection.format);
+		stage.className = `studio-stage mini-stage ${vertical ? 'ratio-9-16' : 'ratio-1-1'} light-${selection.lighting_setup} angle-${selection.camera_angle} props-${selection.props}`;
+		const atmosphere = stage.querySelector('.stage-atmosphere');
+		if (atmosphere) atmosphere.className = `stage-atmosphere style-${selection.style} env-${selection.environment}`;
+		const ground = stage.querySelector('.stage-ground');
+		if (ground) ground.className = `stage-ground pedestal-${selection.surface}`;
+	};
+
+	const miniStageMarkup = (attributes) =>
+		`<span class="studio-stage mini-stage" ${attributes}>` +
+		'<span class="stage-atmosphere"></span>' +
+		'<span class="stage-ground"></span>' +
+		'<span class="stage-product"><span class="mini-product"></span></span>' +
+		'<span class="stage-horizon"></span>' +
+		'<span class="stage-props"></span>' +
+		'<span class="stage-lights"></span>' +
+		'</span>';
+
+	const peekMarkup = (control, key, effect) => {
+		if (!effect) return '';
+		const visuals = stagePreviewControls.includes(control)
+			? '<span class="choice-peek-visuals">' +
+				`<span class="choice-peek-slot"><span class="choice-peek-caption">الان</span>${miniStageMarkup('data-peek-now')}</span>` +
+				`<span class="choice-peek-slot"><span class="choice-peek-caption">با این گزینه</span>${miniStageMarkup(`data-peek-next data-peek-control="${control}" data-peek-key="${key}"`)}</span>` +
+				'</span>'
+			: '';
+		return `<span class="choice-peek" aria-hidden="true">${visuals}<span class="choice-peek-text">${effect}</span></span>`;
+	};
+
+	const fillChoicePeek = (peek, selection) => {
+		const now = peek.querySelector('[data-peek-now]');
+		const next = peek.querySelector('[data-peek-next]');
+		if (now) fillMiniStage(now, selection);
+		if (next) fillMiniStage(next, { ...selection, [next.dataset.peekControl]: next.dataset.peekKey });
+	};
+
+	// Peeks are filled when they are opened: repainting forty miniatures on
+	// every radio click would only serve the ones nobody is looking at.
+	const wireChoicePeeks = (target) => {
+		target.querySelectorAll('.choice').forEach((choice) => {
+			const peek = choice.querySelector('.choice-peek');
+			if (!peek) return;
+			const show = () => fillChoicePeek(peek, currentSelection);
+			choice.addEventListener('pointerenter', show);
+			choice.addEventListener('focusin', show);
+		});
+	};
+
 	const renderChoices = (target, values, name, withType = false, isObject = false) => {
 		if (!target) return;
 		target.innerHTML = values.map((item) => {
 			const key = isObject ? item.key : (withType ? item.key : item);
 			const label = isObject ? `${item.icon ? `${item.icon} ` : ''}${item.label}` : (labels[key] || key);
 			const extra = withType ? `<small>${item.aspect_ratio}</small>` : '';
-			return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${label}${extra}</span></label>`;
+			const effect = (sceneEffects[name] && sceneEffects[name][key]) || labels[key] || '';
+			return `<label class="choice"><input type="radio" name="${name}" value="${key}" required><span>${label}${extra}</span>${peekMarkup(name, key, effect)}</label>`;
 		}).join('');
+		wireChoicePeeks(target);
 	};
 	Promise.all([
 		authFetch('/api/products?per_page=50', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
