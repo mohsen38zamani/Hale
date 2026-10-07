@@ -42,6 +42,87 @@ return [
         'character_consistency' => 'high',
     ],
 
+    // Redesign 4: one Persian clause per option, keyed by the studio field
+    // name exactly like impacts. Every clause stands on its own (the option
+    // card shows it under the label) and also fills its slot in
+    // summary_template below, so the scene summary and the hover cards can
+    // never describe the same choice in two different ways. Keep them short:
+    // the summary reads as one sentence.
+    'effects' => [
+        'goal' => [
+            'introduction' => 'معرفی محصول و نمایش هویت بصری آن',
+            'sales' => 'تقویت پیام فروش و جذابیت خرید',
+            'branding' => 'تأکید بر هویت و نشان برند',
+            'promotion' => 'حس فوریت و پیشنهاد ویژه',
+            'launch' => 'حس کنجکاوی و تازگی محصول جدید',
+            'engagement' => 'درگیرکننده و قابل اشتراک برای مخاطب',
+        ],
+        'style' => [
+            'luxury' => 'حس و حال لوکس با پالت گرم و جزئیات درخشان',
+            'minimal' => 'سادگی، فضای خالی و تمرکز کامل روی محصول',
+            'cinematic' => 'نور دراماتیک، عمق و حال‌وهوای سینمایی',
+            'natural' => 'نور طبیعی، بافت واقعی و بدون اغراق',
+            'colorful' => 'پالت رنگارنگ و کنتراست بالا برای جلب توجه',
+            'dark' => 'پس‌زمینه تیره و کنتراست بالا برای حس پریمیوم',
+            'professional' => 'بی‌طرف، تمیز و مناسب کاتالوگ و وب‌سایت',
+            'fashion' => 'ادیتوریال، مدل‌محور و شبیه نشریات مد',
+        ],
+        'format' => [
+            'instagram_post' => 'قاب مربعی ۱:۱ برای پست اینستاگرام',
+            'instagram_story' => 'قاب عمودی ۹:۱۶ برای استوری',
+            'instagram_reel' => 'قاب عمودی ۹:۱۶ با حرکت دوربین برای ریلز',
+            'tiktok' => 'قاب عمودی ۹:۱۶ با حس سریع و جوان برای تیک‌تاک',
+        ],
+        'environment' => [
+            'studio' => 'پس‌زمینه استودیویی خنثی و کنترل‌شده',
+            'nature' => 'فضای باز طبیعت با آسمان و نور پراکنده',
+            'luxury' => 'دکور داخلی لوکس با متریال گران‌قیمت',
+            'urban' => 'صحنه شهری با خطوط معماری و نئون',
+            'home' => 'خانه و دکور صمیمی با گرمی و نرمی',
+            'abstract' => 'فرم‌های انتزاعی و گرادیان‌های مدرن',
+        ],
+        'surface' => [
+            'default' => 'سکوی استودیویی خنثی و بدون بافت',
+            'marble' => 'سکوی سنگ مرمر با بافت سرد و صیقلی',
+            'wood' => 'پایه چوب طبیعی با گرما و بافت دانه‌دار',
+            'concrete' => 'سکوی بتنی مینیمال با حس صنعتی',
+            'water' => 'سطح آب با بازتاب و امواج ملایم',
+            'obsidian' => 'آبسیدین سیاه صیقلی با بازتاب آینه‌ای',
+            'sand' => 'ماسه کویری با گرما و بافت دانه‌دار',
+        ],
+        'lighting_setup' => [
+            'softbox' => 'نور یکنواخت و نرم سافت‌باکس با سایه ملایم',
+            'sunlight' => 'نور مایل و گرم آفتاب با سایه‌های تیزتر',
+            'rim' => 'نور لبه‌ای که حاشیه محصول را جدا می‌کند',
+            'neon' => 'نور نئون رنگی با کنتراست بالا و حس شب',
+        ],
+        'camera_angle' => [
+            'eye_level' => 'زاویه هم‌سطح و تراز با محصول از روبرو',
+            'flat_lay' => 'نمای بالاسری تخت و مستقیم از بالا',
+            'hero_shot' => 'نمای پایین حماسی که محصول را بزرگ می‌کند',
+            'macro' => 'نمای خیلی نزدیک با عمق میدان کم',
+            'isometric' => 'نمای ایزومتریک سه‌چهارم با حجم',
+            'side_angle' => 'نمای جانبی برای نشان دادن عمق',
+        ],
+        'props' => [
+            'none' => 'صحنه بدون اکسسوری اضافه و خلوت',
+            'botanical' => 'برگ و گیاه تازه گِرد محصول',
+            'splash' => 'قطرات و پاشش آب معلق در هوا',
+            'smoke' => 'دود و مه ملایم برای عمق فضا',
+            'crystals' => 'کریستال‌های شیشه‌ای برای انعکاس نور',
+        ],
+        'character_consistency' => [
+            'dynamic' => 'مدل و چهره‌های متنوع در هر تولید',
+            'locked' => 'چهره و هویت مدل ثابت در همه تولیدها',
+        ],
+    ],
+
+    // The Persian sentence the studio reads back under the canvas. Only the
+    // grammar lives here: every {control} slot is filled from effects above
+    // (and {product} by the caller), so editing the wording never needs a
+    // JavaScript change.
+    'summary_template' => '{product} در {environment}، روی {surface}، با {camera_angle} و {lighting_setup} چیده می‌شود؛ {props}، {style}، {goal}، در {format} و با {character_consistency}.',
+
     'surfaces' => [
         'default' => [
             'key' => 'default',
