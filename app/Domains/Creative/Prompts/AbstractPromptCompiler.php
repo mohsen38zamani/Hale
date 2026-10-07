@@ -6,13 +6,13 @@ use App\Domains\Creative\Contracts\PromptCompilerInterface;
 use App\Domains\Creative\Enums\CreativeFormat;
 
 /**
- * Base for the compilers that wrap the image prompt in their own structure.
+ * Shared base for every compiler but the default one.
  *
- * A target that works by *direction* (ChatGPT, Claude, DeepSeek, Grok) never
- * replaces the renderable prompt: it frames it, so the user can hand the same
- * brief to the model and still paste the image prompt underneath into an
- * image model. Only the framing differs between them, and every clause they
- * quote comes from PromptClauses so no target invents its own wording.
+ * It gives them flattened user text and, through PromptClauses, the wording
+ * the studio decided. The direction compilers (ChatGPT, Claude, DeepSeek,
+ * Grok) frame the ready-to-paste image prompt; the image compilers
+ * (Imagen, Midjourney, FLUX, Stable Diffusion) rewrite it into their own
+ * grammar. Neither is allowed to invent a scene.
  */
 abstract class AbstractPromptCompiler implements PromptCompilerInterface
 {

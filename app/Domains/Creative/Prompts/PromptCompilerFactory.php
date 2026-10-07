@@ -24,6 +24,10 @@ class PromptCompilerFactory
         'claude' => ClaudePromptCompiler::class,
         'deepseek' => DeepSeekPromptCompiler::class,
         'grok' => GrokPromptCompiler::class,
+        'imagen' => ImagenPromptCompiler::class,
+        'midjourney' => MidjourneyPromptCompiler::class,
+        'flux' => FluxPromptCompiler::class,
+        'stable_diffusion' => StableDiffusionPromptCompiler::class,
     ];
 
     public function __construct(private readonly PromptClauses $clauses = new PromptClauses) {}

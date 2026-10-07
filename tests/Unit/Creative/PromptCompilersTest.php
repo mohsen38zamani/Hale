@@ -367,6 +367,120 @@ class PromptCompilersTest extends TestCase
         }
     }
 
+    public function test_the_image_compilers_keep_the_scene_and_the_text_policy(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $clauses = $this->factory->clauses();
+
+        $policies = [
+            'imagen' => rtrim(trim($clauses->textSuppression($brief)), '.'),
+            'flux' => rtrim(trim($clauses->textSuppression($brief)), '.'),
+            'midjourney' => '--no text, watermark',
+            'stable_diffusion' => 'Negative prompt: ',
+        ];
+
+        foreach ($policies as $key => $policy) {
+            $compiled = $this->factory->for($key)->compile($brief, $format);
+
+            foreach ($clauses->sceneParts($brief) as $part) {
+                $this->assertStringContainsString(
+                    rtrim(trim($part), '.'),
+                    $compiled,
+                    "[{$key}] dropped the scene clause: the target may not re-imagine the scene."
+                );
+            }
+
+            $this->assertStringContainsString($policy, $compiled, "[{$key}] must carry the text policy in its own grammar.");
+            $this->assertStringContainsString('packaging', $compiled, "[{$key}] must keep the original packaging intact.");
+            $this->assertStringNotContainsString('High-end commercial production', $compiled, "[{$key}] describes the frame, not the aspiration.");
+            $this->assertStringNotContainsString('ultra-sharp detail', $compiled, "[{$key}] must not reuse the generic hype tail.");
+        }
+    }
+
+    public function test_the_imagen_compiler_speaks_in_photographic_terms(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $clauses = $this->factory->clauses();
+        $compiled = $this->factory->for('imagen')->compile($brief, $format);
+
+        $this->assertStringStartsWith($brief['product'].', commercial product photograph', $compiled);
+        $this->assertStringContainsString('85mm lens at f/4', $compiled, 'The lens specification is the point of this target.');
+        $this->assertStringContainsString('three-point lighting', $compiled, 'Studio lighting vocabulary instead of slogans.');
+        $this->assertStringContainsString('no wide-angle distortion', $compiled, 'An unambiguous angle means an undistorted package.');
+        $this->assertStringContainsString(trim($clauses->camera($brief)), $compiled, 'The chosen framing survives.');
+        $this->assertStringContainsString('Composition: 1:1 ratio (instagram_post).', $compiled);
+        $this->assertStringNotContainsString("\n", $compiled, 'An image model receives a single prompt.');
+    }
+
+    public function test_the_midjourney_compiler_ends_with_its_parameters(): void
+    {
+        [$brief] = $this->briefs()[1];
+        $compiler = $this->factory->for('midjourney');
+
+        $post = $compiler->compile($brief, CreativeFormat::InstagramPost);
+        $reel = $compiler->compile($brief, CreativeFormat::InstagramReel);
+
+        $this->assertStringEndsWith('--ar 1:1 --style raw --v 6.1 --no text, watermark', $post);
+        $this->assertStringEndsWith('--ar 9:16 --style raw --v 6.1 --no text, watermark', $reel, 'The selected format drives --ar.');
+        $this->assertStringNotContainsString("\n", $post, 'A compact prompt is one line of phrases.');
+        $this->assertStringNotContainsString('Camera angle (locked):', $post, 'Labels are dropped; the framing itself stays.');
+        $this->assertStringNotContainsString('Character consistency (locked):', $post);
+        $this->assertStringContainsString(
+            (string) config('creative.camera_angles.hero_shot.prompt'),
+            $post,
+            'The framing survives even though its directive label does not.'
+        );
+        $this->assertStringContainsString(', ', $post, 'Phrases are comma-separated, not written as sentences.');
+    }
+
+    public function test_the_flux_compiler_stays_literal(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $clauses = $this->factory->clauses();
+        $compiled = $this->factory->for('flux')->compile($brief, $format);
+
+        $this->assertStringStartsWith($brief['product'].' is the single subject of the frame.', $compiled);
+        $this->assertStringContainsString(
+            'The scene serves branding in a natural direction',
+            $compiled,
+            'The brief is folded into prose instead of printed as fields.'
+        );
+
+        foreach (['High-end commercial production', 'ultra-sharp detail', 'premium brand reel aesthetic', 'masterpiece'] as $cliche) {
+            $this->assertStringNotContainsString($cliche, $compiled, 'FLUX renders sentences, not slogans: ['.$cliche.'].');
+        }
+
+        $this->assertStringContainsString('A 1:1 ratio frame (instagram_post).', $compiled);
+        $this->assertStringEndsWith(
+            rtrim(trim($clauses->textSuppression($brief)), '.').'.',
+            $compiled,
+            'The text policy stays the last word.'
+        );
+    }
+
+    public function test_the_stable_diffusion_compiler_splits_positive_and_negative(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $compiled = $this->factory->for('stable_diffusion')->compile($brief, $format);
+
+        $this->assertStringStartsWith('Positive prompt: ', $compiled);
+        $this->assertStringContainsString("\nNegative prompt: ", $compiled);
+        $this->assertStringContainsString('(masterpiece:1.2)', $compiled, 'The weighting syntax the model expects.');
+        $this->assertStringContainsString('(photorealistic:1.1)', $compiled);
+        $this->assertStringContainsString('(text:1.2)', $compiled, 'Rendered wording is the first thing to avoid.');
+        $this->assertStringContainsString('(font:1.1)', $compiled, 'The negative list is built from the studio keyword catalogue.');
+
+        preg_match_all('/\([^()]+:\d\.\d\)/', $compiled, $matches);
+        $this->assertGreaterThan(6, count($matches[0]), 'Both blocks must be weighted, not flat lists.');
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/\((متن|نوشته|حروف)/u',
+            $compiled,
+            'A Persian negative would be ignored by the sampler; the English half is the one that applies.'
+        );
+        $this->assertStringNotContainsString('High-end commercial production', $compiled);
+    }
+
     /**
      * @return list<array{array<string, mixed>, CreativeFormat}>
      */
