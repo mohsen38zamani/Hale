@@ -448,11 +448,13 @@ return [
             'note' => 'برچسب‌های کارگردانی برای دوربین، حرکت عناصر و نورپردازی.',
         ],
         'gemini_edit' => [
-            'label' => 'Gemini Edit',
+            // The model users ask for by name: `GoogleImageEditProvider`
+            // serves it as `gemini-2.5-flash-image`, the Nano Banana family.
+            'label' => 'Gemini Edit (Nano Banana)',
             'category' => 'edit',
             'mode' => 'copy',
             'types' => ['image'],
-            'note' => 'پرامپت تفاضلی: زمینه را عوض می‌کند و کالای اصلی را در همان کادر نگه می‌دارد.',
+            'note' => 'پرامپت تفاضلی برای Nano Banana (gemini-2.5-flash-image) گوگل: زمینه را عوض می‌کند و کالای اصلی را در همان کادر نگه می‌دارد.',
         ],
     ],
 ];
