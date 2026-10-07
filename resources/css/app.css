@@ -1713,6 +1713,69 @@ html.has-stage-product .mini-product::before {
   border-radius: 10px;
 }
 
+/* Target AI selector (redesign 6): four category tabs above one chip grid. */
+.target-ai-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.target-ai-tab {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 7px 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.target-ai-tab:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #ffffff;
+}
+
+.target-ai-tab.is-active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--primary);
+  color: #c084fc;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+}
+
+.target-ai-choice .target-ai-meta {
+  font-size: 10px;
+}
+
+/* A chip whose types cannot serve the current format stays visible - the
+   user must see it exists - but reads as unavailable until the format moves. */
+.target-ai-choice.is-blocked > span:not(.choice-peek) {
+  border-style: dashed;
+  border-color: rgba(245, 158, 11, 0.45);
+  opacity: 0.8;
+}
+
+.target-ai-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.target-ai-warning {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 600;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
 .stage-product {
   position: absolute;
   inset: 0;

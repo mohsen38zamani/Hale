@@ -61,7 +61,10 @@
                         data-text-permissive="{{ config('creative.text_suppression.permissive') }}"
                         data-text-keywords="{{ json_encode(config('creative.text_suppression.request_keywords'), JSON_UNESCAPED_UNICODE) }}"
                         data-scene-effects="{{ json_encode(config('creative.effects'), JSON_UNESCAPED_UNICODE) }}"
-                        data-summary-template="{{ config('creative.summary_template') }}">
+                        data-summary-template="{{ config('creative.summary_template') }}"
+                        data-target-ais="{{ json_encode(config('creative.target_ais'), JSON_UNESCAPED_UNICODE) }}"
+                        data-target-categories="{{ json_encode(config('creative.target_ai_categories'), JSON_UNESCAPED_UNICODE) }}"
+                        data-target-ai-default="{{ config('creative.target_ai_default') }}">
                         {{-- Step 1: Product --}}
                         <div style="margin-bottom: 24px;">
                             <label style="display: block; font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
@@ -188,7 +191,24 @@
                             </div>
                         </div>
 
-                        {{-- Step 6: Custom Prompt / Scene Details (Optional) --}}
+                        {{-- Step 6: Target AI (redesign 6): which model the
+                             prompt is written for. The catalogue rides with
+                             the page, so the tabs, the chips and their notes
+                             are rendered from config/creative.php alone. --}}
+                        <fieldset style="border: 0; padding: 0; margin: 0 0 28px 0;" data-target-ai-field>
+                            <legend style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
+                                ۶. پرامپت برای کدام مدل نوشته شود؟
+                            </legend>
+                            <small style="display: block; color: var(--text-muted); font-size: 11px; margin-bottom: 12px; line-height: 1.6;">
+                                ساختار پرامپت، به زبان همان مدل نوشته می‌شود. مدل‌هایی که سرویس داخلی دارند همین‌جا ساخته می‌شوند؛ بقیه را کپی می‌کنی و در همان ابزار اجرا می‌کنی.
+                            </small>
+                            <div class="target-ai-tabs" data-target-ai-tabs role="group" aria-label="دسته‌بندی مدل‌های هوش مصنوعی"></div>
+                            <div class="choice-grid compact-grid" data-target-ai-grid></div>
+                            <p class="target-ai-note" data-target-ai-note role="status"></p>
+                            <p class="target-ai-warning" data-target-ai-warning role="alert" hidden></p>
+                        </fieldset>
+
+                        {{-- Step 7: Custom Prompt / Scene Details (Optional) --}}
                         <div style="margin-bottom: 24px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <label for="custom_prompt" style="font-size: 13px; font-weight: 600; color: #FFFFFF;">
@@ -316,6 +336,7 @@
                             <span class="inspector-chip" data-chip-lighting>نور: سافت‌باکس</span>
                             <span class="inspector-chip" data-chip-character>کاراکتر: مدل جدید</span>
                             <span class="inspector-chip" data-chip-format>فرمت: ۱:۱</span>
+                            <span class="inspector-chip" data-chip-target-ai>مدل: {{ config('creative.target_ais.'.config('creative.target_ai_default').'.label', '—') }}</span>
                         </div>
                         <div class="inspector-code" data-inspector-code>
                             منتظر انتخاب محصول و تنظیمات صحنه...

@@ -1473,6 +1473,7 @@ if (builderForm) {
 	const chipStyle = document.querySelector('[data-chip-style]');
 	const chipEnv = document.querySelector('[data-chip-env]');
 	const chipFormat = document.querySelector('[data-chip-format]');
+	const chipTargetAi = document.querySelector('[data-chip-target-ai]');
 	const chipSurface = document.querySelector('[data-chip-surface]');
 	const chipProps = document.querySelector('[data-chip-props]');
 	const chipCamera = document.querySelector('[data-chip-camera]');
@@ -1534,6 +1535,23 @@ if (builderForm) {
 		sceneEffects = {};
 	}
 	const summaryTemplate = builderForm.dataset.summaryTemplate || '';
+
+	// Redesign 6: the target catalogue ships with the page, so the selector
+	// can render its tabs, explain every chip and gate the generate button
+	// from the same array the validation rule reads on the server.
+	let targetAis = {};
+	let targetCategories = {};
+	try {
+		targetAis = JSON.parse(builderForm.dataset.targetAis || '{}');
+	} catch (error) {
+		targetAis = {};
+	}
+	try {
+		targetCategories = JSON.parse(builderForm.dataset.targetCategories || '{}');
+	} catch (error) {
+		targetCategories = {};
+	}
+	const defaultTargetKey = builderForm.dataset.targetAiDefault || '';
 
 	const aspectRatios = {
 		instagram_post: '1:1',
@@ -1668,6 +1686,12 @@ if (builderForm) {
 		if (chipLighting) chipLighting.textContent = `نور: ${lightingObj?.label || 'سافت‌باکس'}`;
 		if (chipCharacter) chipCharacter.textContent = `کاراکتر: ${characterObj?.label || 'مدل جدید'}`;
 		if (chipFormat) chipFormat.textContent = `فرمت: ${aspectRatios[format] || '۱:۱'}`;
+		// Read inline rather than through a helper so this line can never be
+		// reached before the selector has rendered its default chip.
+		if (chipTargetAi) {
+			const targetKey = builderForm.querySelector('input[name="target_ai"]:checked')?.value || '';
+			chipTargetAi.textContent = `مدل: ${targetAis[targetKey]?.label || '—'}`;
+		}
 
 		// One selection object feeds both the summary and the peek cards, so
 		// the canvas, the sentence and the miniatures describe the same scene.
@@ -1935,7 +1959,132 @@ if (builderForm) {
 		'[data-camera-angles]',
 		'[data-lighting-setups]',
 		'[data-character-consistencies]',
+		'[data-target-ai-grid]',
 	].forEach((selector) => document.querySelector(selector)?.addEventListener('change', updateCanvasState));
+
+	// --- Target AI selector (redesign 6): four category tabs over one chip grid ---
+	const targetAiTabs = document.querySelector('[data-target-ai-tabs]');
+	const targetAiGrid = document.querySelector('[data-target-ai-grid]');
+	const targetAiNote = document.querySelector('[data-target-ai-note]');
+	const targetAiWarning = document.querySelector('[data-target-ai-warning]');
+	const generateBtn = document.querySelector('[data-generate]');
+	const generateBtnLabel = generateBtn ? generateBtn.textContent.trim() : '';
+	let activeTargetCategory = Object.keys(targetCategories)[0] || '';
+	// The only two values `types` ever holds; everything else stays as sent.
+	const formatTypeLabels = { image: 'عکس', video: 'ویدیو' };
+
+	const selectedTargetKey = () => builderForm.querySelector('input[name="target_ai"]:checked')?.value || '';
+	const selectedFormatType = () => {
+		const format = builderForm.querySelector('input[name="format"]:checked')?.value || 'instagram_post';
+		return ['instagram_reel', 'tiktok'].includes(format) ? 'video' : 'image';
+	};
+	const typesLabel = (entry) => (entry.types || []).map((type) => formatTypeLabels[type] || type).join(' · ');
+
+	const syncTargetTabs = () => {
+		if (!targetAiTabs) return;
+		targetAiTabs.querySelectorAll('[data-target-category]').forEach((tab) => {
+			const active = tab.dataset.targetCategory === activeTargetCategory;
+			tab.classList.toggle('is-active', active);
+			tab.setAttribute('aria-pressed', String(active));
+		});
+	};
+
+	// Only chips whose category has a tab may hide with it. The generic chip
+	// belongs to `default` - a category no tab claims - so it stays visible in
+	// every one of them: it serves every format.
+	const syncTargetVisibility = () => {
+		if (!targetAiGrid) return;
+		targetAiGrid.querySelectorAll('[data-target-ai]').forEach((chip) => {
+			const category = chip.dataset.targetCategory;
+			chip.hidden = Boolean(targetCategories[category]) && category !== activeTargetCategory;
+		});
+	};
+
+	const syncTargetFormatStates = () => {
+		if (!targetAiGrid) return;
+		const type = selectedFormatType();
+		targetAiGrid.querySelectorAll('[data-target-ai]').forEach((chip) => {
+			const entry = targetAis[chip.dataset.targetAi];
+			const types = entry?.types || [];
+			chip.classList.toggle('is-blocked', types.length > 0 && !types.includes(type));
+		});
+	};
+
+	const updateTargetAiState = () => {
+		const entry = targetAis[selectedTargetKey()];
+		syncTargetFormatStates();
+
+		if (!entry) {
+			if (targetAiNote) targetAiNote.textContent = '';
+			if (targetAiWarning) {
+				targetAiWarning.hidden = true;
+				targetAiWarning.textContent = '';
+			}
+			if (generateBtn) {
+				generateBtn.disabled = false;
+				generateBtn.textContent = generateBtnLabel;
+			}
+			return;
+		}
+
+		// The same two refusals CompilableTargetAi sends back as a 422, said
+		// before the user spends a click instead of after the request fails.
+		const notices = [];
+		if (entry.mode !== 'generate') {
+			notices.push(`«${entry.label}» سرویس داخلی ندارد؛ پرامپت آماده را کپی کن و در همان ابزار بساز.`);
+		}
+		if (!(entry.types || []).includes(selectedFormatType())) {
+			const wanted = typesLabel(entry);
+			const chosen = formatTypeLabels[selectedFormatType()] || selectedFormatType();
+			notices.push(`«${entry.label}» فقط ${wanted} می‌سازد و قالب فعلی ${chosen} است؛ فرمت را عوض کن.`);
+		}
+
+		if (targetAiNote) targetAiNote.textContent = entry.note || '';
+		if (targetAiWarning) {
+			targetAiWarning.hidden = notices.length === 0;
+			targetAiWarning.textContent = notices.join(' ');
+		}
+
+		if (generateBtn) {
+			generateBtn.disabled = notices.length > 0;
+			generateBtn.textContent = notices.length === 0
+				? generateBtnLabel
+				: (entry.mode === 'generate' ? 'فرمت را عوض کن تا ساخته شود ✦' : 'پرامپت آماده را کپی کن ✋');
+		}
+	};
+
+	const renderTargetAis = () => {
+		if (!targetAiGrid || !targetAiTabs) return;
+
+		targetAiTabs.innerHTML = Object.keys(targetCategories).map((key) => (
+			`<button type="button" class="target-ai-tab" data-target-category="${escapeHtml(key)}" aria-pressed="false">${escapeHtml(targetCategories[key]?.label || key)}</button>`
+		)).join('');
+
+		targetAiGrid.innerHTML = Object.entries(targetAis).map(([key, entry]) => {
+			const category = targetCategories[entry.category];
+			const mode = entry.mode === 'generate' ? 'ساخت در حله' : 'کپی دستی';
+			const kind = [category?.label, mode, typesLabel(entry)].filter(Boolean).join(' · ');
+			return `<label class="choice target-ai-choice" data-target-ai="${escapeHtml(key)}" data-target-category="${escapeHtml(entry.category || '')}">
+				<input type="radio" name="target_ai" value="${escapeHtml(key)}"${key === defaultTargetKey ? ' checked' : ''}>
+				<span>${escapeHtml(entry.label || key)}<small class="target-ai-meta">${escapeHtml(kind)}</small></span>
+			</label>`;
+		}).join('');
+
+		syncTargetTabs();
+		syncTargetVisibility();
+		updateTargetAiState();
+	};
+
+	renderTargetAis();
+
+	targetAiTabs?.addEventListener('click', (event) => {
+		const tab = event.target.closest('[data-target-category]');
+		if (!tab) return;
+		activeTargetCategory = tab.dataset.targetCategory;
+		syncTargetTabs();
+		syncTargetVisibility();
+	});
+	targetAiGrid?.addEventListener('change', updateTargetAiState);
 
 	const autoBestBtn = document.querySelector('[data-auto-best]');
 	if (autoBestBtn) {
@@ -1996,6 +2145,9 @@ if (builderForm) {
 	formatBox.addEventListener('change', (event) => {
 		durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value);
 		updateEstimate().catch(() => {});
+		// A format switch can block (or unblock) the selected target: the
+		// chips and the generate button follow it here.
+		updateTargetAiState();
 		// The inspector refresh comes from the shared choice-group wiring.
 	});
 	duration.addEventListener('change', () => updateEstimate().catch(() => {}));
@@ -2009,7 +2161,7 @@ if (builderForm) {
 	const templateConfirm = document.querySelector('[data-template-confirm]');
 	const templateCancel = document.querySelector('[data-template-cancel]');
 	const templateMessage = document.querySelector('[data-template-message]');
-	const TEMPLATE_KEYS = ['goal', 'style', 'format', 'environment', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'video_duration_seconds', 'custom_prompt'];
+	const TEMPLATE_KEYS = ['goal', 'style', 'format', 'environment', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'video_duration_seconds', 'custom_prompt', 'target_ai'];
 	let templatesCache = [];
 
 	const renderTemplates = () => {
@@ -2030,7 +2182,7 @@ if (builderForm) {
 				radio.dispatchEvent(new Event('change', { bubbles: true }));
 			}
 		};
-		['goal', 'style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency'].forEach((key) => {
+		['goal', 'style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'target_ai'].forEach((key) => {
 			if (settings[key] !== undefined && settings[key] !== null) setRadio(key, String(settings[key]));
 		});
 		const envSelect = document.querySelector('[data-environment]');
@@ -2183,7 +2335,9 @@ if (builderForm) {
 			message.className = 'form-message error-message';
 			message.textContent = error.message;
 		} finally {
-			button.disabled = false;
+			// Re-enabling must not outrank the target gate: a copy-only or
+			// format-mismatched target keeps the button switched off.
+			updateTargetAiState();
 		}
 	});
 }

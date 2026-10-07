@@ -208,6 +208,64 @@ class StudioPreviewViewTest extends TestCase
         $this->assertStringContainsString('character_consistency: values.character_consistency', $script);
     }
 
+    public function test_the_studio_renders_the_target_ai_selector_from_the_catalogue(): void
+    {
+        $html = (string) $this->get('/create')->assertOk()->baseResponse->getContent();
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+
+        // The catalogue, its categories and the preselected chip ride with the
+        // page, so tabs, notes and gating are config-driven and the script
+        // never has to know a single target key by name.
+        $this->assertStringContainsString(
+            'data-target-ais="'.e(json_encode(config('creative.target_ais'), JSON_UNESCAPED_UNICODE)).'"',
+            $html,
+            'The studio must receive the whole target catalogue with the page.'
+        );
+        $this->assertStringContainsString(
+            'data-target-categories="'.e(json_encode(config('creative.target_ai_categories'), JSON_UNESCAPED_UNICODE)).'"',
+            $html
+        );
+        $this->assertStringContainsString(
+            'data-target-ai-default="'.config('creative.target_ai_default').'"',
+            $html
+        );
+
+        foreach (['data-target-ai-field', 'data-target-ai-tabs', 'data-target-ai-grid', 'data-target-ai-note', 'data-target-ai-warning', 'data-chip-target-ai'] as $marker) {
+            $this->assertStringContainsString($marker, $html, "Selector markup [{$marker}] is missing from the studio.");
+        }
+
+        $this->assertStringContainsString('builderForm.dataset.targetAis', $script);
+        $this->assertStringContainsString('builderForm.dataset.targetCategories', $script);
+        $this->assertStringContainsString('builderForm.dataset.targetAiDefault', $script);
+        $this->assertStringContainsString(
+            'Object.keys(targetCategories).map',
+            $script,
+            'The four tabs must be rendered from the configured categories.'
+        );
+        $this->assertStringContainsString(
+            'input type="radio" name="target_ai"',
+            $script,
+            'A chip is a real form field: the choice must reach the payload, not only the canvas.'
+        );
+
+        // The refusal the API sends as a 422 has to be visible before the
+        // click: a copy-only or format-mismatched target switches the generate
+        // button off and says what to do instead.
+        $this->assertStringContainsString("entry.mode !== 'generate'", $script, 'The copy-only gate must exist in the studio too.');
+        $this->assertStringContainsString('generateBtn.disabled = notices.length > 0', $script);
+        $this->assertStringContainsString('updateTargetAiState()', $script, 'Every state change must re-evaluate the gate.');
+        $this->assertStringNotContainsString('value="generic"', $script, 'The preselected chip comes from config, never from the script.');
+
+        // The choice travels with templates in both directions.
+        $this->assertStringContainsString("'target_ai']", $script, 'The chip must be saved inside template settings.');
+        $this->assertStringContainsString("'character_consistency', 'target_ai'].forEach", $script, 'Applying a template must restore the chip.');
+
+        foreach (['.target-ai-tabs {', '.target-ai-tab.is-active', '.target-ai-choice.is-blocked', '.target-ai-warning {'] as $rule) {
+            $this->assertStringContainsString($rule, $stylesheet, "Selector rule [{$rule}] is missing from the stylesheet.");
+        }
+    }
+
     public function test_the_studio_takes_the_character_default_from_the_server(): void
     {
         // The default cannot live only in config: the studio is served by

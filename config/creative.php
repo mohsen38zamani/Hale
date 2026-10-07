@@ -353,6 +353,12 @@ return [
         'edit' => ['label' => 'ویرایش تصویر', 'hint' => 'تغییر زمینه و روتوش با ثابت‌ماندن کالا'],
     ],
 
+    // The chip the selector opens on: the generic compiler produces exactly
+    // the prompt this studio has always built, so nobody is moved off it by
+    // accident. Read by the Blade form and the studio script - never by the
+    // factory, whose unknown-key fallback is its own defensive rule.
+    'target_ai_default' => 'generic',
+
     // Redesign 6: which model the studio writes its prompt for. Keyed by the
     // `target_ai` field, exactly like the other studio catalogues, so the same
     // list drives the selector, the validation rule and the compiler factory.
