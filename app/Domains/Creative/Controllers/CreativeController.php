@@ -55,24 +55,31 @@ class CreativeController extends Controller
         abort_unless($product->user_id === $request->user()->id, 404);
         $goal = CreativeGoal::from($request->input('goal', CreativeGoal::Introduction->value));
 
-        $suggestion = $engine->autoBest($product, $goal);
-        $format = CreativeFormat::from($suggestion['format']);
-        $settings = $suggestion;
+        $settings = $engine->autoBest($product, $goal);
+
+        // Whatever the studio already chose wins over the suggestion: the
+        // inspector has to quote the prompt the user is looking at, not the
+        // one autoBest would have proposed in its place. Blank inputs keep
+        // the suggested value, which is why filled() decides.
+        foreach (['style', 'format', 'environment', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'target_ai'] as $key) {
+            if ($request->filled($key)) {
+                $settings[$key] = $request->input($key);
+            }
+        }
         if ($request->boolean('campaign')) {
             $settings['campaign'] = true;
         }
         if ($request->filled('season_theme')) {
             $settings['season_theme'] = $request->string('season_theme')->toString();
         }
-        if ($request->filled('character_consistency')) {
-            $settings['character_consistency'] = $request->string('character_consistency')->toString();
-        }
+
+        $format = CreativeFormat::from($settings['format']);
         $brief = $engine->brief($product, $settings, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);
-        $creditCost = $estimator->estimate($format->type(), $suggestion['video_duration_seconds'] ?? null);
+        $creditCost = $estimator->estimate($format->type(), $settings['video_duration_seconds'] ?? null);
 
         return $this->success([
-            ...$suggestion,
+            ...$settings,
             'type' => $format->type(),
             'brief' => $brief,
             'prompt_preview' => $prompt,

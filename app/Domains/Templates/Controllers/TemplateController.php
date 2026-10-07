@@ -87,6 +87,7 @@ class TemplateController extends Controller
                 'settings.camera_angle' => ['nullable', Rule::in(array_keys(config('creative.camera_angles')))],
                 'settings.lighting_setup' => ['nullable', Rule::in(array_keys(config('creative.lighting_setups')))],
                 'settings.character_consistency' => ['nullable', Rule::in(array_keys(config('creative.character_consistencies')))],
+                'settings.target_ai' => ['nullable', 'string', Rule::in(array_keys(config('creative.target_ais')))],
             ];
         }
 
@@ -119,6 +120,7 @@ class TemplateController extends Controller
             'settings.camera_angle.in' => 'زاویه دوربین انتخاب‌شده نامعتبر است.',
             'settings.lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
             'settings.character_consistency.in' => 'ثبات کاراکتر انتخاب‌شده در قالب نامعتبر است.',
+            'settings.target_ai.in' => 'مدل هوش مصنوعی انتخاب‌شده در قالب نامعتبر است.',
         ];
     }
 }

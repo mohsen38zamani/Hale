@@ -6,6 +6,7 @@ use App\Domains\AI\Services\PromptModerator;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
+use App\Domains\Creative\Rules\CompilableTargetAi;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +40,7 @@ class BulkGenerationRequest extends FormRequest
             'quality' => ['sometimes', Rule::in(['standard', 'premium'])],
             'campaign' => ['sometimes', 'boolean'],
             'season_theme' => ['nullable', 'string', Rule::in(array_column(config('seasons.themes'), 'key'))],
+            'target_ai' => ['nullable', 'string', Rule::in(array_keys(config('creative.target_ais'))), new CompilableTargetAi],
         ];
     }
 
@@ -82,6 +84,7 @@ class BulkGenerationRequest extends FormRequest
             'quality.in' => 'کیفیت خروجی باید استاندارد (standard) یا پرمیوم (premium) باشد.',
             'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
             'season_theme.in' => 'تم فصلی انتخاب‌شده نامعتبر است.',
+            'target_ai.in' => 'مدل هوش مصنوعی انتخاب‌شده نامعتبر است.',
         ];
     }
 }
