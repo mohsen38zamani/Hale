@@ -129,6 +129,36 @@ class PromptCompilerTest extends TestCase
         );
     }
 
+    public function test_the_inspector_payload_the_studio_posts_is_accepted(): void
+    {
+        $product = $this->actingUser()->products()->create(['name' => 'عطر']);
+
+        // Exactly the shape the hybrid inspector builds: every control the
+        // page knows, blanks already dropped, nulls for what it has not
+        // decided. If this drifts, the inspector would quote an error where a
+        // prompt belongs.
+        $data = $this->postJson('/api/creative/preview', [
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'environment' => 'studio',
+            'surface' => 'marble',
+            'props' => 'none',
+            'camera_angle' => 'eye_level',
+            'lighting_setup' => 'softbox',
+            'character_consistency' => config('creative.character_consistency_default'),
+            'custom_prompt' => null,
+            'video_duration_seconds' => null,
+            'campaign' => false,
+            'season_theme' => null,
+            'target_ai' => 'claude',
+        ])->assertOk()->json('data');
+
+        $this->assertStringStartsWith('<claude_prompt>', $data['prompt_preview']);
+        $this->assertSame('claude', $data['brief']['target_ai'] ?? null);
+    }
+
     public function test_generation_refuses_a_copy_only_target(): void
     {
         $product = $this->actingUser()->products()->create(['name' => 'عطر']);

@@ -1553,6 +1553,63 @@ if (builderForm) {
 	}
 	const defaultTargetKey = builderForm.dataset.targetAiDefault || '';
 
+	// --- Hybrid prompt inspector (redesign 6) ---
+	// The browser can assemble exactly one dialect: the generic prompt, which
+	// is a verbatim copy of GenericPromptCompiler. Every other compiler lives
+	// on the server, so the inspector asks /api/creative/preview for the real
+	// text - debounced, because typing must not hammer the API, and
+	// sequence-numbered, because a slow answer for the previous target must
+	// never overwrite the next one.
+	const mirrorTargetKey = 'generic';
+	let inspectorPromptTimer = null;
+	let inspectorPromptSeq = 0;
+
+	const cancelInspectorPrompt = () => {
+		if (inspectorPromptTimer) clearTimeout(inspectorPromptTimer);
+		inspectorPromptTimer = null;
+		// In-flight answers become stale the moment the choice moves on.
+		inspectorPromptSeq += 1;
+	};
+
+	const queueInspectorPrompt = (targetKey, payload) => {
+		cancelInspectorPrompt();
+		const label = targetAis[targetKey]?.label || targetKey;
+		const seq = ++inspectorPromptSeq;
+		// Blank inputs are dropped rather than sent: the preview keeps its
+		// autoBest suggestion for whatever the studio has not decided yet,
+		// which is the same rule the controller applies to missing keys.
+		const body = Object.fromEntries(
+			Object.entries({ ...payload, target_ai: targetKey }).filter(([, value]) => value !== '' && value !== undefined)
+		);
+		if (inspectorCode) inspectorCode.textContent = `در حال نوشتن پرامپت برای ${label}...`;
+		if (copyPromptBtn) copyPromptBtn.disabled = true;
+
+		inspectorPromptTimer = setTimeout(async () => {
+			try {
+				const response = await authFetch('/api/creative/preview', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body),
+				});
+				const result = await response.json();
+				if (seq !== inspectorPromptSeq) return;
+				if (!response.ok) throw new Error(result.error?.message || 'پرامپت از سرور دریافت نشد.');
+				// textContent, never innerHTML: Claude's XML is text to read and
+				// copy, not markup for the browser to interpret.
+				if (inspectorCode) inspectorCode.textContent = result.data?.prompt_preview || '';
+				if (copyPromptBtn) copyPromptBtn.disabled = false;
+			} catch (error) {
+				if (seq !== inspectorPromptSeq) return;
+				// Honest failure: say what went wrong instead of quietly
+				// showing the generic prompt under a foreign target's name.
+				if (inspectorCode) inspectorCode.textContent = `⚠️ ${error.message}`;
+				if (copyPromptBtn) copyPromptBtn.disabled = true;
+			} finally {
+				inspectorPromptTimer = null;
+			}
+		}, 350);
+	};
+
 	const aspectRatios = {
 		instagram_post: '1:1',
 		instagram_story: '9:16',
@@ -1691,6 +1748,8 @@ if (builderForm) {
 		if (chipTargetAi) {
 			const targetKey = builderForm.querySelector('input[name="target_ai"]:checked')?.value || '';
 			chipTargetAi.textContent = `مدل: ${targetAis[targetKey]?.label || '—'}`;
+			// The compiler's own clause, one hover away from the prompt text.
+			chipTargetAi.title = targetAis[targetKey]?.note || '';
 		}
 
 		// One selection object feeds both the summary and the peek cards, so
@@ -1723,13 +1782,41 @@ if (builderForm) {
 
 		if (inspectorCode) {
 			if (!product) {
+				cancelInspectorPrompt();
 				inspectorCode.textContent = 'محصول مورد نظر را برای مشاهده پرامپت تولیدی انتخاب کنید...';
+				if (copyPromptBtn) copyPromptBtn.disabled = false;
 				return;
 			}
 
 			const productName = product.name;
 			const formatRatio = aspectRatios[format] || '1:1';
 			const isVideo = ['instagram_reel', 'tiktok'].includes(format);
+
+			// Hybrid inspector: the browser assembles the generic prompt and
+			// asks the server for every other dialect, carrying the whole
+			// studio state so the text quoted is the text that will be sent.
+			const targetKey = builderForm.querySelector('input[name="target_ai"]:checked')?.value || '';
+			if (targetKey && targetKey !== mirrorTargetKey) {
+				queueInspectorPrompt(targetKey, {
+					product_id: Number(selectedProductId),
+					goal,
+					style,
+					format,
+					environment: env,
+					surface,
+					props,
+					camera_angle: cameraAngle,
+					lighting_setup: lighting,
+					character_consistency: characterConsistency,
+					custom_prompt: customPromptText || null,
+					video_duration_seconds: isVideo && duration.value ? Number(duration.value) : null,
+					campaign: Boolean(campaignEnabled && campaignPack),
+					season_theme: seasonThemeKey || null,
+				});
+				return;
+			}
+			cancelInspectorPrompt();
+			if (copyPromptBtn) copyPromptBtn.disabled = false;
 
 			const capitalize = (str) => (str ? str.charAt(0).toUpperCase() + str.slice(1) : '');
 			const sceneParts = [];

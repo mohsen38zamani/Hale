@@ -1876,6 +1876,12 @@ html.has-stage-product .mini-product::before {
   font-family: inherit;
 }
 
+/* While the server is writing a dialect, there is nothing to copy yet. */
+.btn-copy-prompt:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
 .btn-copy-prompt:hover {
   background: rgba(139, 92, 246, 0.25);
   border-color: var(--primary);

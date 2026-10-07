@@ -266,6 +266,56 @@ class StudioPreviewViewTest extends TestCase
         }
     }
 
+    public function test_the_prompt_inspector_is_a_mirror_and_a_server_dialect(): void
+    {
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+
+        // Exactly one dialect can be assembled in the browser: the generic
+        // prompt, byte-identical to GenericPromptCompiler.
+        $this->assertStringContainsString("const mirrorTargetKey = 'generic'", $script);
+        $this->assertStringContainsString('targetKey !== mirrorTargetKey', $script, 'A non-generic target must take the server path.');
+        $this->assertStringContainsString(
+            'no distracting watermarks, ${textClause}',
+            $script,
+            'The instant mirror must keep its byte-exact tail.'
+        );
+
+        // Every other target is fetched with the whole studio state, so the
+        // text quoted is the text the generation will actually be built from.
+        $this->assertStringContainsString('queueInspectorPrompt(targetKey, {', $script);
+        $this->assertStringContainsString('product_id: Number(selectedProductId)', $script);
+        $this->assertStringContainsString('custom_prompt: customPromptText || null', $script);
+        $this->assertStringContainsString('season_theme: seasonThemeKey', $script);
+        $this->assertStringContainsString('{ ...payload, target_ai: targetKey }', $script);
+        $this->assertStringContainsString('body: JSON.stringify(body)', $script);
+        $this->assertStringContainsString(
+            "value !== '' && value !== undefined",
+            $script,
+            'Blank inputs must be dropped, not sent: the preview keeps its autoBest suggestion for them.'
+        );
+
+        // Debounced, and stale by sequence: a slow answer for the previous
+        // target must never overwrite the one the user has moved on to.
+        $this->assertStringContainsString('inspectorPromptTimer = setTimeout(', $script, 'Typing must not hammer the preview endpoint.');
+        $this->assertStringContainsString('if (seq !== inspectorPromptSeq) return;', $script);
+        $this->assertStringContainsString('cancelInspectorPrompt()', $script, 'The mirror path must drop anything still pending.');
+
+        // Three visible states: loading, the real prompt, and an honest error.
+        $this->assertStringContainsString('در حال نوشتن پرامپت برای', $script);
+        $this->assertStringContainsString(
+            'inspectorCode.textContent = result.data?.prompt_preview',
+            $script,
+            'textContent, never innerHTML: Claude\'s XML is text to copy, not markup to render.'
+        );
+        $this->assertStringContainsString('copyPromptBtn.disabled = true', $script, 'Nothing may be copied before the real prompt arrives.');
+        $this->assertStringContainsString('copyPromptBtn.disabled = false', $script);
+
+        // The chip names the target and carries its compiler note as a title.
+        $this->assertStringContainsString('chipTargetAi.title = targetAis[targetKey]?.note', $script);
+        $this->assertStringContainsString('.btn-copy-prompt:disabled', $stylesheet, 'A disabled copy button must read as unavailable.');
+    }
+
     public function test_the_studio_takes_the_character_default_from_the_server(): void
     {
         // The default cannot live only in config: the studio is served by
