@@ -223,4 +223,26 @@ class StudioPreviewViewTest extends TestCase
         $this->assertStringContainsString('character_consistency: values.character_consistency || defaultCharacterKey', $script, 'The payload fallback must follow the server-rendered default.');
         $this->assertStringNotContainsString('value="dynamic"', $script, 'The default must not be hard-coded in the script.');
     }
+
+    public function test_the_prompt_inspector_mirrors_the_configured_text_suppression(): void
+    {
+        $html = (string) $this->get('/create')->assertOk()->baseResponse->getContent();
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $engine = (string) file_get_contents(app_path('Domains/Creative/Services/CreativeEngine.php'));
+
+        // Both directives and the wording keywords come from the same config key
+        // the engine reads, rendered into the form, so the inspector cannot
+        // disagree with the prompt the server is going to build.
+        $this->assertStringContainsString('data-text-strict="'.config('creative.text_suppression.strict').'"', $html);
+        $this->assertStringContainsString('data-text-permissive="'.config('creative.text_suppression.permissive').'"', $html);
+        $this->assertStringContainsString('data-text-keywords=', $html, 'The wording keywords must reach the studio.');
+
+        $this->assertStringContainsString('builderForm.dataset.textStrict', $script);
+        $this->assertStringContainsString('builderForm.dataset.textPermissive', $script);
+        $this->assertStringContainsString('builderForm.dataset.textKeywords', $script);
+        $this->assertStringContainsString('no distracting watermarks, ${textClause}', $script, 'The mirror must end on the configured directive.');
+
+        $this->assertStringNotContainsString('no unwanted text', $script, 'The weak tail must be gone from the mirror.');
+        $this->assertStringNotContainsString('no unwanted text', $engine, 'The weak tail must be gone from the engine.');
+    }
 }

@@ -1488,6 +1488,23 @@ if (builderForm) {
 	// Single source for the preselected/fallback character state: the server
 	// renders it from config/creative.php on the form itself.
 	const defaultCharacterKey = builderForm.dataset.defaultCharacter || 'dynamic';
+	// Same for what may be written inside the frame: the engine's two
+	// directives and the wording keywords arrive with the markup, so the
+	// inspector can never drift from CreativeEngine::textSuppressionClause().
+	const textStrict = builderForm.dataset.textStrict || '';
+	const textPermissive = builderForm.dataset.textPermissive || '';
+	let textKeywords = [];
+	try {
+		textKeywords = JSON.parse(builderForm.dataset.textKeywords || '[]');
+	} catch (error) {
+		textKeywords = [];
+	}
+	// Whole-word matching in both languages, mirroring the engine: «متناسب» is
+	// not «متن» and context does not contain the word text.
+	const wordingRequested = (text) => textKeywords.some((keyword) => {
+		const escaped = String(keyword).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		return new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'ui').test(text);
+	});
 
 	const aspectRatios = {
 		instagram_post: '1:1',
@@ -1563,6 +1580,9 @@ if (builderForm) {
 		const product = productsMap.get(String(selectedProductId));
 		const customPromptInput = document.querySelector('[data-custom-prompt]');
 		const customPromptText = (customPromptInput?.value || '').trim();
+		// Mirror CreativeEngine::textSuppressionClause(): strict by default,
+		// permissive only when the brief itself asks for wording.
+		const textClause = wordingRequested(customPromptText) ? textPermissive : textStrict;
 
 		if (canvasStage) {
 			canvasStage.className = `studio-stage ${isVertical ? 'ratio-9-16' : 'ratio-1-1'} light-${lighting} angle-${cameraAngle}`;
@@ -1640,7 +1660,7 @@ if (builderForm) {
 			let videoPart = isVideo ? ` Dynamic motion: ${motion}, fluid atmospheric movement, premium brand reel aesthetic, 4K render.` : '';
 			const campaignPart = campaignEnabled && campaignPack ? ` Campaign mood: ${String(campaignPack.pack).replace(/[. ]+$/, '')}.` : '';
 
-			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}.${cameraClause}${characterClause} Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, no unwanted text.${videoPart}`;
+			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}.${cameraClause}${characterClause} Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, ${textClause}.${videoPart}`;
 
 			inspectorCode.innerHTML = assembledPrompt;
 		}

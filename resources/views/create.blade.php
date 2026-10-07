@@ -55,7 +55,11 @@
                     {{-- Permanent seasonal theme status + picker, above the studio form --}}
                     <x-season-picker />
 
-                    <form class="builder-form" data-builder-form data-default-character="{{ config('creative.character_consistency_default') }}">
+                    <form class="builder-form" data-builder-form
+                        data-default-character="{{ config('creative.character_consistency_default') }}"
+                        data-text-strict="{{ config('creative.text_suppression.strict') }}"
+                        data-text-permissive="{{ config('creative.text_suppression.permissive') }}"
+                        data-text-keywords="{{ json_encode(config('creative.text_suppression.request_keywords'), JSON_UNESCAPED_UNICODE) }}">
                         {{-- Step 1: Product --}}
                         <div style="margin-bottom: 24px;">
                             <label style="display: block; font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
