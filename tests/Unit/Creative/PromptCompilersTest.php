@@ -45,7 +45,7 @@ class PromptCompilersTest extends TestCase
 
     public function test_the_factory_falls_back_to_the_generic_compiler(): void
     {
-        foreach ([null, '', '   ', 'unknown-model', 'GENERIC', 'Claude'] as $key) {
+        foreach ([null, '', '   ', 'unknown-model', 'GENERIC', 'gpt5-not-configured'] as $key) {
             $compiler = $this->factory->for($key);
 
             $this->assertInstanceOf(GenericPromptCompiler::class, $compiler, "Target [{$key}] must not fail the request.");
@@ -172,6 +172,199 @@ class PromptCompilersTest extends TestCase
         // A second instance must resolve to the same wording, otherwise a
         // compiler could start carrying its own private copy of the rules.
         $this->assertSame($prompt, (new GenericPromptCompiler(new PromptClauses))->compile($brief, CreativeFormat::InstagramPost));
+    }
+
+    public function test_every_direction_compiler_carries_the_same_image_prompt(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $image = $this->factory->for('generic')->compile($brief, $format);
+        $clauses = $this->factory->clauses();
+
+        $openings = [];
+
+        foreach (['chatgpt', 'claude', 'deepseek', 'grok'] as $key) {
+            $compiled = $this->factory->for($key)->compile($brief, $format);
+            // Claude wraps everything in tags, so decode it before comparing.
+            $readable = $key === 'claude' ? html_entity_decode($compiled, ENT_QUOTES | ENT_XML1, 'UTF-8') : $compiled;
+
+            $this->assertStringContainsString(
+                $image,
+                $readable,
+                "[{$key}] must hand over the image prompt unchanged: a direction target may not re-render the scene."
+            );
+
+            $shared = [
+                'camera' => trim($clauses->camera($brief)),
+                'character' => trim($clauses->character($brief)),
+                'custom' => trim($clauses->custom($brief)),
+                'brand' => trim($clauses->brand($brief['brand'])),
+                'campaign' => trim($clauses->campaign($brief['campaign'])),
+            ];
+
+            if ($key === 'claude') {
+                // Placed one tag at a time instead of joined into a sentence.
+                foreach ($clauses->sceneParts($brief) as $part) {
+                    $shared['scene part'] = trim($part);
+                }
+            } else {
+                $shared['scene'] = trim($clauses->scene($brief));
+                $shared['summary'] = $clauses->sceneSummary($brief);
+            }
+
+            foreach ($shared as $name => $clause) {
+                $this->assertNotSame('', $clause, "[{$key}] has nothing to check for [{$name}].");
+                $this->assertStringContainsString($clause, $readable, "[{$key}] dropped the shared [{$name}] clause.");
+            }
+
+            $openings[$key] = explode("\n", $compiled)[0];
+        }
+
+        $this->assertCount(4, array_unique($openings), 'Each compiler must open with its own structure; four copies would be one compiler in four files.');
+    }
+
+    public function test_the_chatgpt_compiler_frames_a_bilingual_brief(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $compiled = $this->factory->for('chatgpt')->compile($brief, $format);
+
+        foreach (['# CAMPAIGN BRIEF', '# SCENE', '# IMAGE PROMPT (ready for DALL-E 3)', '# CAPTION & HOOK (فارسی)'] as $section) {
+            $this->assertStringContainsString($section, $compiled, "The ChatGPT brief is missing the [{$section}] section.");
+        }
+
+        $this->assertStringContainsString('- Product: '.$brief['product'], $compiled);
+        $this->assertStringContainsString('- Audience: Iranian social commerce shoppers', $compiled, 'A brief without an audience still names the one the engine uses.');
+        $this->assertStringContainsString('- قلاب: چرا '.$brief['product'].'؟ ', $compiled, 'The hook is written in Persian for the Persian caption.');
+        $this->assertStringContainsString('- کپشن پیشنهادی: «', $compiled);
+        $this->assertStringContainsString($brief['brand']['tagline'], $compiled, 'The brand tagline belongs in the caption.');
+        $this->assertStringContainsString($this->factory->clauses()->sceneSummary($brief), $compiled, 'The caption section must open with the studio scene line.');
+    }
+
+    public function test_the_claude_compiler_emits_well_formed_xml(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $compiled = $this->factory->for('claude')->compile($brief, $format);
+
+        $this->assertStringStartsWith('<claude_prompt>', $compiled);
+        $this->assertStringEndsWith('</claude_prompt>', $compiled);
+
+        foreach (['product_context', 'creative_direction', 'visual_style', 'lighting_and_atmosphere', 'output_format'] as $section) {
+            $this->assertStringContainsString("<{$section}>", $compiled, "Claude section [{$section}] is required by the brief.");
+        }
+
+        foreach (['surface', 'props', 'lighting', 'environment', 'aspect_ratio'] as $leaf) {
+            $this->assertStringContainsString("<{$leaf}>", $compiled, "Scene leaf [{$leaf}] must be readable on its own.");
+        }
+
+        // Nesting, not just presence: a tag soup would satisfy contains().
+        preg_match_all('/<(\/)?([a-z_]+)>/', $compiled, $matches, PREG_SET_ORDER);
+        $stack = [];
+        foreach ($matches as $match) {
+            if ($match[1] === '/') {
+                $this->assertNotEmpty($stack, 'Closing tag ['.$match[2].'] has nothing open.');
+                $this->assertSame(array_pop($stack), $match[2], 'Tags must nest, not overlap.');
+            } else {
+                $stack[] = $match[2];
+            }
+        }
+        $this->assertSame([], $stack, 'Every opened tag must be closed.');
+    }
+
+    public function test_the_claude_compiler_escapes_what_the_user_typed(): void
+    {
+        $brief = [
+            'product' => 'عطر "ویژه" & محدود',
+            'description' => 'نسخه تابستانی <جدید>',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'studio',
+            'custom_prompt' => 'با نور کم <لرزان>',
+        ];
+        $compiled = $this->factory->for('claude')->compile($brief, CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString('&quot;', $compiled, 'Quotes must not be able to end an attribute or a value.');
+        $this->assertStringContainsString('&amp;', $compiled, 'An ampersand must not start an entity.');
+        $this->assertStringNotContainsString('<جدید>', $compiled, 'User markup must never reach the document.');
+        $this->assertStringContainsString('عطر &quot;ویژه&quot; &amp; محدود', $compiled);
+        $this->assertStringContainsString(
+            'عطر "ویژه" & محدود',
+            html_entity_decode($compiled, ENT_QUOTES | ENT_XML1, 'UTF-8'),
+            'After decoding, the reader still sees exactly what the user typed.'
+        );
+    }
+
+    public function test_the_deepseek_compiler_reasons_before_it_writes(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $compiled = $this->factory->for('deepseek')->compile($brief, $format);
+
+        $this->assertStringStartsWith('CHAIN OF THOUGHT', $compiled);
+
+        $position = -1;
+        foreach (['STEP 1 - READ THE AUDIENCE', 'STEP 2 - FIND THE WINNING ANGLE', 'STEP 3 - LOCK THE SCENE', 'STEP 4 - WRITE FOR CONVERSION', 'FINAL IMAGE PROMPT'] as $step) {
+            $found = strpos($compiled, $step);
+            $this->assertNotFalse($found, "The chain of thought is missing [{$step}].");
+            $this->assertGreaterThan($position, $found, "[{$step}] must come in order: no prompt before the angle is chosen.");
+            $position = $found;
+        }
+
+        $this->assertStringContainsString('- Goal effect (فارسی): ', $compiled, 'The Iranian audience insight is quoted from the effects catalogue.');
+        $this->assertStringContainsString('- Angle to argue: ', $compiled);
+        $this->assertStringContainsString('- Text policy: ', $compiled);
+    }
+
+    public function test_the_grok_compiler_keeps_its_direction_short(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $compiled = $this->factory->for('grok')->compile($brief, $format);
+
+        $this->assertStringStartsWith('VIRAL DIRECTION', $compiled);
+        foreach (['THE CONCEPT', 'LOCKED DECISIONS', 'IMAGE PROMPT', 'CAPTION HOOK (فارسی)'] as $section) {
+            $this->assertStringContainsString($section, $compiled, "The Grok brief is missing [{$section}].");
+        }
+        $this->assertStringContainsString('«چرا '.$brief['product'].'؟ ', $compiled);
+
+        // Its own voice stays clipped; the scene and the clauses below it are
+        // quoted material the studio wrote, not Grok's prose.
+        $ownVoice = strstr($compiled, '- Scene (فارسی)', true);
+        $this->assertNotFalse($ownVoice);
+        foreach (explode("\n", $ownVoice) as $line) {
+            $this->assertLessThan(200, mb_strlen($line), 'Grok speaks in clipped lines: ['.$line.']');
+        }
+    }
+
+    public function test_the_persian_scene_summary_reads_like_the_studio_bar(): void
+    {
+        $clauses = $this->factory->clauses();
+
+        [$brief] = $this->briefs()[1];
+        $full = $clauses->sceneSummary($brief);
+
+        $this->assertDoesNotMatchRegularExpression('/\{\w+\}/', $full, 'Every slot of the template must resolve.');
+        $this->assertStringContainsString($brief['product'].' شما', $full, 'The line names the product the way the studio does.');
+        $this->assertStringContainsString((string) config('creative.effects.surface.'.$brief['surface']), $full, 'A chosen control is described by its own effect clause.');
+        $this->assertStringNotContainsString('null', $full, 'A missing value must never leak as code.');
+
+        $empty = $clauses->sceneSummary(['product' => 'عطر تست']);
+        $defaults = PromptClauses::studioDefaults();
+
+        $this->assertDoesNotMatchRegularExpression('/\{\w+\}/', $empty);
+        $this->assertStringContainsString((string) config('creative.effects.surface.'.$defaults['surface']), $empty, 'Without a selection the server quotes what the studio pre-checks.');
+        $this->assertStringContainsString((string) config('creative.effects.props.'.$defaults['props']), $empty);
+        $this->assertStringNotContainsString('null', $empty);
+
+        // The browser pre-checks its own defaults; if the two drift, the
+        // caption and the canvas would describe two different scenes.
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        foreach ($defaults as $control => $value) {
+            if ($control === 'character_consistency') {
+                $this->assertStringContainsString('|| defaultCharacterKey', $script, 'Character state comes from the server-rendered default in both places.');
+                $this->assertSame(config('creative.character_consistency_default'), $value);
+
+                continue;
+            }
+
+            $this->assertStringContainsString("|| '{$value}'", $script, "The studio must pre-check [{$value}] for [{$control}], the same value the server falls back to.");
+        }
     }
 
     /**

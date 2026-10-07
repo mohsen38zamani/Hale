@@ -14,6 +14,27 @@ namespace App\Domains\Creative\Prompts;
 class PromptClauses
 {
     /**
+     * The three scene clauses the studio composes, still separate: a flat
+     * prompt joins them, a structured one (XML blocks) places them apart.
+     *
+     * @param  array<string, mixed>  $brief
+     * @return array<string, string>
+     */
+    public function sceneParts(array $brief): array
+    {
+        $groups = ['surface' => 'surfaces', 'props' => 'props', 'lighting_setup' => 'lighting_setups'];
+        $parts = [];
+
+        foreach ($groups as $field => $group) {
+            if (! empty($brief[$field]) && ($prompt = config("creative.{$group}.{$brief[$field]}.prompt"))) {
+                $parts[$field] = ucfirst($prompt).'.';
+            }
+        }
+
+        return $parts;
+    }
+
+    /**
      * The trailing scene clause (surface, props, lighting), leading space
      * included so the base sentence can concatenate it directly.
      *
@@ -21,14 +42,7 @@ class PromptClauses
      */
     public function scene(array $brief): string
     {
-        $groups = ['surface' => 'surfaces', 'props' => 'props', 'lighting_setup' => 'lighting_setups'];
-        $parts = [];
-
-        foreach ($groups as $field => $group) {
-            if (! empty($brief[$field]) && ($prompt = config("creative.{$group}.{$brief[$field]}.prompt"))) {
-                $parts[] = ucfirst($prompt).'.';
-            }
-        }
+        $parts = $this->sceneParts($brief);
 
         return $parts !== [] ? ' '.implode(' ', $parts) : '';
     }
@@ -168,6 +182,101 @@ class PromptClauses
         $motion = $angle === '' ? null : config("creative.camera_angles.{$angle}.motion");
 
         return filled($motion) ? (string) $motion : 'smooth cinematic camera pan';
+    }
+
+    /**
+     * The Persian line the studio reads under the canvas, rendered on the
+     * server as well so a compiler can quote it. The grammar comes from
+     * summary_template and every slot resolves through the effects catalogue,
+     * exactly like updateSceneSummary() does in the browser: one sentence for
+     * the same scene in both places.
+     *
+     * A brief built without a scene control (a preset, a bulk batch, an API
+     * caller) gets the selection the studio pre-checks, so the line never
+     * claims a scene the user cannot see.
+     *
+     * @param  array<string, mixed>  $brief
+     */
+    public function sceneSummary(array $brief): string
+    {
+        $template = (string) config('creative.summary_template');
+        $defaults = self::studioDefaults();
+        $resolved = [
+            '{product}' => filled($brief['product'] ?? null) ? (string) $brief['product'].' شما' : 'محصول شما',
+        ];
+
+        preg_match_all('/\{(\w+)\}/', $template, $slots);
+
+        foreach (array_unique($slots[1]) as $slot) {
+            if ($slot === 'product') {
+                continue;
+            }
+
+            $value = $this->summaryValue($brief, (string) $slot, $defaults);
+            $clause = config("creative.effects.{$slot}.{$value}");
+
+            if (! filled($clause)) {
+                $clause = $this->summaryLabel((string) $slot, $value);
+            }
+
+            $resolved['{'.$slot.'}'] = filled($clause) ? (string) $clause : $value;
+        }
+
+        return strtr($template, $resolved);
+    }
+
+    /**
+     * The selections the studio pre-checks for every control (mirrors the
+     * fallbacks in updateCanvasState()), used where a brief arrives without
+     * one so the Persian line still reads as a sentence.
+     *
+     * @return array<string, string>
+     */
+    public static function studioDefaults(): array
+    {
+        return [
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'environment' => 'studio',
+            'surface' => 'default',
+            'props' => 'none',
+            'camera_angle' => 'eye_level',
+            'lighting_setup' => 'softbox',
+            'character_consistency' => self::defaultCharacterConsistency(),
+        ];
+    }
+
+    /**
+     * The brief renames two controls (goal -> objective, style ->
+     * visual_direction); everything else keeps its studio field name.
+     *
+     * @param  array<string, mixed>  $brief
+     * @param  array<string, string>  $defaults
+     */
+    private function summaryValue(array $brief, string $control, array $defaults): string
+    {
+        $field = ['goal' => 'objective', 'style' => 'visual_direction'][$control] ?? $control;
+        $value = $brief[$field] ?? $defaults[$control] ?? '';
+
+        return filled($value) ? (string) $value : (string) ($defaults[$control] ?? '');
+    }
+
+    /**
+     * Fallback wording for a control whose effects entry is missing, taken
+     * from the catalogue the studio labels its options with.
+     */
+    private function summaryLabel(string $control, string $value): ?string
+    {
+        $group = [
+            'surface' => 'surfaces',
+            'props' => 'props',
+            'camera_angle' => 'camera_angles',
+            'lighting_setup' => 'lighting_setups',
+            'character_consistency' => 'character_consistencies',
+        ][$control] ?? null;
+
+        return $group !== null ? config("creative.{$group}.{$value}.label") : null;
     }
 
     /**

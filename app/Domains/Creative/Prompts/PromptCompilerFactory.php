@@ -20,6 +20,10 @@ class PromptCompilerFactory
      */
     private const COMPILERS = [
         'generic' => GenericPromptCompiler::class,
+        'chatgpt' => ChatGptPromptCompiler::class,
+        'claude' => ClaudePromptCompiler::class,
+        'deepseek' => DeepSeekPromptCompiler::class,
+        'grok' => GrokPromptCompiler::class,
     ];
 
     public function __construct(private readonly PromptClauses $clauses = new PromptClauses) {}
