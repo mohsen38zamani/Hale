@@ -481,6 +481,156 @@ class PromptCompilersTest extends TestCase
         $this->assertStringNotContainsString('High-end commercial production', $compiled);
     }
 
+    public function test_the_factory_owns_every_catalogue_target(): void
+    {
+        $catalogue = array_keys((array) config('creative.target_ais'));
+
+        $this->assertSame(
+            $catalogue,
+            $this->factory->keys(),
+            'The catalogue and the factory must name the same targets in the same order: a target without a compiler would silently fall back to the generic prompt.'
+        );
+
+        [$brief] = $this->briefs()[1];
+
+        foreach ((array) config('creative.target_ais') as $key => $entry) {
+            $compiler = $this->factory->for($key);
+
+            $this->assertSame($key, $compiler->key(), "[{$key}] resolved to a compiler claiming another identity.");
+
+            $format = in_array('image', (array) $entry['types'], true)
+                ? CreativeFormat::InstagramPost
+                : CreativeFormat::InstagramReel;
+
+            $compiled = $compiler->compile($brief, $format);
+
+            $this->assertNotSame('', trim($compiled), "[{$key}] compiled an empty prompt.");
+            $this->assertStringContainsString($brief['product'], $compiled, "[{$key}] must name the product it is written for.");
+        }
+    }
+
+    public function test_the_veo_compiler_leads_with_the_camera_move(): void
+    {
+        [$brief, $format] = $this->briefs()[2];
+        $clauses = $this->factory->clauses();
+        $compiled = $this->factory->for('veo')->compile($brief, $format);
+
+        $motion = trim($clauses->cameraMotion($brief));
+        $this->assertStringStartsWith(ucfirst($motion).'.', $compiled, 'Veo front-loads the movement: a move written last is read as an afterthought.');
+
+        $productAt = strpos($compiled, $brief['product']);
+        $this->assertNotFalse($productAt);
+        $this->assertLessThan($productAt, strpos($compiled, $motion), 'The move opens the prompt, the product follows it.');
+
+        $this->assertStringContainsString('The subject stays still while the atmosphere moves.', $compiled);
+        $this->assertStringContainsString(trim($clauses->camera($brief)), $compiled);
+        $this->assertStringContainsString(rtrim(trim($clauses->scene($brief)), '.'), $compiled);
+        $this->assertStringContainsString('Composition: 9:16 ratio (instagram_reel).', $compiled);
+        $this->assertStringEndsWith(rtrim(trim($clauses->textSuppression($brief)), '.').'.', $compiled, 'The text policy closes the shot.');
+    }
+
+    public function test_the_runway_compiler_labels_the_departments(): void
+    {
+        [$brief, $format] = $this->briefs()[2];
+        $clauses = $this->factory->clauses();
+        $compiled = $this->factory->for('runway')->compile($brief, $format);
+
+        $this->assertStringStartsWith('DIRECTING NOTES', $compiled);
+        foreach (['- Camera: ', '- Movement: ', '- Light: ', 'SHOT', 'PROMPT FOR GEN-3'] as $line) {
+            $this->assertStringContainsString($line, $compiled, "The shot sheet is missing [{$line}].");
+        }
+
+        $this->assertStringContainsString($clauses->cameraMotion($brief), $compiled, 'The move is written in the notes.');
+        $this->assertStringContainsString(trim($clauses->camera($brief)), $compiled);
+        $this->assertLessThan(
+            strpos($compiled, 'PROMPT FOR GEN-3'),
+            strpos($compiled, '- Light: '),
+            'The departments come before the paste block.'
+        );
+        $this->assertStringContainsString(
+            $this->factory->for('generic')->compile($brief, $format),
+            $compiled,
+            'The paste block is the very video prompt Hale would send itself.'
+        );
+
+        // A brief that arrived without a camera or a light still gets a full
+        // sheet, falling back to what the studio pre-checks.
+        $bare = $this->factory->for('runway')->compile(
+            ['product' => 'عطر تست', 'objective' => 'sales', 'visual_direction' => 'luxury', 'environment' => 'studio'],
+            CreativeFormat::InstagramReel
+        );
+
+        $this->assertStringContainsString(
+            (string) config('creative.camera_angles.'.PromptClauses::studioDefaults()['camera_angle'].'.prompt'),
+            $bare,
+            'The empty camera note falls back to the selection the studio pre-checks.'
+        );
+        $this->assertStringContainsString(
+            (string) config('creative.lighting_setups.'.PromptClauses::studioDefaults()['lighting_setup'].'.prompt'),
+            $bare,
+            'The empty light note falls back to the selection the studio pre-checks.'
+        );
+    }
+
+    public function test_the_video_and_edit_compilers_keep_the_shared_clauses(): void
+    {
+        [$brief] = $this->briefs()[1];
+        $clauses = $this->factory->clauses();
+
+        foreach (['veo', 'runway', 'gemini_edit'] as $key) {
+            $format = in_array('image', (array) config("creative.target_ais.{$key}.types"), true)
+                ? CreativeFormat::InstagramPost
+                : CreativeFormat::InstagramReel;
+
+            $compiled = $this->factory->for($key)->compile($brief, $format);
+
+            foreach ($clauses->sceneParts($brief) as $part) {
+                $this->assertStringContainsString(rtrim(trim($part), '.'), $compiled, "[{$key}] lost a scene clause.");
+            }
+
+            $this->assertStringContainsString(trim($clauses->custom($brief)), $compiled, "[{$key}] lost the user's own scene details.");
+            $this->assertStringContainsString(trim($clauses->brand($brief['brand'])), $compiled, "[{$key}] lost the brand identity.");
+            $this->assertStringContainsString(
+                rtrim(trim($clauses->textSuppression($brief)), '.'),
+                $compiled,
+                "[{$key}] lost the text policy."
+            );
+        }
+    }
+
+    public function test_the_gemini_edit_compiler_states_what_must_not_change(): void
+    {
+        [$brief, $format] = $this->briefs()[1];
+        $clauses = $this->factory->clauses();
+        $compiled = $this->factory->for('gemini_edit')->compile($brief, $format);
+
+        $keep = strpos($compiled, 'KEEP - must not change');
+        $change = strpos($compiled, 'CHANGE - the new scene');
+        $this->assertNotFalse($keep, 'An edit prompt needs an invariant.');
+        $this->assertNotFalse($change, 'An edit prompt needs a change.');
+        $this->assertLessThan($change, $keep, 'What must not change is stated before what does.');
+
+        $invariant = substr($compiled, $keep, $change - $keep);
+        $this->assertStringContainsString($brief['product'], $invariant, 'The product is the invariant.');
+        $this->assertStringContainsString('label artwork', $invariant, 'Packaging artwork is named explicitly.');
+        $this->assertStringContainsString(
+            trim($clauses->camera($brief)),
+            $invariant,
+            'The framing is preserved: the edit must not re-shoot the product.'
+        );
+
+        $moving = substr($compiled, $change);
+        foreach ($clauses->sceneParts($brief) as $part) {
+            $this->assertStringContainsString(rtrim(trim($part), '.'), $moving, 'The new surroundings are what changes.');
+        }
+
+        $this->assertStringContainsString(
+            'stays untouched while the surroundings become',
+            $compiled,
+            'The paste paragraph says the same thing as the two blocks above it.'
+        );
+    }
+
     /**
      * @return list<array{array<string, mixed>, CreativeFormat}>
      */

@@ -28,6 +28,9 @@ class PromptCompilerFactory
         'midjourney' => MidjourneyPromptCompiler::class,
         'flux' => FluxPromptCompiler::class,
         'stable_diffusion' => StableDiffusionPromptCompiler::class,
+        'veo' => VeoPromptCompiler::class,
+        'runway' => RunwayPromptCompiler::class,
+        'gemini_edit' => GeminiEditPromptCompiler::class,
     ];
 
     public function __construct(private readonly PromptClauses $clauses = new PromptClauses) {}
