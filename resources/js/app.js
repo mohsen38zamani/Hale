@@ -1765,13 +1765,21 @@ if (builderForm) {
 		updateProductArtwork(select.value);
 		updateCanvasState();
 	});
-	document.querySelector('[data-goals]')?.addEventListener('change', updateCanvasState);
-	document.querySelector('[data-styles]')?.addEventListener('change', updateCanvasState);
-	document.querySelector('[data-environment]')?.addEventListener('change', updateCanvasState);
-	document.querySelector('[data-surfaces]')?.addEventListener('change', updateCanvasState);
-	document.querySelector('[data-props]')?.addEventListener('change', updateCanvasState);
-	document.querySelector('[data-camera-angles]')?.addEventListener('change', updateCanvasState);
-	document.querySelector('[data-lighting-setups]')?.addEventListener('change', updateCanvasState);
+	// One wiring pass over every choice grid the studio renders. Keeping the
+	// list next to renderChoices() is what stops a new group from shipping
+	// without live prompt-inspector updates: the character consistency group
+	// was missed by the previous hand-written list and froze the inspector.
+	[
+		'[data-goals]',
+		'[data-styles]',
+		'[data-formats]',
+		'[data-environment]',
+		'[data-surfaces]',
+		'[data-props]',
+		'[data-camera-angles]',
+		'[data-lighting-setups]',
+		'[data-character-consistencies]',
+	].forEach((selector) => document.querySelector(selector)?.addEventListener('change', updateCanvasState));
 
 	const autoBestBtn = document.querySelector('[data-auto-best]');
 	if (autoBestBtn) {
@@ -1832,7 +1840,7 @@ if (builderForm) {
 	formatBox.addEventListener('change', (event) => {
 		durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value);
 		updateEstimate().catch(() => {});
-		updateCanvasState();
+		// The inspector refresh comes from the shared choice-group wiring.
 	});
 	duration.addEventListener('change', () => updateEstimate().catch(() => {}));
 	document.querySelector('[data-quality]')?.addEventListener('change', () => updateEstimate().catch(() => {}));

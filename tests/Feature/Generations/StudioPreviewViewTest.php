@@ -171,4 +171,40 @@ class StudioPreviewViewTest extends TestCase
             );
         }
     }
+
+    public function test_every_studio_choice_group_refreshes_the_prompt_inspector(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/create.blade.php'));
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+
+        // Every choice grid rendered in the studio must be covered by the one
+        // shared change wiring: a forgotten group silently freezes the prompt
+        // inspector, which is exactly how the character control shipped broken.
+        preg_match_all('/class="choice-grid[^"]*"\s+(data-[a-z-]+)/', $view, $matches);
+        $groups = array_values(array_unique($matches[1]));
+        $this->assertNotEmpty($groups, 'The studio must render choice grids.');
+
+        $anchor = strpos($script, '// One wiring pass over every choice grid');
+        $this->assertNotFalse($anchor, 'The shared choice-group wiring must keep its anchor comment.');
+
+        $marker = '.forEach((selector) => document.querySelector(selector)?.addEventListener(\'change\', updateCanvasState)';
+        $position = strpos($script, $marker);
+        $this->assertNotFalse($position, 'Every choice group must refresh the prompt inspector through the shared loop.');
+
+        $wiring = substr($script, $anchor, $position + strlen($marker) - $anchor);
+        preg_match_all('/\'\[(data-[a-z-]+)\]\'/', $wiring, $wired);
+        $wiredGroups = $wired[1];
+
+        $missing = array_values(array_diff($groups, $wiredGroups));
+        $this->assertSame([], $missing, 'Every choice grid in the view must be wired to the prompt inspector.');
+        $this->assertContains('data-environment', $wiredGroups, 'The environment select must stay wired too.');
+        $this->assertSame(
+            array_values(array_unique($wiredGroups)),
+            $wiredGroups,
+            'No selector may be listed twice in the wiring.'
+        );
+
+        // The selection must also reach the API, not only the inspector.
+        $this->assertStringContainsString('character_consistency: values.character_consistency', $script);
+    }
 }
