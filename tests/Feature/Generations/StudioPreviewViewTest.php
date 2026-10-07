@@ -64,7 +64,7 @@ class StudioPreviewViewTest extends TestCase
 
         $this->assertStringContainsString('angle-${cameraAngle}', $script, 'The studio must tag the live stage with the selected camera angle.');
         $this->assertStringContainsString('Camera angle (locked):', $script, 'The prompt inspector must mirror the front-loaded camera directive.');
-        $this->assertStringContainsString('Character consistency (locked):', $script, 'The prompt inspector must mirror the character consistency directive.');
+        $this->assertStringContainsString('Character consistency (${characterObj.key}):', $script, 'The prompt inspector must mirror the character consistency directive.');
 
         foreach (array_keys(config('creative.camera_angles')) as $key) {
             $this->assertStringContainsString(".studio-stage.angle-{$key}", $stylesheet, "Camera angle [{$key}] is missing a live preview style.");

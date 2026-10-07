@@ -184,23 +184,25 @@ class CreativeEngine
     }
 
     /**
-     * The locked character consistency directive, front-loaded into the prompt.
+     * The locked character directive, front-loaded into the prompt.
+     *
+     * The catalogue in config/creative.php is the only source: a state whose
+     * prompt is empty (dynamic) contributes nothing, and the directive title
+     * carries the state key, so a future state with its own prompt needs no
+     * change here.
      *
      * @param  array<string, mixed>  $brief
      */
     private function characterClause(array $brief): string
     {
-        $consistency = filled($brief['character_consistency'] ?? null)
+        $key = filled($brief['character_consistency'] ?? null)
             ? (string) $brief['character_consistency']
             : 'dynamic';
 
-        if ($consistency !== 'locked') {
-            return '';
-        }
+        $entry = config("creative.character_consistencies.{$key}");
+        $prompt = is_array($entry) ? (string) ($entry['prompt'] ?? '') : '';
 
-        $prompt = config('creative.character_consistencies.locked.prompt');
-
-        return filled($prompt) ? sprintf(' Character consistency (locked): %s.', $prompt) : '';
+        return filled($prompt) ? sprintf(' Character consistency (%s): %s.', $key, $prompt) : '';
     }
 
     /**

@@ -1619,9 +1619,9 @@ if (builderForm) {
 			// Mirrors CreativeEngine::cameraClause() - the directive is
 			// front-loaded right after the opening sentence.
 			const cameraClause = cameraObj?.prompt ? ` Camera angle (locked): ${cameraObj.prompt}.` : '';
-			// Mirrors CreativeEngine::characterClause() - locked consistency
-			// directive when the user requests the character to stay unchanged.
-			const characterClause = characterObj?.prompt ? ` Character consistency (locked): ${characterObj.prompt}.` : '';
+			// Mirrors CreativeEngine::characterClause() - the directive title
+			// carries the state key and only states with a prompt speak.
+			const characterClause = characterObj?.prompt ? ` Character consistency (${characterObj.key}): ${characterObj.prompt}.` : '';
 
 			let cleanCustom = customPromptText
 				.replace(/<[^>]*>/g, '')

@@ -328,4 +328,40 @@ class CreativeEngineTest extends TestCase
         $promptNull = $this->engine->prompt($briefNull, CreativeFormat::InstagramPost);
         $this->assertStringNotContainsString('Character consistency', $promptNull);
     }
+
+    public function test_character_clause_follows_the_config_catalogue_not_a_hardcoded_key(): void
+    {
+        // A third state must work without touching CreativeEngine: only the
+        // catalogue decides which states speak and what they say.
+        config(['creative.character_consistencies.semi_locked' => [
+            'key' => 'semi_locked',
+            'label' => 'نیمه‌قفل',
+            'prompt' => 'consistent model identity with minor styling variation',
+            'icon' => '🔐',
+        ]]);
+
+        $brief = [
+            'product' => 'کت مردانه برند',
+            'objective' => 'branding',
+            'visual_direction' => 'luxury',
+            'environment' => 'studio',
+            'character_consistency' => 'semi_locked',
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString(
+            ' Character consistency (semi_locked): consistent model identity with minor styling variation.',
+            $prompt,
+            'The directive title and body must come from the configured state.'
+        );
+
+        // A key that is not in the catalogue says nothing at all.
+        $unknown = $brief;
+        $unknown['character_consistency'] = 'removed_state';
+        $this->assertStringNotContainsString(
+            'Character consistency',
+            $this->engine->prompt($unknown, CreativeFormat::InstagramPost)
+        );
+    }
 }
