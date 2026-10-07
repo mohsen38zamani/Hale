@@ -275,6 +275,15 @@
                                     <div class="stage-placeholder-sub">پیش‌نمایش زنده کات‌اوت، نورپردازی و تم صحنه در این کادر نمایش داده می‌شود.</div>
                                 </div>
                             </div>
+
+                            {{-- Camera horizon + converging floor (redesign 4) --}}
+                            <div class="stage-horizon" data-canvas-horizon aria-hidden="true"></div>
+
+                            {{-- Symbolic props: botanical / splash / smoke / crystals --}}
+                            <div class="stage-props" data-canvas-props aria-hidden="true"></div>
+
+                            {{-- Light simulation, painted over the product as well --}}
+                            <div class="stage-lights" data-canvas-lights aria-hidden="true"></div>
                         </div>
                     </div>
 

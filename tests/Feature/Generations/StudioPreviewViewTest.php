@@ -279,4 +279,59 @@ class StudioPreviewViewTest extends TestCase
         $this->assertStringContainsString('.scene-summary {', $stylesheet);
         $this->assertStringContainsString('.scene-summary-text {', $stylesheet);
     }
+
+    public function test_the_stage_simulates_horizon_light_props_and_environment(): void
+    {
+        $html = (string) $this->get('/create')->assertOk()->baseResponse->getContent();
+
+        foreach (['data-canvas-horizon', 'data-canvas-lights', 'data-canvas-props'] as $layer) {
+            $this->assertStringContainsString(
+                $layer,
+                $html,
+                "Stage layer [{$layer}] is required so the configured scene can be simulated."
+            );
+        }
+
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+        $this->assertStringContainsString('props-${props}', $script, 'The stage must follow the selected props.');
+        $this->assertStringContainsString('env-${env}', $script, 'The atmosphere must follow the selected environment.');
+
+        $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
+
+        foreach (array_keys((array) config('creative.lighting_setups')) as $key) {
+            $this->assertStringContainsString(
+                ".studio-stage.light-{$key} .stage-lights {",
+                $stylesheet,
+                "Lighting [{$key}] has no simulation inside the frame."
+            );
+        }
+
+        // props-none is the honest default: the layer simply draws nothing.
+        foreach (array_keys((array) config('creative.props')) as $key) {
+            if ($key === 'none') {
+                continue;
+            }
+            $this->assertStringContainsString(
+                ".studio-stage.props-{$key} .stage-props::",
+                $stylesheet,
+                "Props [{$key}] has no drawn representation on the stage."
+            );
+        }
+
+        foreach ((array) config('creative.environments') as $key) {
+            $this->assertStringContainsString(
+                ".stage-atmosphere.env-{$key}::before {",
+                $stylesheet,
+                "Environment [{$key}] has no tint layer."
+            );
+        }
+
+        foreach (array_keys((array) config('creative.camera_angles')) as $key) {
+            $this->assertStringContainsString(
+                ".studio-stage.angle-{$key} .stage-horizon",
+                $stylesheet,
+                "Camera angle [{$key}] must place the horizon line itself, not only the product."
+            );
+        }
+    }
 }

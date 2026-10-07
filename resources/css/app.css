@@ -1205,6 +1205,247 @@ mark.search-hit {
   transform: translateX(-50%) scaleX(0.5);
 }
 
+/* ==========================================================================
+   STAGE SIMULATION LAYERS (redesign 4)
+   Horizon + converging floor, light inside the frame, symbolic props and the
+   environment tint. All four are driven by the classes updateCanvasState()
+   puts on .studio-stage / .stage-atmosphere, so they follow the same keys as
+   config/creative.php.
+   ========================================================================== */
+
+/* --- Horizon line + perspective floor; height = how much floor shows --- */
+.stage-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stage-horizon::after {
+  content: '';
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.3) 32%, rgba(255, 255, 255, 0.3) 68%, transparent 100%);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.22);
+}
+
+.stage-horizon::before {
+  content: '';
+  position: absolute;
+  left: -70%;
+  right: -70%;
+  top: 0;
+  bottom: 0;
+  background:
+    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 40px);
+  transform: perspective(260px) rotateX(62deg);
+  transform-origin: 50% 0%;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 76%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 76%);
+}
+
+.studio-stage.angle-eye_level .stage-horizon { height: 40%; }
+.studio-stage.angle-flat_lay .stage-horizon { height: 64%; }
+.studio-stage.angle-flat_lay .stage-horizon::before { transform: perspective(220px) rotateX(74deg); }
+.studio-stage.angle-hero_shot .stage-horizon { height: 24%; }
+.studio-stage.angle-hero_shot .stage-horizon::before { transform: perspective(320px) rotateX(48deg); }
+.studio-stage.angle-macro .stage-horizon { height: 46%; filter: blur(1.4px); }
+.studio-stage.angle-isometric .stage-horizon { height: 56%; }
+.studio-stage.angle-isometric .stage-horizon::before { transform: perspective(240px) rotateX(68deg) skewX(-7deg); }
+.studio-stage.angle-side_angle .stage-horizon { height: 40%; transform: rotate(-5deg); }
+
+/* --- Light inside the frame: blended over the product, not only around it --- */
+.stage-lights {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  mix-blend-mode: screen;
+  transition: background 0.5s ease;
+}
+
+.studio-stage.light-softbox .stage-lights {
+  background:
+    radial-gradient(120% 70% at 50% -12%, rgba(255, 255, 255, 0.24), transparent 62%),
+    radial-gradient(70% 45% at 50% 112%, rgba(255, 255, 255, 0.07), transparent 70%);
+}
+
+.studio-stage.light-sunlight .stage-lights {
+  background:
+    linear-gradient(115deg, rgba(245, 158, 11, 0.24) 0%, transparent 44%),
+    repeating-linear-gradient(115deg, rgba(255, 236, 179, 0.1) 0 24px, transparent 24px 76px);
+}
+
+.studio-stage.light-rim .stage-lights {
+  background:
+    linear-gradient(to right, rgba(236, 72, 153, 0.4) 0%, transparent 17%),
+    linear-gradient(to left, rgba(168, 85, 247, 0.34) 0%, transparent 17%);
+}
+
+.studio-stage.light-neon .stage-lights {
+  background:
+    linear-gradient(to bottom, rgba(168, 85, 247, 0.34) 0%, transparent 24%),
+    linear-gradient(to top, rgba(34, 211, 238, 0.3) 0%, transparent 28%),
+    radial-gradient(60% 45% at 78% 34%, rgba(236, 72, 153, 0.26), transparent 72%);
+}
+
+/* --- Symbolic props: drawn shapes, never a fake photograph --- */
+.stage-props {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: hidden;
+}
+
+.stage-props::before,
+.stage-props::after {
+  content: none;
+}
+
+.studio-stage.props-botanical .stage-props::before {
+  content: '';
+  position: absolute;
+  left: -6%;
+  bottom: -5%;
+  width: 44%;
+  height: 34%;
+  background: radial-gradient(closest-side, rgba(34, 197, 94, 0.5), rgba(20, 83, 45, 0.12));
+  border-radius: 0 100% 0 100%;
+  transform: rotate(-16deg);
+}
+
+.studio-stage.props-botanical .stage-props::after {
+  content: '';
+  position: absolute;
+  right: -8%;
+  bottom: -7%;
+  width: 36%;
+  height: 28%;
+  background: radial-gradient(closest-side, rgba(74, 222, 128, 0.42), rgba(20, 83, 45, 0.1));
+  border-radius: 100% 0 100% 0;
+  transform: rotate(20deg);
+}
+
+.studio-stage.props-splash .stage-props::before {
+  content: '';
+  position: absolute;
+  right: 20%;
+  bottom: 26%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(125, 211, 252, 0.35));
+  box-shadow:
+    -34px 18px 0 -2px rgba(255, 255, 255, 0.5),
+    -62px -8px 0 -3px rgba(186, 230, 253, 0.45),
+    28px -24px 0 -3px rgba(255, 255, 255, 0.45),
+    46px 14px 0 -2px rgba(125, 211, 252, 0.4),
+    -12px -36px 0 -3.5px rgba(255, 255, 255, 0.4),
+    6px 42px 0 -4px rgba(186, 230, 253, 0.35);
+}
+
+.studio-stage.props-splash .stage-props::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16%;
+  height: 26%;
+  background: radial-gradient(60% 100% at 50% 100%, rgba(56, 189, 248, 0.26), transparent 76%);
+  filter: blur(2px);
+}
+
+.studio-stage.props-smoke .stage-props::before {
+  content: '';
+  position: absolute;
+  left: -12%;
+  top: 4%;
+  width: 72%;
+  height: 46%;
+  background: radial-gradient(closest-side, rgba(203, 213, 225, 0.34), transparent 76%);
+  filter: blur(10px);
+}
+
+.studio-stage.props-smoke .stage-props::after {
+  content: '';
+  position: absolute;
+  right: -16%;
+  bottom: 2%;
+  width: 66%;
+  height: 42%;
+  background: radial-gradient(closest-side, rgba(148, 163, 184, 0.3), transparent 78%);
+  filter: blur(12px);
+}
+
+.studio-stage.props-crystals .stage-props::before {
+  content: '';
+  position: absolute;
+  right: 13%;
+  bottom: 15%;
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, rgba(226, 232, 240, 0.5), rgba(148, 163, 184, 0.12));
+  border: 1px solid rgba(226, 232, 240, 0.55);
+  transform: rotate(45deg);
+  box-shadow: 0 0 18px rgba(203, 213, 225, 0.35);
+}
+
+.studio-stage.props-crystals .stage-props::after {
+  content: '';
+  position: absolute;
+  left: 15%;
+  bottom: 23%;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, rgba(165, 243, 252, 0.45), rgba(103, 232, 249, 0.1));
+  border: 1px solid rgba(165, 243, 252, 0.5);
+  transform: rotate(30deg);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.3);
+}
+
+/* --- Environment tint: layered on its own pseudo element so the style
+       gradient underneath keeps painting the background --- */
+.stage-atmosphere::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  transition: background 0.6s ease;
+  pointer-events: none;
+}
+
+.stage-atmosphere.env-studio::before {
+  background: radial-gradient(120% 80% at 50% 30%, rgba(148, 163, 184, 0.14), rgba(15, 23, 42, 0.3));
+}
+
+.stage-atmosphere.env-nature::before {
+  background: linear-gradient(to bottom, rgba(125, 211, 252, 0.22), rgba(34, 197, 94, 0.2));
+}
+
+.stage-atmosphere.env-luxury::before {
+  background: radial-gradient(90% 70% at 70% 20%, rgba(251, 191, 36, 0.24), rgba(69, 26, 3, 0.38));
+}
+
+.stage-atmosphere.env-urban::before {
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.5), rgba(56, 189, 248, 0.16));
+}
+
+.stage-atmosphere.env-home::before {
+  background: linear-gradient(to bottom, rgba(251, 146, 60, 0.2), rgba(120, 53, 15, 0.3));
+}
+
+.stage-atmosphere.env-abstract::before {
+  background: conic-gradient(from 210deg at 60% 40%, rgba(139, 92, 246, 0.32), rgba(34, 211, 238, 0.24), rgba(244, 63, 94, 0.26), rgba(139, 92, 246, 0.32));
+}
+
 /* Scene Controls Form Styles */
 .scene-controls-panel {
   background: rgba(255, 255, 255, 0.02);

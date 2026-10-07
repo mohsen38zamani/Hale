@@ -1610,7 +1610,7 @@ if (builderForm) {
 		const textClause = wordingRequested(customPromptText) ? textPermissive : textStrict;
 
 		if (canvasStage) {
-			canvasStage.className = `studio-stage ${isVertical ? 'ratio-9-16' : 'ratio-1-1'} light-${lighting} angle-${cameraAngle}`;
+			canvasStage.className = `studio-stage ${isVertical ? 'ratio-9-16' : 'ratio-1-1'} light-${lighting} angle-${cameraAngle} props-${props}`;
 		}
 
 		if (canvasGround) {
@@ -1622,7 +1622,7 @@ if (builderForm) {
 		}
 
 		if (canvasAtmosphere) {
-			canvasAtmosphere.className = `stage-atmosphere style-${style}`;
+			canvasAtmosphere.className = `stage-atmosphere style-${style} env-${env}`;
 		}
 
 		if (canvasStyleBadge) {
