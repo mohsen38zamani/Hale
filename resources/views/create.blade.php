@@ -55,7 +55,7 @@
                     {{-- Permanent seasonal theme status + picker, above the studio form --}}
                     <x-season-picker />
 
-                    <form class="builder-form" data-builder-form>
+                    <form class="builder-form" data-builder-form data-default-character="{{ config('creative.character_consistency_default') }}">
                         {{-- Step 1: Product --}}
                         <div style="margin-bottom: 24px;">
                             <label style="display: block; font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">

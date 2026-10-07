@@ -364,4 +364,35 @@ class CreativeEngineTest extends TestCase
             $this->engine->prompt($unknown, CreativeFormat::InstagramPost)
         );
     }
+
+    public function test_the_default_character_state_comes_from_one_config_key(): void
+    {
+        $key = (string) config('creative.character_consistency_default');
+        $this->assertArrayHasKey(
+            $key,
+            config('creative.character_consistencies'),
+            'The configured default must name a real catalogue state.'
+        );
+
+        // One key has to move every layer at once: auto best, the brief and
+        // the clause that speaks when a request carries no choice at all.
+        config(['creative.character_consistency_default' => 'locked']);
+
+        $product = new Product(['name' => 'کت مردانه']);
+
+        $this->assertSame('locked', $this->engine->autoBest($product, CreativeGoal::Sales)['character_consistency']);
+
+        $brief = $this->engine->brief($product, [
+            'goal' => CreativeGoal::Sales->value,
+            'style' => CreativeStyle::Luxury->value,
+            'format' => CreativeFormat::InstagramPost->value,
+            'environment' => 'studio',
+        ]);
+
+        $this->assertSame('locked', $brief['character_consistency']);
+        $this->assertStringContainsString(
+            'Character consistency (locked): strict character consistency',
+            $this->engine->prompt($brief, CreativeFormat::InstagramPost)
+        );
+    }
 }

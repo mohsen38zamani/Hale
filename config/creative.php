@@ -196,6 +196,10 @@ return [
         ],
     ],
 
+    // Which character state the studio preselects and the engine falls back to
+    // when a request carries none. Must be a key of character_consistencies.
+    'character_consistency_default' => 'dynamic',
+
     'character_consistencies' => [
         'dynamic' => [
             'key' => 'dynamic',

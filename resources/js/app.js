@@ -1485,6 +1485,9 @@ if (builderForm) {
 	let cameraAnglesData = [];
 	let lightingSetupsData = [];
 	let characterConsistenciesData = [];
+	// Single source for the preselected/fallback character state: the server
+	// renders it from config/creative.php on the form itself.
+	const defaultCharacterKey = builderForm.dataset.defaultCharacter || 'dynamic';
 
 	const aspectRatios = {
 		instagram_post: '1:1',
@@ -1554,7 +1557,7 @@ if (builderForm) {
 		const props = builderForm.querySelector('input[name="props"]:checked')?.value || 'none';
 		const cameraAngle = builderForm.querySelector('input[name="camera_angle"]:checked')?.value || 'eye_level';
 		const lighting = builderForm.querySelector('input[name="lighting_setup"]:checked')?.value || 'softbox';
-		const characterConsistency = builderForm.querySelector('input[name="character_consistency"]:checked')?.value || 'dynamic';
+		const characterConsistency = builderForm.querySelector('input[name="character_consistency"]:checked')?.value || defaultCharacterKey;
 
 		const selectedProductId = select.value;
 		const product = productsMap.get(String(selectedProductId));
@@ -1752,7 +1755,7 @@ if (builderForm) {
 		if (defaultCamera) defaultCamera.checked = true;
 		const defaultLighting = builderForm.querySelector('input[name="lighting_setup"][value="softbox"]') || builderForm.querySelector('input[name="lighting_setup"]');
 		if (defaultLighting) defaultLighting.checked = true;
-		const defaultCharacter = builderForm.querySelector('input[name="character_consistency"][value="dynamic"]') || builderForm.querySelector('input[name="character_consistency"]');
+		const defaultCharacter = builderForm.querySelector(`input[name="character_consistency"][value="${defaultCharacterKey}"]`) || builderForm.querySelector('input[name="character_consistency"]');
 		if (defaultCharacter) defaultCharacter.checked = true;
 
 		updateCanvasState();
@@ -1993,7 +1996,7 @@ if (builderForm) {
 			props: values.props || null,
 			camera_angle: values.camera_angle || null,
 			lighting_setup: values.lighting_setup || null,
-			character_consistency: values.character_consistency || 'dynamic',
+			character_consistency: values.character_consistency || defaultCharacterKey,
 			custom_prompt: rawCustomPrompt || null,
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null,
 			campaign: Boolean(campaignEnabled && campaignPack),

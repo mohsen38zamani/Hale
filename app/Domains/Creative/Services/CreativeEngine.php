@@ -49,7 +49,7 @@ class CreativeEngine
             'environment' => $environment,
             'aspect_ratio' => $format->aspectRatio(),
             'video_duration_seconds' => $duration,
-            'character_consistency' => 'dynamic',
+            'character_consistency' => $this->defaultCharacterConsistency(),
         ];
     }
 
@@ -72,7 +72,7 @@ class CreativeEngine
             'lighting_setup' => $settings['lighting_setup'] ?? null,
             'character_consistency' => isset($settings['character_consistency']) && filled($settings['character_consistency'])
                 ? (string) $settings['character_consistency']
-                : 'dynamic',
+                : $this->defaultCharacterConsistency(),
             'custom_prompt' => ($customPrompt !== null && $customPrompt !== '') ? $customPrompt : null,
             'audience' => 'Iranian social commerce shoppers',
             'generated_at' => now()->toIso8601String(),
@@ -197,12 +197,23 @@ class CreativeEngine
     {
         $key = filled($brief['character_consistency'] ?? null)
             ? (string) $brief['character_consistency']
-            : 'dynamic';
+            : $this->defaultCharacterConsistency();
 
         $entry = config("creative.character_consistencies.{$key}");
         $prompt = is_array($entry) ? (string) ($entry['prompt'] ?? '') : '';
 
         return filled($prompt) ? sprintf(' Character consistency (%s): %s.', $key, $prompt) : '';
+    }
+
+    /**
+     * The state a request without one inherits, decided by a single config key
+     * so autoBest(), the brief and the prompt clause can never disagree.
+     */
+    private function defaultCharacterConsistency(): string
+    {
+        $key = (string) config('creative.character_consistency_default', '');
+
+        return $key !== '' ? $key : 'dynamic';
     }
 
     /**

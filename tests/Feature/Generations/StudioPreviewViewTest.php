@@ -207,4 +207,20 @@ class StudioPreviewViewTest extends TestCase
         // The selection must also reach the API, not only the inspector.
         $this->assertStringContainsString('character_consistency: values.character_consistency', $script);
     }
+
+    public function test_the_studio_takes_the_character_default_from_the_server(): void
+    {
+        // The default cannot live only in config: the studio is served by
+        // Blade, so the form carries it and the script reads it back.
+        $this->get('/create')
+            ->assertOk()
+            ->assertSee('data-default-character="'.config('creative.character_consistency_default').'"', false);
+
+        $script = (string) file_get_contents(resource_path('js/app.js'));
+
+        $this->assertStringContainsString('builderForm.dataset.defaultCharacter', $script, 'The script must read the server-rendered default.');
+        $this->assertStringContainsString('input[name="character_consistency"][value="${defaultCharacterKey}"]', $script, 'The preselected state must follow the server-rendered default.');
+        $this->assertStringContainsString('character_consistency: values.character_consistency || defaultCharacterKey', $script, 'The payload fallback must follow the server-rendered default.');
+        $this->assertStringNotContainsString('value="dynamic"', $script, 'The default must not be hard-coded in the script.');
+    }
 }
