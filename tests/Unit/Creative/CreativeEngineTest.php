@@ -71,7 +71,7 @@ class CreativeEngineTest extends TestCase
 
         $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
 
-        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, keep the original product packaging and label artwork exactly as it is.';
+        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Style: luxury. Environment: luxury. Square 1:1 frame. High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, keep the original product packaging and label artwork exactly as it is.';
 
         $this->assertSame($expected, $prompt);
     }
@@ -88,9 +88,74 @@ class CreativeEngineTest extends TestCase
 
         $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
 
-        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Aesthetic style: luxury. Environment: luxury. Composition: 1:1 ratio (instagram_post). Custom scene details: روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی. High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, keep the original product packaging and label artwork exactly as it is.';
+        $expected = 'Create a professional commercial advertising visual for عطر سلطنتی. Objective: sales. Style: luxury. Environment: luxury. Square 1:1 frame. Custom scene details: روی صخره مرطوب بازالت، میان گل‌های ارکیده صورتی. High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, strictly clean composition, no text, no words, no letters, no typography, no fake labels, no pseudo-writing, no artificial watermark or signage, keep the original product packaging and label artwork exactly as it is.';
 
         $this->assertSame($expected, $prompt);
+    }
+
+    public function test_the_persian_scene_line_describes_the_frame_the_engine_was_asked_for(): void
+    {
+        // No `format` in the brief: the sentence itself is built from the
+        // format argument, so the Persian line beside it has to describe that
+        // same frame instead of whatever default the template falls back to.
+        $brief = [
+            'product' => 'عطر لوکس',
+            'objective' => 'sales',
+            'visual_direction' => 'luxury',
+            'environment' => 'studio',
+            'target_ai' => 'chatgpt',
+        ];
+
+        $reel = $this->engine->prompt($brief, CreativeFormat::InstagramReel);
+        $post = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        $this->assertStringContainsString('قاب عمودی ۹:۱۶ با حرکت دوربین برای ریلز', $reel, 'The scene line must follow the frame the engine was given.');
+        $this->assertStringNotContainsString('قاب مربعی', $reel, 'A vertical shot may not be described as a square one.');
+        $this->assertStringContainsString('قاب مربعی ۱:۱ برای پست اینستاگرام', $post, 'The square frame still describes itself as square.');
+    }
+
+    public function test_prompt_describes_the_product_next_to_its_name(): void
+    {
+        $brief = [
+            'product' => 'کیف چرم دست‌دوز',
+            'description' => 'کیف دوشی چرم طبیعی با دوخت دستی',
+            'objective' => 'branding',
+            'visual_direction' => 'natural',
+            'environment' => 'nature',
+            'custom_prompt' => null,
+        ];
+
+        $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+
+        // The only sentence that says what the product looks like must reach
+        // the model instead of stopping at the name it cannot read.
+        $this->assertStringContainsString(
+            'visual for کیف چرم دست‌دوز. کیف دوشی چرم طبیعی با دوخت دستی. Objective:',
+            $prompt
+        );
+
+        // A brief without a description adds nothing at all - no orphan full
+        // stop, no empty clause.
+        $bare = $this->engine->prompt(['product' => 'عطر سلطنتی', 'objective' => 'sales', 'visual_direction' => 'luxury', 'environment' => 'luxury'], CreativeFormat::InstagramPost);
+        $this->assertStringContainsString('visual for عطر سلطنتی. Objective:', $bare);
+    }
+
+    public function test_prompt_quotes_the_frame_not_the_format_key(): void
+    {
+        $brief = ['product' => 'عطر سلطنتی', 'objective' => 'sales', 'visual_direction' => 'luxury', 'environment' => 'luxury'];
+
+        $square = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
+        $vertical = $this->engine->prompt($brief, CreativeFormat::InstagramReel);
+
+        $this->assertStringContainsString('Environment: luxury. Square 1:1 frame.', $square);
+        $this->assertStringContainsString('Environment: luxury. Vertical 9:16 frame.', $vertical);
+
+        // The studio's own key is a screen name, not framing instructions.
+        foreach ([$square, $vertical] as $prompt) {
+            $this->assertStringNotContainsString('instagram_post)', $prompt);
+            $this->assertStringNotContainsString('instagram_reel)', $prompt);
+            $this->assertStringNotContainsString('ratio (', $prompt);
+        }
     }
 
     public function test_prompt_sanitizes_custom_prompt_whitespace_and_html_tags(): void
@@ -163,7 +228,7 @@ class CreativeEngineTest extends TestCase
 
         $this->assertStringContainsString('Elevated on a glossy black obsidian mirror surface with sharp glossy ground reflections.', $prompt);
         $this->assertStringContainsString('Flanked by floating geometric glass prisms and translucent crystal shards scattering spectrum colors.', $prompt);
-        $this->assertStringContainsString('Camera angle (locked): extreme close-up macro shot with shallow depth of field, camera tight on the product surface revealing texture and craftsmanship.', $prompt);
+        $this->assertStringContainsString('Camera: extreme close-up macro shot with shallow depth of field, camera tight on the product surface revealing texture and craftsmanship.', $prompt);
         $this->assertStringContainsString('Lighting: futuristic duotone cyber neon backlight with subtle magenta and cyan ambient glow.', $prompt);
         $this->assertStringContainsString('Custom scene details: جلوه بسیار درخشان.', $prompt);
     }
@@ -182,7 +247,7 @@ class CreativeEngineTest extends TestCase
                 'camera_angle' => $key,
             ], CreativeFormat::InstagramPost);
 
-            $directive = sprintf('Camera angle (locked): %s.', $angle['prompt']);
+            $directive = sprintf('Camera: %s.', $angle['prompt']);
             $position = strpos($prompt, $directive);
             $objective = strpos($prompt, 'Objective:');
 
@@ -219,7 +284,7 @@ class CreativeEngineTest extends TestCase
             'camera_angle' => null,
         ], CreativeFormat::InstagramReel);
 
-        $this->assertStringNotContainsString('Camera angle (locked):', $prompt);
+        $this->assertStringNotContainsString('Camera:', $prompt);
         $this->assertStringContainsString('Dynamic motion: smooth cinematic camera pan, fluid atmospheric movement, premium brand reel aesthetic, 4K render.', $prompt);
     }
 
@@ -241,9 +306,9 @@ class CreativeEngineTest extends TestCase
         $this->assertStringNotContainsString('Surface pedestal:', $prompt);
         $this->assertStringNotContainsString('Accents and props:', $prompt);
         $this->assertStringNotContainsString('Camera composition:', $prompt);
-        $this->assertStringNotContainsString('Camera angle (locked):', $prompt);
+        $this->assertStringNotContainsString('Camera:', $prompt);
         $this->assertStringNotContainsString('Studio lighting:', $prompt);
-        $this->assertStringNotContainsString('Character consistency (locked):', $prompt);
+        $this->assertStringNotContainsString('Character consistency:', $prompt);
     }
 
     public function test_auto_best_provides_dynamic_character_consistency(): void
@@ -293,8 +358,15 @@ class CreativeEngineTest extends TestCase
 
         $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
 
-        $expectedDirective = 'Character consistency (locked): strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift.';
+        $expectedDirective = 'Character consistency: '.config('creative.character_consistencies.locked.prompt').'.';
         $this->assertStringContainsString($expectedDirective, $prompt);
+
+        // The directive is a field of the brief, not a screen state: the
+        // studio's own key never reaches the model, and neither does a trait
+        // it would have to guess at - naming one to "preserve" only invites a
+        // safety filter on a shot that may not hold a person at all.
+        $this->assertStringNotContainsString('Character consistency (', $prompt);
+        $this->assertStringNotContainsString('ethnicity', $prompt);
 
         // Verify it is front-loaded right after opening product sentence
         $position = strpos($prompt, $expectedDirective);
@@ -351,7 +423,7 @@ class CreativeEngineTest extends TestCase
         $prompt = $this->engine->prompt($brief, CreativeFormat::InstagramPost);
 
         $this->assertStringContainsString(
-            ' Character consistency (semi_locked): consistent model identity with minor styling variation.',
+            ' Character consistency: consistent model identity with minor styling variation.',
             $prompt,
             'The directive title and body must come from the configured state.'
         );
@@ -391,7 +463,7 @@ class CreativeEngineTest extends TestCase
 
         $this->assertSame('locked', $brief['character_consistency']);
         $this->assertStringContainsString(
-            'Character consistency (locked): strict character consistency',
+            'Character consistency: if a person appears in the frame',
             $this->engine->prompt($brief, CreativeFormat::InstagramPost)
         );
     }

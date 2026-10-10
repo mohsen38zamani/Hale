@@ -38,7 +38,7 @@ class ChatGptPromptCompiler extends AbstractPromptCompiler
             '# SCENE',
             ...$this->clauseLines($brief),
             '',
-            '# IMAGE PROMPT (ready for DALL-E 3)',
+            '# IMAGE PROMPT (ready to paste into any image model)',
             $this->imagePrompt($brief, $format),
             '',
             '# CAPTION & HOOK (فارسی)',

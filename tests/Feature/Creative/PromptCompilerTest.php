@@ -86,13 +86,13 @@ class PromptCompilerTest extends TestCase
         ])->assertOk()->json('data');
 
         $this->assertSame('instagram_story', $data['format'], 'The chosen format wins over the autoBest suggestion.');
-        $this->assertStringContainsString('Composition: 9:16 ratio (instagram_story).', $data['prompt_preview']);
+        $this->assertStringContainsString('Vertical 9:16 frame.', $data['prompt_preview']);
         $this->assertStringContainsString(
             ucfirst((string) config('creative.surfaces.obsidian.prompt')),
             $data['prompt_preview']
         );
         $this->assertStringContainsString(
-            'Camera angle (locked): '.config('creative.camera_angles.macro.prompt').'.',
+            'Camera: '.config('creative.camera_angles.macro.prompt').'.',
             $data['prompt_preview']
         );
         $this->assertArrayNotHasKey('target_ai', $data['brief'], 'No target means the generic prompt.');

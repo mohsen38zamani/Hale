@@ -227,7 +227,7 @@ class PromptCompilersTest extends TestCase
         [$brief, $format] = $this->briefs()[1];
         $compiled = $this->factory->for('chatgpt')->compile($brief, $format);
 
-        foreach (['# CAMPAIGN BRIEF', '# SCENE', '# IMAGE PROMPT (ready for DALL-E 3)', '# CAPTION & HOOK (فارسی)'] as $section) {
+        foreach (['# CAMPAIGN BRIEF', '# SCENE', '# IMAGE PROMPT (ready to paste into any image model)', '# CAPTION & HOOK (فارسی)'] as $section) {
             $this->assertStringContainsString($section, $compiled, "The ChatGPT brief is missing the [{$section}] section.");
         }
 
@@ -372,10 +372,11 @@ class PromptCompilersTest extends TestCase
         [$brief, $format] = $this->briefs()[1];
         $clauses = $this->factory->clauses();
 
+        // This brief carries a tagline, so every target relaxes its own way.
         $policies = [
             'imagen' => rtrim(trim($clauses->textSuppression($brief)), '.'),
             'flux' => rtrim(trim($clauses->textSuppression($brief)), '.'),
-            'midjourney' => '--no text, watermark',
+            'midjourney' => '--no watermark',
             'stable_diffusion' => 'Negative prompt: ',
         ];
 
@@ -407,8 +408,8 @@ class PromptCompilersTest extends TestCase
         $this->assertStringContainsString('85mm lens at f/4', $compiled, 'The lens specification is the point of this target.');
         $this->assertStringContainsString('three-point lighting', $compiled, 'Studio lighting vocabulary instead of slogans.');
         $this->assertStringContainsString('no wide-angle distortion', $compiled, 'An unambiguous angle means an undistorted package.');
-        $this->assertStringContainsString(trim($clauses->camera($brief)), $compiled, 'The chosen framing survives.');
-        $this->assertStringContainsString('Composition: 1:1 ratio (instagram_post).', $compiled);
+        $this->assertStringContainsString(PromptClauses::body($clauses->camera($brief)), $compiled, 'The chosen framing survives.');
+        $this->assertStringContainsString('Square 1:1 frame.', $compiled);
         $this->assertStringNotContainsString("\n", $compiled, 'An image model receives a single prompt.');
     }
 
@@ -420,13 +421,24 @@ class PromptCompilersTest extends TestCase
         $post = $compiler->compile($brief, CreativeFormat::InstagramPost);
         $reel = $compiler->compile($brief, CreativeFormat::InstagramReel);
 
-        $this->assertStringEndsWith('--ar 1:1 --style raw --v 6.1 --no text, watermark', $post);
-        $this->assertStringEndsWith('--ar 9:16 --style raw --v 6.1 --no text, watermark', $reel, 'The selected format drives --ar.');
+        // This brief carries a tagline, so Midjourney may not be told to ban
+        // text - it would drop the line the brand asked for.
+        $this->assertStringEndsWith('--ar 1:1 --style raw --v 6.1 --no watermark', $post);
+        $this->assertStringEndsWith('--ar 9:16 --style raw --v 6.1 --no watermark', $reel, 'The selected format drives --ar.');
+
+        // A brief that asked for no wording of its own keeps the full ban.
+        [$plain] = $this->briefs()[2];
+        $this->assertStringEndsWith(
+            '--ar 1:1 --style raw --v 6.1 --no text, watermark',
+            $compiler->compile($plain, CreativeFormat::InstagramPost),
+            'Nothing was requested, so nothing may be written.'
+        );
+
         $this->assertStringNotContainsString("\n", $post, 'A compact prompt is one line of phrases.');
-        $this->assertStringNotContainsString('Camera angle (locked):', $post, 'Labels are dropped; the framing itself stays.');
-        $this->assertStringNotContainsString('Character consistency (locked):', $post);
+        $this->assertStringNotContainsString('Camera:', $post, 'Labels are dropped; the framing itself stays.');
+        $this->assertStringNotContainsString('Character consistency:', $post);
         $this->assertStringContainsString(
-            (string) config('creative.camera_angles.hero_shot.prompt'),
+            ucfirst((string) config('creative.camera_angles.hero_shot.prompt')),
             $post,
             'The framing survives even though its directive label does not.'
         );
@@ -441,7 +453,7 @@ class PromptCompilersTest extends TestCase
 
         $this->assertStringStartsWith($brief['product'].' is the single subject of the frame.', $compiled);
         $this->assertStringContainsString(
-            'The scene serves branding in a natural direction',
+            'natural styling in a nature environment.',
             $compiled,
             'The brief is folded into prose instead of printed as fields.'
         );
@@ -450,7 +462,7 @@ class PromptCompilersTest extends TestCase
             $this->assertStringNotContainsString($cliche, $compiled, 'FLUX renders sentences, not slogans: ['.$cliche.'].');
         }
 
-        $this->assertStringContainsString('A 1:1 ratio frame (instagram_post).', $compiled);
+        $this->assertStringContainsString('Square 1:1 frame.', $compiled);
         $this->assertStringEndsWith(
             rtrim(trim($clauses->textSuppression($brief)), '.').'.',
             $compiled,
@@ -467,8 +479,19 @@ class PromptCompilersTest extends TestCase
         $this->assertStringContainsString("\nNegative prompt: ", $compiled);
         $this->assertStringContainsString('(masterpiece:1.2)', $compiled, 'The weighting syntax the model expects.');
         $this->assertStringContainsString('(photorealistic:1.1)', $compiled);
-        $this->assertStringContainsString('(text:1.2)', $compiled, 'Rendered wording is the first thing to avoid.');
-        $this->assertStringContainsString('(font:1.1)', $compiled, 'The negative list is built from the studio keyword catalogue.');
+
+        // This brief carries a tagline: a negative that bans `text` would
+        // cancel the wording the positive block promises to render.
+        $this->assertStringNotContainsString('(text:1.2)', $compiled, 'The negative must not undo the positive.');
+        $this->assertStringNotContainsString('(font:1.1)', $compiled, 'Neither may the keyword catalogue that bans it.');
+        $this->assertStringContainsString('(watermark:1.1)', $compiled, 'A watermark is never wanted, wording or not.');
+
+        // A brief that asked for nothing of the sort keeps the whole
+        // catalogue out of the frame.
+        [$plain] = $this->briefs()[2];
+        $strict = $this->factory->for('stable_diffusion')->compile($plain, $format);
+        $this->assertStringContainsString('(text:1.2)', $strict, 'Rendered wording is the first thing to avoid.');
+        $this->assertStringContainsString('(font:1.1)', $strict, 'The negative list is built from the studio keyword catalogue.');
 
         preg_match_all('/\([^()]+:\d\.\d\)/', $compiled, $matches);
         $this->assertGreaterThan(6, count($matches[0]), 'Both blocks must be weighted, not flat lists.');
@@ -525,7 +548,7 @@ class PromptCompilersTest extends TestCase
         $this->assertStringContainsString('The subject stays still while the atmosphere moves.', $compiled);
         $this->assertStringContainsString(trim($clauses->camera($brief)), $compiled);
         $this->assertStringContainsString(rtrim(trim($clauses->scene($brief)), '.'), $compiled);
-        $this->assertStringContainsString('Composition: 9:16 ratio (instagram_reel).', $compiled);
+        $this->assertStringContainsString('Vertical 9:16 frame.', $compiled);
         $this->assertStringEndsWith(rtrim(trim($clauses->textSuppression($brief)), '.').'.', $compiled, 'The text policy closes the shot.');
     }
 
@@ -554,22 +577,17 @@ class PromptCompilersTest extends TestCase
         );
 
         // A brief that arrived without a camera or a light still gets a full
-        // sheet, falling back to what the studio pre-checks.
+        // sheet, falling back to what the studio pre-checks - and the note
+        // still carries its label exactly once.
         $bare = $this->factory->for('runway')->compile(
             ['product' => 'عطر تست', 'objective' => 'sales', 'visual_direction' => 'luxury', 'environment' => 'studio'],
             CreativeFormat::InstagramReel
         );
 
-        $this->assertStringContainsString(
-            (string) config('creative.camera_angles.'.PromptClauses::studioDefaults()['camera_angle'].'.prompt'),
-            $bare,
-            'The empty camera note falls back to the selection the studio pre-checks.'
-        );
-        $this->assertStringContainsString(
-            (string) config('creative.lighting_setups.'.PromptClauses::studioDefaults()['lighting_setup'].'.prompt'),
-            $bare,
-            'The empty light note falls back to the selection the studio pre-checks.'
-        );
+        $this->assertStringContainsString('never looking down or up.', $bare, 'The empty camera note falls back to the selection the studio pre-checks.');
+        $this->assertStringContainsString('diffused even illumination.', $bare, 'The empty light note falls back to the selection the studio pre-checks.');
+        $this->assertStringNotContainsString('- Camera: Camera:', $bare, 'The department label must not be repeated inside its own note.');
+        $this->assertStringNotContainsString('- Light: Lighting:', $bare, 'The department label must not be repeated inside its own note.');
     }
 
     public function test_the_video_and_edit_compilers_keep_the_shared_clauses(): void
@@ -629,6 +647,103 @@ class PromptCompilersTest extends TestCase
             $compiled,
             'The paste paragraph says the same thing as the two blocks above it.'
         );
+    }
+
+    /**
+     * The targets whose whole output is pasted into an image or video model.
+     * The others carry a campaign brief for a language model, where naming
+     * the platform, the format key or a section heading is useful context
+     * rather than noise.
+     *
+     * @return list<string>
+     */
+    private function modelFacingTargets(): array
+    {
+        return ['generic', 'imagen', 'veo', 'midjourney', 'flux', 'stable_diffusion', 'gemini_edit'];
+    }
+
+    public function test_a_model_facing_prompt_never_quotes_the_studios_own_vocabulary(): void
+    {
+        $leaked = [
+            '(locked)' => 'a screen state the model has no say in',
+            'ratio (' => 'a framing formula where the frame itself was asked for',
+            'instagram_post' => 'the studio format key instead of the framing',
+            'instagram_reel' => 'the studio format key instead of the framing',
+            'instagram_story' => 'the studio format key instead of the framing',
+            'Aesthetic style' => 'a label the sentence already states in words',
+            'ethnicity' => 'a trait the model would have to negotiate over',
+        ];
+
+        foreach ($this->briefs() as [$brief, $format]) {
+            foreach ($this->modelFacingTargets() as $key) {
+                $compiled = $this->factory->for($key)->compile($brief, $format);
+
+                foreach ($leaked as $vocabulary => $why) {
+                    $this->assertStringNotContainsString(
+                        $vocabulary,
+                        $compiled,
+                        "[{$key}] leaked [{$vocabulary}] - {$why} - into a prompt the model reads literally."
+                    );
+                }
+            }
+        }
+    }
+
+    public function test_no_target_prints_the_same_label_twice_in_a_row(): void
+    {
+        $doubled = [
+            'Camera: Camera:',
+            'Character consistency: Character consistency:',
+            'Custom scene details: Custom scene details:',
+            'Brand identity: Brand identity:',
+            'Brand: Brand identity:',
+            'Campaign mood: Campaign mood:',
+            'Campaign: Campaign mood:',
+            'Lighting: Lighting:',
+            '- Camera: Camera:',
+            '- Light: Lighting:',
+            '<camera_angle>Camera:',
+            '<character_consistency>Character consistency:',
+            '<custom_scene_details>Custom scene details:',
+            '<brand>Brand identity:',
+        ];
+
+        foreach ($this->briefs() as [$brief, $format]) {
+            foreach ($this->factory->keys() as $key) {
+                $compiled = $this->factory->for($key)->compile($brief, $format);
+
+                foreach ($doubled as $label) {
+                    $this->assertStringNotContainsString(
+                        $label,
+                        $compiled,
+                        "[{$key}] prints [{$label}] - a frame written that way reads as a defect to whoever pastes it."
+                    );
+                }
+            }
+        }
+    }
+
+    public function test_a_negative_never_cancels_the_wording_the_brief_asked_for(): void
+    {
+        foreach ($this->briefs() as [$brief, $format]) {
+            $requestsWording = $this->factory->clauses()->requestsRenderedText($brief);
+            $where = $requestsWording ? 'the brief asked for wording' : 'the brief asked for none';
+
+            $midjourney = $this->factory->for('midjourney')->compile($brief, $format);
+            $stableDiffusion = $this->factory->for('stable_diffusion')->compile($brief, $format);
+            $negative = substr($stableDiffusion, (int) strpos($stableDiffusion, "\n"));
+
+            if ($requestsWording) {
+                $this->assertStringEndsWith('--no watermark', $midjourney, "[midjourney] {$where}: `--no text` would drop it.");
+                $this->assertStringNotContainsString('(text:', $negative, "[stable_diffusion] {$where}: a negative banning `text` would cancel it.");
+                $this->assertStringNotContainsString('(font:', $negative, "[stable_diffusion] {$where}: a negative banning `font` would cancel it.");
+            } else {
+                $this->assertStringEndsWith('--no text, watermark', $midjourney, "[midjourney] {$where}: the ban stays complete.");
+                $this->assertStringContainsString('(text:1.2)', $negative, "[stable_diffusion] {$where}: rendered wording is still the first thing to avoid.");
+            }
+
+            $this->assertStringContainsString('(watermark:1.1)', $negative, 'A watermark is never wanted, wording or not.');
+        }
     }
 
     /**

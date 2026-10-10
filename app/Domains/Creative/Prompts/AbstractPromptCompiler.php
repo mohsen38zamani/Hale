@@ -32,7 +32,10 @@ abstract class AbstractPromptCompiler implements PromptCompilerInterface
     /**
      * The shared clauses as separate lines. A frame built from bullet points
      * shows which wording the studio decided; camera and character directives
-     * already carry their own title, so they stand without a label.
+     * already carry their own title, so they stand without a label, and the
+     * four labelled clauses give up theirs to the line they land on - a frame
+     * that says "Custom scene details: Custom scene details: ..." reads as a
+     * defect to whoever is about to paste it.
      *
      * @param  array<string, mixed>  $brief
      * @return list<string>
@@ -49,10 +52,10 @@ abstract class AbstractPromptCompiler implements PromptCompilerInterface
         }
 
         $labelled = [
-            'Scene' => $this->clauses->scene($brief),
-            'Custom scene details' => $this->clauses->custom($brief),
-            'Brand' => $this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : []),
-            'Campaign' => $this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []),
+            'Scene' => PromptClauses::body($this->clauses->scene($brief)),
+            'Custom scene details' => PromptClauses::body($this->clauses->custom($brief)),
+            'Brand' => PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
+            'Campaign' => PromptClauses::body($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : [])),
         ];
 
         foreach ($labelled as $label => $clause) {

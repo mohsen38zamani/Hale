@@ -33,12 +33,12 @@ class ClaudePromptCompiler extends AbstractPromptCompiler
         $lines[] = $this->tag('objective', (string) ($brief['objective'] ?? ''), 2);
         $lines[] = $this->tag('visual_direction', (string) ($brief['visual_direction'] ?? ''), 2);
         foreach (['camera_angle' => $this->clauses->camera($brief), 'character_consistency' => $this->clauses->character($brief)] as $name => $directive) {
-            $trimmed = trim($directive);
+            $trimmed = PromptClauses::body($directive);
             if ($trimmed !== '') {
                 $lines[] = $this->tag($name, $trimmed, 2);
             }
         }
-        $custom = trim($this->clauses->custom($brief));
+        $custom = PromptClauses::body($this->clauses->custom($brief));
         if ($custom !== '') {
             $lines[] = $this->tag('custom_scene_details', $custom, 2);
         }
@@ -51,11 +51,11 @@ class ClaudePromptCompiler extends AbstractPromptCompiler
 
         $lines[] = '  <lighting_and_atmosphere>';
         $lines[] = $this->tag('environment', (string) ($brief['environment'] ?? ''), 2);
-        $lines[] = $this->tag('lighting', (string) ($scene['lighting_setup'] ?? ''), 2);
+        $lines[] = $this->tag('lighting', PromptClauses::body((string) ($scene['lighting_setup'] ?? '')), 2);
         $lines[] = '  </lighting_and_atmosphere>';
 
-        $brand = trim($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : []));
-        $campaign = trim($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []));
+        $brand = PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : []));
+        $campaign = PromptClauses::body($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []));
         if ($brand !== '' || $campaign !== '') {
             $lines[] = '  <brand_and_campaign>';
             if ($brand !== '') {

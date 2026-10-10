@@ -59,7 +59,7 @@ class VeoPromptCompiler extends AbstractPromptCompiler
             }
         }
 
-        $parts[] = sprintf('Composition: %s ratio (%s).', $format->aspectRatio(), $format->value);
+        $parts[] = $format->frame();
         $parts[] = rtrim(trim($this->clauses->textSuppression($brief)), '.').'.';
 
         return implode(' ', $parts);

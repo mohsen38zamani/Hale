@@ -197,6 +197,6 @@ class BulkGenerationTest extends TestCase
 
         $project = $user->creativeProjects()->first();
         $this->assertSame('locked', $project->character_consistency);
-        $this->assertStringContainsString('Character consistency (locked):', $project->prompt);
+        $this->assertStringContainsString('Character consistency:', $project->prompt);
     }
 }

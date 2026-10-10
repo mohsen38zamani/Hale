@@ -270,7 +270,7 @@ class GenerationApiTest extends TestCase
 
         $this->assertStringContainsString('Displayed on a luxury white veined Carrara marble pedestal with soft specular highlights.', $generation->creativeProject->prompt);
         $this->assertStringContainsString('Accented with lush monstera leaves, olive branches, and delicate pink orchid petals.', $generation->creativeProject->prompt);
-        $this->assertStringContainsString('Camera angle (locked): dramatic low-angle hero perspective looking upward at the product, camera below eye level making the product tower over the viewer.', $generation->creativeProject->prompt);
+        $this->assertStringContainsString('Camera: dramatic low-angle hero perspective looking upward at the product, camera below eye level making the product tower over the viewer.', $generation->creativeProject->prompt);
         $this->assertStringContainsString('Lighting: dramatic high-contrast edge rim lighting sculpting the product contours against a moody backdrop.', $generation->creativeProject->prompt);
     }
 
@@ -358,7 +358,7 @@ class GenerationApiTest extends TestCase
         ])->assertOk();
 
         $this->assertSame('locked', $response->json('data.brief.character_consistency'));
-        $this->assertStringContainsString('Character consistency (locked):', $response->json('data.prompt_preview'));
+        $this->assertStringContainsString('Character consistency:', $response->json('data.prompt_preview'));
     }
 
     public function test_user_can_create_generation_with_locked_character_consistency(): void
@@ -381,7 +381,10 @@ class GenerationApiTest extends TestCase
 
         $this->assertSame('locked', $generation->creativeProject->character_consistency);
         $this->assertSame('locked', $generation->creativeProject->brief['character_consistency']);
-        $this->assertStringContainsString('Character consistency (locked): strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift.', $generation->creativeProject->prompt);
+        $this->assertStringContainsString(
+            'Character consistency: '.config('creative.character_consistencies.locked.prompt').'.',
+            $generation->creativeProject->prompt
+        );
     }
 
     public function test_invalid_character_consistency_returns_persian_validation_error(): void

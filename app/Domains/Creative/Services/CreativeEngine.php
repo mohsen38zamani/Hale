@@ -124,13 +124,20 @@ class CreativeEngine
 
     /**
      * Compile the brief for the target it carries. A brief without one (or
-     * with a key no compiler answers to) takes the generic path, which is
-     * byte-for-byte the sentence this engine has always produced.
+     * with a key no compiler answers to) takes the generic path, which is the
+     * sentence the studio itself renders in the browser mirror.
      *
      * @param  array<string, mixed>  $brief
      */
     public function prompt(array $brief, CreativeFormat $format): string
     {
+        // The Persian scene line quotes the frame out of the brief while the
+        // sentence is built from the format argument, so a brief built without
+        // one would describe a frame the prompt is not. One source decides both.
+        if (! filled($brief['format'] ?? null)) {
+            $brief['format'] = $format->value;
+        }
+
         $target = is_string($brief['target_ai'] ?? null) ? $brief['target_ai'] : null;
 
         return $this->compilers->for($target)->compile($brief, $format);

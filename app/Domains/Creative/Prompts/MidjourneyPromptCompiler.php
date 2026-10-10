@@ -43,21 +43,23 @@ class MidjourneyPromptCompiler extends AbstractPromptCompiler
             fn (string $phrase): bool => trim($phrase) !== ''
         )));
 
+        // `--no text` and a brief that asked for its own wording are opposite
+        // instructions: Midjourney would drop the very line the brand is
+        // paying for. The watermark stays banned either way.
+        $forbidden = $this->clauses->requestsRenderedText($brief) ? 'watermark' : 'text, watermark';
+
         return $body
             .' --ar '.$format->aspectRatio()
             .' --style raw --v 6.1'
-            .' --no text, watermark';
+            .' --no '.$forbidden;
     }
 
     /**
      * A clause is written as a sentence; Midjourney wants a phrase, so the
-     * trailing period and any directive label go away.
+     * label and the trailing period go away.
      */
     private function phrase(string $clause): string
     {
-        $trimmed = trim($clause);
-        $unlabelled = preg_replace('/^(Camera angle|Character consistency) \([a-z]+\): /', '', $trimmed) ?? $trimmed;
-
-        return rtrim($unlabelled, ". \t");
+        return rtrim(PromptClauses::body($clause), ". \t");
     }
 }

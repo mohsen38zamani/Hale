@@ -291,7 +291,12 @@ return [
         'locked' => [
             'key' => 'locked',
             'label' => 'ثابت و بدون تغییر',
-            'prompt' => 'strict character consistency, identical facial features, same model identity across generations, preserve facial structure and ethnicity, zero character drift',
+            // Conditional on a person being in the frame at all: a product
+            // shot has no face to lock, and naming traits the model must
+            // "preserve" invites a safety filter for nothing. What it says is
+            // the only thing an image model can act on - same face, same
+            // styling, no drift from shot to shot.
+            'prompt' => 'if a person appears in the frame, the same face, the same features and the same styling in every shot, no drift from image to image',
             'icon' => '🔒',
         ],
     ],

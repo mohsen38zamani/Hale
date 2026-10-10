@@ -74,13 +74,12 @@ class GeminiEditPromptCompiler extends AbstractPromptCompiler
         ], fn (string $value): bool => $value !== '')));
 
         $lines[] = sprintf(
-            '%s stays untouched while the surroundings become%s. %s setting, %s direction. Composition: %s ratio (%s). %s.',
+            '%s stays untouched while the surroundings become%s. %s setting, %s direction. %s %s.',
             $product,
             $target !== '' ? ': '.$target : ' unrecognisably different',
             (string) ($brief['environment'] ?? ''),
             (string) ($brief['visual_direction'] ?? ''),
-            $format->aspectRatio(),
-            $format->value,
+            $format->frame(),
             rtrim(trim($this->clauses->textSuppression($brief)), '.')
         );
 

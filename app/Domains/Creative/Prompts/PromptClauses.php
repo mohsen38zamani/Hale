@@ -48,7 +48,11 @@ class PromptClauses
     }
 
     /**
-     * The locked camera directive, front-loaded into the prompt.
+     * The camera directive, front-loaded into the prompt.
+     *
+     * It reads as a field of the brief, not as a screen state: "(locked)" was
+     * the studio's own control vocabulary, and an image model given a choice
+     * it never had only gets noise from it.
      *
      * @param  array<string, mixed>  $brief
      */
@@ -61,16 +65,37 @@ class PromptClauses
 
         $prompt = config("creative.camera_angles.{$angle}.prompt");
 
-        return filled($prompt) ? sprintf(' Camera angle (locked): %s.', $prompt) : '';
+        return filled($prompt) ? sprintf(' Camera: %s.', $prompt) : '';
     }
 
     /**
-     * The locked character directive, front-loaded into the prompt.
+     * A clause with the label the flat sentence gives it taken back off, for
+     * the frames that carry their own title: a bullet, an XML tag, a shot
+     * sheet department. Two labels ("Custom scene details: Custom scene
+     * details: ...") read as a bug to whoever is about to paste the prompt
+     * and dilute the field for a model. Nothing but the label is touched, so
+     * the body keeps its wording and its full stop, and it is capitalised so
+     * it can stand as a sentence of its own.
+     */
+    public static function body(string $clause): string
+    {
+        $trimmed = trim($clause);
+        $unlabelled = (string) preg_replace(
+            '/^(?:Camera|Character consistency|Custom scene details|Brand identity|Campaign mood|Lighting): /u',
+            '',
+            $trimmed
+        );
+
+        return ucfirst($unlabelled);
+    }
+
+    /**
+     * The character directive, front-loaded into the prompt.
      *
      * The catalogue in config/creative.php is the only source: a state whose
-     * prompt is empty (dynamic) contributes nothing, and the directive title
-     * carries the state key, so a future state with its own prompt needs no
-     * change here.
+     * prompt is empty (dynamic) contributes nothing, and only the body of the
+     * state reaches the model - the key is a studio control name, not prompt
+     * language - so a future state with its own prompt needs no change here.
      *
      * @param  array<string, mixed>  $brief
      */
@@ -83,7 +108,7 @@ class PromptClauses
         $entry = config("creative.character_consistencies.{$key}");
         $prompt = is_array($entry) ? (string) ($entry['prompt'] ?? '') : '';
 
-        return filled($prompt) ? sprintf(' Character consistency (%s): %s.', $key, $prompt) : '';
+        return filled($prompt) ? sprintf(' Character consistency: %s.', $prompt) : '';
     }
 
     /**
@@ -308,7 +333,7 @@ class PromptClauses
      *
      * @param  array<string, mixed>  $brief
      */
-    private function requestsRenderedText(array $brief): bool
+    public function requestsRenderedText(array $brief): bool
     {
         if (filled($brief['brand']['tagline'] ?? null)) {
             return true;

@@ -1819,25 +1819,36 @@ if (builderForm) {
 			if (copyPromptBtn) copyPromptBtn.disabled = false;
 
 			const capitalize = (str) => (str ? str.charAt(0).toUpperCase() + str.slice(1) : '');
+			// PromptClauses::sanitize(): strip markup, control characters and
+			// runs of whitespace, then any trailing full stop, so the mirror
+			// and the engine describe the same product in the same bytes.
+			const sanitizePlain = (value) =>
+				String(value || '')
+					.replace(/<[^>]*>/g, '')
+					.replace(/[\x00-\x1F\x7F]/g, '')
+					.replace(/\s+/g, ' ')
+					.trim()
+					.replace(/[. ]+$/, '');
+
 			const sceneParts = [];
 			if (surfaceObj?.prompt) sceneParts.push(capitalize(surfaceObj.prompt) + '.');
 			if (propsObj?.prompt) sceneParts.push(capitalize(propsObj.prompt) + '.');
 			if (lightingObj?.prompt) sceneParts.push(capitalize(lightingObj.prompt) + '.');
 			const sceneClause = sceneParts.length ? ' ' + sceneParts.join(' ') : '';
-			// Mirrors CreativeEngine::cameraClause() - the directive is
-			// front-loaded right after the opening sentence.
-			const cameraClause = cameraObj?.prompt ? ` Camera angle (locked): ${cameraObj.prompt}.` : '';
-			// Mirrors CreativeEngine::characterClause() - the directive title
-			// carries the state key and only states with a prompt speak.
-			const characterClause = characterObj?.prompt ? ` Character consistency (${characterObj.key}): ${characterObj.prompt}.` : '';
+			// Mirrors PromptClauses::camera() - the directive is front-loaded
+			// right after the opening sentence and reads as a field of the
+			// brief, not as a screen state.
+			const cameraClause = cameraObj?.prompt ? ` Camera: ${cameraObj.prompt}.` : '';
+			// Mirrors PromptClauses::character() - only states with a prompt
+			// speak, and the studio's own key never reaches the model.
+			const characterClause = characterObj?.prompt ? ` Character consistency: ${characterObj.prompt}.` : '';
 
-			let cleanCustom = customPromptText
-				.replace(/<[^>]*>/g, '')
-				.replace(/[\x00-\x1F\x7F]/g, '')
-				.replace(/\s+/g, ' ')
-				.trim()
-				.replace(/[. ]+$/, '');
+			// Mirrors the description half of GenericPromptCompiler: the one
+			// sentence that says what the product looks like sits by its name.
+			const cleanDescription = sanitizePlain(product.description);
+			const descriptionPart = cleanDescription ? ` ${cleanDescription}.` : '';
 
+			const cleanCustom = sanitizePlain(customPromptText);
 			let customPart = cleanCustom ? ` Custom scene details: <mark>${cleanCustom}</mark>.` : '';
 			// Mirrors CreativeEngine::cameraMotion(): angle-aware movement with
 			// the generic pan as the fallback when no angle is configured.
@@ -1845,7 +1856,12 @@ if (builderForm) {
 			let videoPart = isVideo ? ` Dynamic motion: ${motion}, fluid atmospheric movement, premium brand reel aesthetic, 4K render.` : '';
 			const campaignPart = campaignEnabled && campaignPack ? ` Campaign mood: ${String(campaignPack.pack).replace(/[. ]+$/, '')}.` : '';
 
-			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}.${cameraClause}${characterClause} Objective: ${goal}. Aesthetic style: ${style}. Environment: ${env}. Composition: ${formatRatio} ratio (${format}).${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, ${textClause}.${videoPart}`;
+			// Mirrors CreativeFormat::frame(): a shape word and a ratio, never
+			// the studio's own format key.
+			const frameShape = { '1:1': 'Square', '9:16': 'Vertical' }[formatRatio] || 'Framed';
+			const frameClause = `${frameShape} ${formatRatio} frame.`;
+
+			const assembledPrompt = `Create a professional commercial advertising visual for ${productName}.${descriptionPart}${cameraClause}${characterClause} Objective: ${goal}. Style: ${style}. Environment: ${env}. ${frameClause}${sceneClause}${customPart}${campaignPart} High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, ${textClause}.${videoPart}`;
 
 			inspectorCode.innerHTML = assembledPrompt;
 		}

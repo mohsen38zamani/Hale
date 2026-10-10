@@ -36,11 +36,11 @@ class ImagenPromptCompiler extends AbstractPromptCompiler
         ];
 
         foreach ([
-            $this->clauses->camera($brief),
-            $this->clauses->character($brief),
+            PromptClauses::body($this->clauses->camera($brief)),
+            PromptClauses::body($this->clauses->character($brief)),
             $this->clauses->scene($brief),
-            $this->clauses->custom($brief),
-            $this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : []),
+            PromptClauses::body($this->clauses->custom($brief)),
+            PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
         ] as $clause) {
             $trimmed = trim($clause);
             if ($trimmed !== '') {
@@ -54,7 +54,7 @@ class ImagenPromptCompiler extends AbstractPromptCompiler
             (string) ($brief['environment'] ?? ''),
             (string) ($brief['objective'] ?? '')
         );
-        $parts[] = sprintf('Composition: %s ratio (%s).', $format->aspectRatio(), $format->value);
+        $parts[] = $format->frame();
         $parts[] = rtrim(trim($this->clauses->textSuppression($brief)), '.').'.';
 
         return implode(' ', $parts);

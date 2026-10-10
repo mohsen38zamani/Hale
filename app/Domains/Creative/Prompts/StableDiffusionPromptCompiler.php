@@ -12,7 +12,9 @@ use App\Domains\Creative\Enums\CreativeFormat;
  * and the negative prompt says what must never appear. That negative list is
  * built from the same English keywords the studio uses to decide whether the
  * text suppression clause may relax, so both ends of the prompt can never
- * disagree about what counts as rendered wording.
+ * disagree about what counts as rendered wording: a brief that asks for its
+ * own wording gets it in the positive block and is spared from the negative
+ * one.
  */
 class StableDiffusionPromptCompiler extends AbstractPromptCompiler
 {
@@ -32,39 +34,57 @@ class StableDiffusionPromptCompiler extends AbstractPromptCompiler
         ];
 
         foreach ($this->clauses->sceneParts($brief) as $part) {
-            $positive[] = '('.rtrim($part, '. ').
-':1.1)';
+            $positive[] = $this->weighted(rtrim($part, '. '));
         }
 
         $positive[] = '(sharp product detail:1.1)';
         $positive[] = '(accurate product packaging:1.1)';
 
         foreach ([
-            $this->clauses->camera($brief),
-            $this->clauses->custom($brief),
-            $this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : []),
+            PromptClauses::body($this->clauses->camera($brief)),
+            PromptClauses::body($this->clauses->custom($brief)),
+            PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
         ] as $clause) {
-            $trimmed = rtrim(trim($clause), '. ');
+            $trimmed = rtrim($clause, '. ');
             if ($trimmed !== '') {
-                $positive[] = '('.$trimmed.':1.1)';
+                $positive[] = $this->weighted($trimmed);
             }
         }
 
-        $positive[] = sprintf('%s ratio, %s', $format->aspectRatio(), $format->value);
+        $positive[] = rtrim($format->frame(), '.');
 
-        $negative = ['(text:1.2)', '(watermark:1.1)', '(logo:1.1)', '(misshapen product:1.1)', '(blurry label:1.0)'];
+        // The sampler reads `(...:1.x)` by hunting for its closing bracket, so
+        // a parenthesis inside the phrase - a user's "(limited edition)", the
+        // old camera note - closed the weight early and left the whole prompt
+        // unbalanced.
+        $renderedWording = $this->clauses->requestsRenderedText($brief);
 
-        foreach ($this->negativeKeywords() as $keyword) {
-            // Already asserted above, at the weight that matters most.
-            if ($keyword === 'text') {
-                continue;
+        // Banning `text` while the positive prompt promises to render the
+        // brand's own wording would make the two halves cancel each other; a
+        // brief that asked for wording only keeps the watermark and a broken
+        // product out of the frame.
+        $negative = $renderedWording
+            ? ['(watermark:1.1)', '(misshapen product:1.1)']
+            : ['(text:1.2)', '(watermark:1.1)', '(logo:1.1)', '(misshapen product:1.1)', '(blurry label:1.0)'];
+
+        if (! $renderedWording) {
+            foreach ($this->negativeKeywords() as $keyword) {
+                // Already asserted above, at the weight that matters most.
+                if ($keyword === 'text') {
+                    continue;
+                }
+
+                $negative[] = sprintf('(%s:1.1)', $keyword);
             }
-
-            $negative[] = sprintf('(%s:1.1)', $keyword);
         }
 
         return 'Positive prompt: '.implode(', ', $positive)."\n"
             .'Negative prompt: '.implode(', ', array_unique($negative));
+    }
+
+    private function weighted(string $phrase, string $weight = '1.1'): string
+    {
+        return sprintf('(%s:%s)', str_replace(['(', ')'], '', $phrase), $weight);
     }
 
     /**

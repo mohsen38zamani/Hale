@@ -63,8 +63,15 @@ class StudioPreviewViewTest extends TestCase
         $stylesheet = (string) file_get_contents(resource_path('css/app.css'));
 
         $this->assertStringContainsString('angle-${cameraAngle}', $script, 'The studio must tag the live stage with the selected camera angle.');
-        $this->assertStringContainsString('Camera angle (locked):', $script, 'The prompt inspector must mirror the front-loaded camera directive.');
-        $this->assertStringContainsString('Character consistency (${characterObj.key}):', $script, 'The prompt inspector must mirror the character consistency directive.');
+        $this->assertStringContainsString('Camera: ${cameraObj.prompt}', $script, 'The prompt inspector must mirror the front-loaded camera directive.');
+        $this->assertStringContainsString('Character consistency: ${characterObj.prompt}', $script, 'The prompt inspector must mirror the character consistency directive.');
+
+        // The mirror and the engine have to quote the same frame, the same
+        // product description and the same three field labels, or the
+        // inspector would show one prompt while the engine sends another.
+        $this->assertStringContainsString('`${frameShape} ${formatRatio} frame.`', $script, 'The mirror must frame the shot the way CreativeFormat::frame() does.');
+        $this->assertStringContainsString('${descriptionPart}', $script, 'The mirror must carry the product description next to its name.');
+        $this->assertStringContainsString('Objective: ${goal}. Style: ${style}. Environment: ${env}.', $script, 'The mirror must quote the same field labels as the engine.');
 
         foreach (array_keys(config('creative.camera_angles')) as $key) {
             $this->assertStringContainsString(".studio-stage.angle-{$key}", $stylesheet, "Camera angle [{$key}] is missing a live preview style.");

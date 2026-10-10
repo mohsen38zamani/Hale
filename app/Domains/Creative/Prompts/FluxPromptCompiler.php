@@ -33,18 +33,17 @@ class FluxPromptCompiler extends AbstractPromptCompiler
             ),
             'The original product design and packaging are preserved exactly as supplied.',
             trim($this->clauses->scene($brief)),
-            trim($this->clauses->camera($brief)),
-            trim($this->clauses->custom($brief)),
+            PromptClauses::body($this->clauses->camera($brief)),
+            PromptClauses::body($this->clauses->custom($brief)),
             sprintf(
-                'The scene serves %s in a %s direction, inside a %s setting.',
-                (string) ($brief['objective'] ?? ''),
+                '%s styling in a %s environment.',
                 (string) ($brief['visual_direction'] ?? ''),
                 (string) ($brief['environment'] ?? '')
             ),
-            trim($this->clauses->character($brief)),
-            trim($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
-            trim($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : [])),
-            sprintf('A %s ratio frame (%s).', $format->aspectRatio(), $format->value),
+            PromptClauses::body($this->clauses->character($brief)),
+            PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
+            PromptClauses::body($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : [])),
+            $format->frame(),
             trim($this->clauses->textSuppression($brief)).'.',
         ];
 

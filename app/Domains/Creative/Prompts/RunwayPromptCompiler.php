@@ -27,15 +27,20 @@ class RunwayPromptCompiler extends AbstractPromptCompiler
         $defaults = PromptClauses::studioDefaults();
         $description = $this->description($brief);
 
-        $angle = trim($this->clauses->camera($brief));
-        if ($angle === '') {
-            $angle = (string) config('creative.camera_angles.'.$defaults['camera_angle'].'.prompt');
-        }
+        // The departments are labelled by the sheet itself, so each note is
+        // the body of its clause - a "- Camera: Camera: ..." line would be
+        // the studio talking to itself.
+        $angle = PromptClauses::body($this->clauses->camera($brief))
+            ?: PromptClauses::body((string) config('creative.camera_angles.'.$defaults['camera_angle'].'.prompt').'.');
+        $light = PromptClauses::body((string) ($scene['lighting_setup'] ?? ''))
+            ?: PromptClauses::body((string) config('creative.lighting_setups.'.$defaults['lighting_setup'].'.prompt').'.');
 
-        $light = trim($scene['lighting_setup'] ?? '');
-        if ($light === '') {
-            $light = (string) config('creative.lighting_setups.'.$defaults['lighting_setup'].'.prompt');
-        }
+        // Light already has its own department below, so the scene note carries
+        // only what stands under it: the surface and the props.
+        $set = implode(' ', array_filter([
+            $scene['surface'] ?? '',
+            $scene['props'] ?? '',
+        ]));
 
         $lines = [
             'DIRECTING NOTES',
@@ -48,11 +53,11 @@ class RunwayPromptCompiler extends AbstractPromptCompiler
         ];
 
         $sheet = [
-            'Scene' => trim($this->clauses->scene($brief)),
-            'Subject' => trim($this->clauses->character($brief)),
-            'Custom' => trim($this->clauses->custom($brief)),
-            'Brand' => trim($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
-            'Campaign' => trim($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : [])),
+            'Scene' => $set,
+            'Subject' => PromptClauses::body($this->clauses->character($brief)),
+            'Custom' => PromptClauses::body($this->clauses->custom($brief)),
+            'Brand' => PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
+            'Campaign' => PromptClauses::body($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : [])),
         ];
 
         foreach ($sheet as $label => $value) {
