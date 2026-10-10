@@ -2,6 +2,7 @@
 
 namespace App\Domains\Creative\Services;
 
+use App\Domains\AI\Services\EnglishTranslator;
 use App\Domains\Brand\Models\BrandKit;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
@@ -13,12 +14,14 @@ use App\Domains\Products\Models\Product;
 class CreativeEngine
 {
     /**
-     * The compiler factory has a default so `new CreativeEngine($seasons)`
-     * keeps working in tests; the container injects its own otherwise.
+     * The compiler factory and the translator have defaults so
+     * `new CreativeEngine($seasons)` keeps working in tests; the container
+     * injects its own otherwise.
      */
     public function __construct(
         private readonly SeasonThemeService $seasons,
-        private readonly PromptCompilerFactory $compilers = new PromptCompilerFactory
+        private readonly PromptCompilerFactory $compilers = new PromptCompilerFactory,
+        private readonly EnglishTranslator $translator = new EnglishTranslator
     ) {}
 
     public function autoBest(Product $product, CreativeGoal $goal): array
@@ -69,8 +72,10 @@ class CreativeEngine
             : null;
 
         $brief = [
+            // The name stays as the studio typed it: it is the product's
+            // identity, and the one line the Persian scene belongs to.
             'product' => $product->name,
-            'description' => $product->description,
+            'description' => $this->translator->toEnglish($product->description),
             'objective' => $settings['goal'],
             'visual_direction' => $settings['style'],
             'environment' => $settings['environment'] ?? 'studio',
@@ -82,15 +87,23 @@ class CreativeEngine
             'character_consistency' => isset($settings['character_consistency']) && filled($settings['character_consistency'])
                 ? (string) $settings['character_consistency']
                 : PromptClauses::defaultCharacterConsistency(),
-            'custom_prompt' => ($customPrompt !== null && $customPrompt !== '') ? $customPrompt : null,
+            'custom_prompt' => ($customPrompt !== null && $customPrompt !== '')
+                ? $this->translator->toEnglish($customPrompt)
+                : null,
             'audience' => 'Iranian social commerce shoppers',
             'generated_at' => now()->toIso8601String(),
         ];
 
         // Carry the user's brand identity (colors, tone, tagline) into the
-        // brief so prompt() can weave it into the generated scene.
+        // brief so prompt() can weave it into the generated scene. The tone
+        // is prose an image model has to read, so it travels in English; the
+        // tagline is rendered as text on the image, so it keeps the language
+        // the brand wrote it in.
         $identity = $brand?->promptIdentity() ?? [];
         if ($identity !== []) {
+            if (isset($identity['tone']) && is_string($identity['tone'])) {
+                $identity['tone'] = $this->translator->toEnglish($identity['tone']);
+            }
             $brief['brand'] = $identity;
         }
 

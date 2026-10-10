@@ -55,6 +55,9 @@ return [
             'edit_model' => env('GOOGLE_IMAGE_EDIT_MODEL', 'gemini-2.5-flash-image'),
             'veo_model' => env('GOOGLE_VEO_MODEL', 'veo-2.0-generate-001'),
             'timeout' => (int) env('GOOGLE_AI_TIMEOUT', 60),
+            // The one-line Persian-to-English pass runs inside a preview, so
+            // it gets its own, much shorter leash than the image providers.
+            'translate_timeout' => (int) env('GOOGLE_TRANSLATE_TIMEOUT', 8),
             'veo_timeout' => (int) env('GOOGLE_VEO_TIMEOUT', 120),
         ],
     ],

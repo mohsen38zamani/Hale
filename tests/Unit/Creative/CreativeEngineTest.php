@@ -2,12 +2,14 @@
 
 namespace Tests\Unit\Creative;
 
+use App\Domains\Brand\Models\BrandKit;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
 use App\Domains\Creative\Services\CreativeEngine;
 use App\Domains\Creative\Services\SeasonThemeService;
 use App\Domains\Products\Models\Product;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CreativeEngineTest extends TestCase
@@ -57,6 +59,43 @@ class CreativeEngineTest extends TestCase
         ]);
 
         $this->assertNull($brief['custom_prompt']);
+    }
+
+    public function test_brief_reads_the_studios_persian_prose_to_the_image_model_in_english(): void
+    {
+        config(['ai.providers.google.api_key' => 'test-key']);
+
+        // The translation passes the source through after the prompt's own
+        // header, so this test can see exactly which line was handed over.
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => function ($request): mixed {
+                $sent = json_decode($request->body(), true);
+                $lines = explode("\n\n", (string) ($sent['contents'][0]['parts'][0]['text'] ?? ''), 2);
+
+                return Http::response([
+                    'candidates' => [['content' => ['parts' => [['text' => 'English of '.($lines[1] ?? '')]]]]],
+                ]);
+            },
+        ]);
+
+        $engine = new CreativeEngine(app(SeasonThemeService::class));
+        $product = new Product(['name' => 'عطر سلطنتی', 'description' => 'رایحه چرم و وانیل']);
+        $brand = new BrandKit(['tone' => 'گرم و صمیمی', 'tagline' => 'ساخت ایران']);
+
+        $brief = $engine->brief($product, [
+            'goal' => CreativeGoal::Sales->value,
+            'style' => CreativeStyle::Luxury->value,
+            'environment' => 'studio',
+            'format' => CreativeFormat::InstagramPost->value,
+            'custom_prompt' => 'روی سنگ مرمر مشکی',
+        ], $brand);
+
+        $this->assertSame('English of رایحه چرم و وانیل', $brief['description'], 'The product description is prose the model has to read.');
+        $this->assertSame('English of روی سنگ مرمر مشکی', $brief['custom_prompt'], 'The scene the studio wrote is prose too.');
+        $this->assertSame('English of گرم و صمیمی', $brief['brand']['tone'], 'A tone the model must be able to hear.');
+
+        $this->assertSame('عطر سلطنتی', $brief['product'], 'A name is identity, not prose.');
+        $this->assertSame('ساخت ایران', $brief['brand']['tagline'], 'A tagline is rendered on the image, so it keeps its language.');
     }
 
     public function test_prompt_generates_standard_prompt_without_custom_prompt(): void
