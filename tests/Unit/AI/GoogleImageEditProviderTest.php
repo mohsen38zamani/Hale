@@ -13,14 +13,29 @@ class GoogleImageEditProviderTest extends TestCase
 {
     private const SAMPLE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
-    public function test_it_supports_image_edit_type_only(): void
+    public function test_it_serves_edits_and_creative_images_that_carry_a_reference(): void
     {
+        Storage::fake('s3');
+        Storage::disk('s3')->put('products/sample.png', 'raw-sample-bytes');
+
         $provider = new GoogleImageEditProvider('test-key');
 
-        $this->assertTrue($provider->supports('image_edit'));
-        $this->assertFalse($provider->supports('image'));
-        $this->assertFalse($provider->supports('video', 5));
+        $this->assertTrue($provider->supports(new GenerationInput('image_edit', 'p', '1:1', assetDisk: 's3', assetPath: 'products/sample.png')));
+        $this->assertFalse($provider->supports($this->input('video', 5)));
+
+        // A creative image arrives here only while the product's own photo
+        // is on disk: nano banana can see the packaging, and a dead path
+        // must not claim a request Imagen could still answer.
+        $this->assertTrue($provider->supports($this->input('image', null, 's3', 'products/sample.png')));
+        $this->assertFalse($provider->supports($this->input('image')));
+        $this->assertFalse($provider->supports($this->input('image', null, 's3', 'products/missing.png')));
+
         $this->assertSame('google_image_edit', $provider->key());
+    }
+
+    private function input(string $type, ?int $durationSeconds = null, ?string $assetDisk = null, ?string $assetPath = null): GenerationInput
+    {
+        return new GenerationInput($type, 'prompt', '1:1', $durationSeconds, $assetDisk, $assetPath);
     }
 
     public function test_it_throws_when_api_key_is_missing(): void

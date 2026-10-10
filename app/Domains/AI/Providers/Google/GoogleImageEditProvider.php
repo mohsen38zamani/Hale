@@ -10,13 +10,16 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Image editing through Google's Gemini image model (nano banana family).
+ * Image generation and editing through Google's Gemini image model (nano
+ * banana family).
  *
  * Unlike Imagen generation this goes through generateContent with the
- * source photo inlined next to an instruction prompt, which is what makes
- * background removal, outpainting and shadow placement possible. The target
- * framing (aspect ratio for expand) lives inside the prompt text, so no
- * model-specific imageConfig is required.
+ * source photo inlined next to the prompt, which is what makes background
+ * removal, outpainting and shadow placement possible - and what makes it
+ * the right answer for a creative image that arrives with the product's own
+ * photo, because `predict` has no image input at all. The target framing
+ * travels in the prompt text (`Square 1:1 frame.`), so no model-specific
+ * imageConfig is required.
  */
 class GoogleImageEditProvider implements GenerationProvider
 {
@@ -45,9 +48,31 @@ class GoogleImageEditProvider implements GenerationProvider
         return 'google_image_edit';
     }
 
-    public function supports(string $type, ?int $durationSeconds = null): bool
+    public function supports(GenerationInput $input): bool
     {
-        return $type === 'image_edit';
+        if ($input->type === 'image_edit') {
+            return true;
+        }
+
+        // A creative image that arrives with the product's own photo is
+        // answered here too: nano banana is the Google model whose API takes
+        // an image, so it is the only one that can keep the packaging, the
+        // shape and the logo the prompt can only describe.
+        return $input->type === 'image' && $this->hasReference($input);
+    }
+
+    /**
+     * Only a photo that exists may claim the request: routing a dead path
+     * here would fail an image that Imagen could still have answered from
+     * the prompt alone.
+     */
+    private function hasReference(GenerationInput $input): bool
+    {
+        if ($input->assetDisk === null || $input->assetPath === null) {
+            return false;
+        }
+
+        return Storage::disk($input->assetDisk)->exists($input->assetPath);
     }
 
     public function generate(GenerationInput $input): GenerationResult
@@ -126,7 +151,9 @@ class GoogleImageEditProvider implements GenerationProvider
             mime: $mime,
             extension: $extension,
             model: $this->model,
-            costUsd: (float) config('ai.pricing.default.edit', 0.04),
+            // The reservation was made against the price of the request's own
+            // type, so settling with anything else would drift from it.
+            costUsd: (float) config('ai.pricing.default.'.($input->type === 'image' ? 'image' : 'edit'), 0.04),
             inputTokens: (int) ($usage['promptTokenCount'] ?? 0),
             outputTokens: (int) ($usage['candidatesTokenCount'] ?? 0),
             metadata: [

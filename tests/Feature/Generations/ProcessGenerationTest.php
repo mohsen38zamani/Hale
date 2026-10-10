@@ -15,6 +15,7 @@ use App\Domains\Generations\Models\Generation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
@@ -170,9 +171,9 @@ class ProcessGenerationTest extends TestCase
                 return 'google_imagen';
             }
 
-            public function supports(string $type, ?int $durationSeconds = null): bool
+            public function supports(GenerationInput $input): bool
             {
-                return $type === 'image';
+                return $input->type === 'image';
             }
 
             public function generate(GenerationInput $input): GenerationResult
@@ -194,6 +195,52 @@ class ProcessGenerationTest extends TestCase
         $this->assertSame('محدودیت نرخ درخواست هوش مصنوعی گوگل (429) فرا رسیده است.', $generation->metadata['provider_failures'][0]['error']);
         $this->assertSame(10, $generation->credits_charged);
         $this->assertSame(0, $generation->user->creditAccount->fresh()->reserved);
+    }
+
+    public function test_an_image_with_the_products_own_photo_is_generated_by_the_model_that_can_see_it(): void
+    {
+        Storage::fake('s3');
+        config([
+            'ai.driver' => 'google',
+            'ai.provider_priority' => [],
+            'ai.providers.google.api_key' => 'test-key',
+        ]);
+        $this->app->forgetInstance(ModelRouter::class);
+
+        $user = User::factory()->create();
+        $generation = $this->createGeneration($user);
+        $asset = $user->mediaAssets()->create(['path' => 'products/sample.png', 'disk' => 's3', 'mime' => 'image/png', 'size' => 17]);
+        Storage::disk('s3')->put('products/sample.png', 'product-photo-bytes');
+        $generation->creativeProject->product->assets()->attach($asset->id, ['is_primary' => true]);
+
+        // A 1x1 PNG, the smallest thing that still satisfies the output contract.
+        $outputPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true);
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [[
+                        'inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode($outputPng)],
+                    ]]],
+                ]],
+            ], 200),
+        ]);
+
+        $credits = app(CreditService::class);
+        $credits->reserve($user, $generation, 10);
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), $credits);
+
+        $generation->refresh();
+        $this->assertSame('completed', $generation->status, (string) $generation->error_message);
+        $this->assertSame('google_image_edit', $generation->provider, 'The product photo must reach a model that can see it.');
+
+        Http::assertSent(function ($request) {
+            $payload = json_decode($request->body(), true);
+
+            return str_contains($request->url(), ':generateContent')
+                && ($payload['contents'][0]['parts'][0]['inline_data']['data'] ?? null) === base64_encode('product-photo-bytes')
+                && isset($payload['contents'][0]['parts'][1]['text']);
+        });
     }
 
     private function createGeneration(User $user): Generation

@@ -3,6 +3,7 @@
 namespace App\Domains\AI\Router;
 
 use App\Domains\AI\Contracts\GenerationProvider;
+use App\Domains\AI\Data\GenerationInput;
 use RuntimeException;
 
 class ModelRouter
@@ -16,11 +17,11 @@ class ModelRouter
      *
      * @return list<GenerationProvider>
      */
-    public function candidates(string $type, ?int $durationSeconds = null): array
+    public function candidates(GenerationInput $input): array
     {
         $candidates = [];
         foreach ($this->providers as $provider) {
-            if ($provider->supports($type, $durationSeconds)) {
+            if ($provider->supports($input)) {
                 $candidates[] = $provider;
             }
         }

@@ -28,7 +28,7 @@ class AiGateway
     {
         $this->circuitBreaker?->ensureAvailable();
 
-        $candidates = $this->router->candidates($input->type, $input->durationSeconds);
+        $candidates = $this->router->candidates($input);
 
         if ($input->generationId !== null) {
             $this->circuitBreaker?->reserve($input->generationId, $this->estimateCost($input, $candidates[0]));

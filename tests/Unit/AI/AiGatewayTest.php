@@ -186,7 +186,7 @@ class AiGatewayTest extends TestCase
                 return 'exhausting';
             }
 
-            public function supports(string $type, ?int $durationSeconds = null): bool
+            public function supports(GenerationInput $input): bool
             {
                 return true;
             }
@@ -236,7 +236,7 @@ class AiGatewayTest extends TestCase
                 return $this->keyName;
             }
 
-            public function supports(string $type, ?int $durationSeconds = null): bool
+            public function supports(GenerationInput $input): bool
             {
                 return true;
             }
@@ -262,7 +262,7 @@ class AiGatewayTest extends TestCase
                 return $this->keyName;
             }
 
-            public function supports(string $type, ?int $durationSeconds = null): bool
+            public function supports(GenerationInput $input): bool
             {
                 return true;
             }

@@ -7,7 +7,6 @@ use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Data\GenerationResult;
 use App\Domains\AI\Exceptions\AiProviderException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 
 class GoogleImagenProvider implements GenerationProvider
 {
@@ -36,9 +35,9 @@ class GoogleImagenProvider implements GenerationProvider
         return 'google_imagen';
     }
 
-    public function supports(string $type, ?int $durationSeconds = null): bool
+    public function supports(GenerationInput $input): bool
     {
-        return $type === 'image';
+        return $input->type === 'image';
     }
 
     public function generate(GenerationInput $input): GenerationResult
@@ -49,16 +48,12 @@ class GoogleImagenProvider implements GenerationProvider
             throw new AiProviderException('Google AI API Key تنظیم نشده است.');
         }
 
+        // `predict` takes a prompt and nothing else - this endpoint has no
+        // image input, which is exactly why a request carrying a product
+        // photo is answered by GoogleImageEditProvider instead of here.
         $instances = [
             ['prompt' => $input->prompt],
         ];
-
-        if ($input->assetDisk && $input->assetPath && Storage::disk($input->assetDisk)->exists($input->assetPath)) {
-            $rawImage = Storage::disk($input->assetDisk)->get($input->assetPath);
-            $instances[0]['referenceImage'] = [
-                'bytesBase64Encoded' => base64_encode($rawImage),
-            ];
-        }
 
         $url = rtrim($this->baseUrl, '/')."/models/{$this->model}:predict?key={$this->apiKey}";
 

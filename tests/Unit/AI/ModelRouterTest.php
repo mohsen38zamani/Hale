@@ -6,6 +6,7 @@ use App\Domains\AI\Contracts\GenerationProvider;
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Data\GenerationResult;
 use App\Domains\AI\Router\ModelRouter;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -29,10 +30,10 @@ class ModelRouterTest extends TestCase
                 return $this->keyName;
             }
 
-            public function supports(string $type, ?int $durationSeconds = null): bool
+            public function supports(GenerationInput $input): bool
             {
-                return $type === $this->type
-                    && ($this->durations === null || in_array($durationSeconds, $this->durations, true));
+                return $input->type === $this->type
+                    && ($this->durations === null || in_array($input->durationSeconds, $this->durations, true));
             }
 
             public function generate(GenerationInput $input): GenerationResult
@@ -50,7 +51,7 @@ class ModelRouterTest extends TestCase
             $this->provider('image_second', 'image'),
         ]);
 
-        $keys = array_map(fn (GenerationProvider $provider) => $provider->key(), $router->candidates('image'));
+        $keys = array_map(fn (GenerationProvider $provider) => $provider->key(), $router->candidates($this->input('image')));
 
         $this->assertSame(['image_first', 'image_second'], $keys);
     }
@@ -61,12 +62,12 @@ class ModelRouterTest extends TestCase
             $this->provider('veo_like', 'video', [5, 8, 10]),
         ]);
 
-        $this->assertCount(1, $router->candidates('video', 5));
+        $this->assertCount(1, $router->candidates($this->input('video', 5)));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('No AI provider supports the requested generation.');
 
-        $router->candidates('video', 15);
+        $router->candidates($this->input('video', 15));
     }
 
     public function test_candidates_throw_when_no_provider_supports_the_request(): void
@@ -77,7 +78,7 @@ class ModelRouterTest extends TestCase
 
         $this->expectException(RuntimeException::class);
 
-        $router->candidates('video', 5);
+        $router->candidates($this->input('video', 5));
     }
 
     public function test_provider_priority_config_reorders_the_fallback_chain(): void
@@ -87,7 +88,7 @@ class ModelRouterTest extends TestCase
 
         $keys = array_map(
             fn (GenerationProvider $provider) => $provider->key(),
-            app(ModelRouter::class)->candidates('image'),
+            app(ModelRouter::class)->candidates($this->input('image')),
         );
 
         $this->assertSame(['local', 'google_imagen'], $keys);
@@ -100,9 +101,57 @@ class ModelRouterTest extends TestCase
 
         $keys = array_map(
             fn (GenerationProvider $provider) => $provider->key(),
-            app(ModelRouter::class)->candidates('image'),
+            app(ModelRouter::class)->candidates($this->input('image')),
         );
 
         $this->assertSame(['google_imagen', 'local'], $keys);
+    }
+
+    private function input(string $type, ?int $durationSeconds = null, ?string $assetDisk = null, ?string $assetPath = null): GenerationInput
+    {
+        return new GenerationInput(
+            type: $type,
+            prompt: 'p',
+            aspectRatio: '1:1',
+            durationSeconds: $durationSeconds,
+            assetDisk: $assetDisk,
+            assetPath: $assetPath,
+        );
+    }
+
+    public function test_a_product_photo_routes_a_creative_image_to_the_model_that_can_see_it(): void
+    {
+        config(['ai.driver' => 'google', 'ai.provider_priority' => []]);
+        $this->app->forgetInstance(ModelRouter::class);
+
+        Storage::fake('s3');
+        Storage::disk('s3')->put('products/sample.png', 'raw-sample-bytes');
+
+        $router = app(ModelRouter::class);
+        $keys = fn (GenerationInput $input): array => array_map(
+            fn (GenerationProvider $provider): string => $provider->key(),
+            $router->candidates($input),
+        );
+
+        $withReference = $keys($this->input('image', null, 's3', 'products/sample.png'));
+        $this->assertSame(
+            ['google_image_edit', 'google_imagen', 'local'],
+            $withReference,
+            'The model that can look at the packaging answers first; the rest stay as the fallback chain.'
+        );
+
+        $this->assertSame(
+            ['google_imagen', 'local'],
+            $keys($this->input('image')),
+            'With no photo to look at, nothing claims the reference path.'
+        );
+
+        // A path that no longer exists is not a reference, so the image must
+        // not be routed to a provider that would refuse it.
+        $this->assertSame(
+            ['google_imagen', 'local'],
+            $keys($this->input('image', null, 's3', 'products/missing.png')),
+            'A dead path leaves the request where it can still be answered.'
+        );
     }
 }

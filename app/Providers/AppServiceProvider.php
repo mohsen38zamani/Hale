@@ -36,9 +36,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModelRouter::class, function ($app): ModelRouter {
             $providers = [];
             if (config('ai.driver') === 'google') {
+                // Nano banana first for images: it is the only Google model
+                // that takes a product photo, so a request carrying one is
+                // answered by it and Imagen only inherits what it declined.
+                $providers[] = $app->make(GoogleImageEditProvider::class);
                 $providers[] = $app->make(GoogleImagenProvider::class);
                 $providers[] = $app->make(GoogleVeoProvider::class);
-                $providers[] = $app->make(GoogleImageEditProvider::class);
             }
             $providers[] = $app->make(FakeGenerationProvider::class);
 

@@ -36,9 +36,9 @@ class GoogleVeoProvider implements GenerationProvider
         return 'google_veo';
     }
 
-    public function supports(string $type, ?int $durationSeconds = null): bool
+    public function supports(GenerationInput $input): bool
     {
-        return $type === 'video' && in_array($durationSeconds, [5, 8, 10], true);
+        return $input->type === 'video' && in_array($input->durationSeconds, [5, 8, 10], true);
     }
 
     public function generate(GenerationInput $input): GenerationResult

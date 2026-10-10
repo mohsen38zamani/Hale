@@ -13,9 +13,11 @@ class FakeGenerationProvider implements GenerationProvider
         return 'local';
     }
 
-    public function supports(string $type, ?int $durationSeconds = null): bool
+    public function supports(GenerationInput $input): bool
     {
-        return $type === 'image' || $type === 'image_edit' || ($type === 'video' && in_array($durationSeconds, [5, 8, 10], true));
+        return $input->type === 'image'
+            || $input->type === 'image_edit'
+            || ($input->type === 'video' && in_array($input->durationSeconds, [5, 8, 10], true));
     }
 
     public function generate(GenerationInput $input): GenerationResult

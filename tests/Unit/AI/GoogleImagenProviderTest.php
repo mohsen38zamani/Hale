@@ -16,9 +16,15 @@ class GoogleImagenProviderTest extends TestCase
     {
         $provider = new GoogleImagenProvider('test-api-key');
 
-        $this->assertTrue($provider->supports('image'));
-        $this->assertFalse($provider->supports('video', 5));
+        $this->assertTrue($provider->supports($this->input('image')));
+        $this->assertFalse($provider->supports($this->input('video', 5)));
+        $this->assertFalse($provider->supports($this->input('image_edit')));
         $this->assertSame('google_imagen', $provider->key());
+    }
+
+    private function input(string $type, ?int $durationSeconds = null, ?string $assetDisk = null, ?string $assetPath = null): GenerationInput
+    {
+        return new GenerationInput($type, 'prompt', '1:1', $durationSeconds, $assetDisk, $assetPath);
     }
 
     public function test_it_throws_when_api_key_is_missing(): void
@@ -58,7 +64,7 @@ class GoogleImagenProviderTest extends TestCase
         });
     }
 
-    public function test_it_includes_reference_image_when_asset_provided(): void
+    public function test_it_never_sends_a_reference_image_predict_cannot_take(): void
     {
         Storage::fake('s3');
         Storage::disk('s3')->put('products/sample.png', 'raw-sample-bytes');
@@ -81,9 +87,13 @@ class GoogleImagenProviderTest extends TestCase
             assetPath: 'products/sample.png'
         ));
 
+        // `predict` documents a prompt and nothing else. The photo on disk
+        // must stay out of this request - a field the endpoint does not
+        // document is a 400 waiting to end the whole chain - which is why a
+        // reference-bearing image is routed to GoogleImageEditProvider.
         Http::assertSent(function ($request) {
-            return isset($request['instances'][0]['referenceImage']['bytesBase64Encoded'])
-                && $request['instances'][0]['referenceImage']['bytesBase64Encoded'] === base64_encode('raw-sample-bytes');
+            return ! isset($request['instances'][0]['referenceImage'])
+                && $request['instances'][0]['prompt'] === 'luxury perfume';
         });
     }
 

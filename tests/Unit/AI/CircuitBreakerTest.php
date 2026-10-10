@@ -53,7 +53,7 @@ class CircuitBreakerTest extends TestCase
                 return 'failing_primary';
             }
 
-            public function supports(string $type, ?int $durationSeconds = null): bool
+            public function supports(GenerationInput $input): bool
             {
                 return true;
             }
@@ -71,7 +71,7 @@ class CircuitBreakerTest extends TestCase
                 return 'working_fallback';
             }
 
-            public function supports(string $type, ?int $durationSeconds = null): bool
+            public function supports(GenerationInput $input): bool
             {
                 return true;
             }

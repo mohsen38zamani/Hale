@@ -15,12 +15,17 @@ class GoogleVeoProviderTest extends TestCase
     {
         $provider = new GoogleVeoProvider('test-api-key');
 
-        $this->assertFalse($provider->supports('image'));
-        $this->assertTrue($provider->supports('video', 5));
-        $this->assertTrue($provider->supports('video', 8));
-        $this->assertTrue($provider->supports('video', 10));
-        $this->assertFalse($provider->supports('video', 15));
+        $this->assertFalse($provider->supports($this->input('image')));
+        $this->assertTrue($provider->supports($this->input('video', 5)));
+        $this->assertTrue($provider->supports($this->input('video', 8)));
+        $this->assertTrue($provider->supports($this->input('video', 10)));
+        $this->assertFalse($provider->supports($this->input('video', 15)));
         $this->assertSame('google_veo', $provider->key());
+    }
+
+    private function input(string $type, ?int $durationSeconds = null): GenerationInput
+    {
+        return new GenerationInput($type, 'prompt', '1:1', $durationSeconds);
     }
 
     public function test_it_throws_when_api_key_is_missing(): void
