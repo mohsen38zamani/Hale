@@ -58,7 +58,19 @@ return [
             // The one-line Persian-to-English pass runs inside a preview, so
             // it gets its own, much shorter leash than the image providers.
             'translate_timeout' => (int) env('GOOGLE_TRANSLATE_TIMEOUT', 8),
+            // One HTTP call. The render itself is a long-running operation
+            // and gets its own clock further down.
             'veo_timeout' => (int) env('GOOGLE_VEO_TIMEOUT', 120),
+            // Veo answers with an operation name, not a video. Poll until it
+            // is done, giving up after this many seconds and letting the
+            // chain fall back rather than hold the queue forever.
+            'veo_operation_timeout' => (int) env('GOOGLE_VEO_OPERATION_TIMEOUT', 300),
+            'veo_poll_interval' => (int) env('GOOGLE_VEO_POLL_INTERVAL', 5),
+            // Above this the product photo is left out of the request: a
+            // photo too large for the inline limit would turn a render that
+            // works into a permanent 400, and the prompt still describes the
+            // product without it.
+            'veo_max_reference_bytes' => (int) env('GOOGLE_VEO_MAX_REFERENCE_BYTES', 5 * 1024 * 1024),
         ],
     ],
 ];

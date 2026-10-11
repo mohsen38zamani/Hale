@@ -31,6 +31,15 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
     /** @var list<int> */
     public array $backoff = [10, 30, 90];
 
+    /**
+     * Video is the only long-running output: Veo renders for minutes, and a
+     * worker's default minute would cut it off mid-render. This is the
+     * ceiling of every generation job, so the image path simply finishes
+     * long before it - and it stays above the provider's own polling
+     * budget, which gives up first and lets the chain fall back.
+     */
+    public int $timeout = 360;
+
     public int $uniqueFor = 300;
 
     public function __construct(public readonly int $generationId)

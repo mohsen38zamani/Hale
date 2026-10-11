@@ -56,6 +56,40 @@ class ProcessGenerationTest extends TestCase
         $this->assertTrue(Storage::disk('s3')->exists($generation->outputMedia->path));
     }
 
+    public function test_a_video_generation_completes_and_lands_as_an_mp4(): void
+    {
+        Storage::fake('s3');
+        $user = User::factory()->create();
+        $product = $user->products()->create(['name' => 'عطر']);
+        $project = $user->creativeProjects()->create([
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_reel',
+            'brief' => [],
+            'prompt' => 'prompt',
+            'video_duration_seconds' => 5,
+        ]);
+        $generation = $user->generations()->create([
+            'creative_project_id' => $project->id,
+            'type' => 'video',
+            'status' => 'queued',
+            'prompt_hash' => hash('sha256', 'prompt'),
+            'metadata' => ['aspect_ratio' => '9:16'],
+        ]);
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), app(CreditService::class));
+        $generation->refresh();
+
+        // The video mode is the one output that has no real provider behind
+        // it without a key, so it lives or dies on the placeholder being a
+        // video too - a picture here would be refused by the output contract
+        // and the mode would fail on its own fallback.
+        $this->assertSame('completed', $generation->status);
+        $this->assertSame('video/mp4', $generation->outputMedia->mime);
+        $this->assertSame('ftyp', substr((string) Storage::disk('s3')->get($generation->outputMedia->path), 4, 4));
+    }
+
     public function test_failed_generation_can_be_retried_after_refund(): void
     {
         $user = User::factory()->create();
