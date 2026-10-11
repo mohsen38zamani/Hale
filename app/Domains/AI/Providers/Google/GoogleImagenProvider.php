@@ -98,7 +98,9 @@ class GoogleImagenProvider implements GenerationProvider
             mime: 'image/png',
             extension: 'png',
             model: $this->model,
-            costUsd: 0.04,
+            // The same number the reservation is made with, so an operator
+            // changing the price does not split the two.
+            costUsd: (float) config('ai.pricing.default.image', 0.04),
             metadata: [
                 'provider' => 'google_imagen',
                 'aspect_ratio' => $input->aspectRatio,

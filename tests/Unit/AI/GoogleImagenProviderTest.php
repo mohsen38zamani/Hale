@@ -64,6 +64,22 @@ class GoogleImagenProviderTest extends TestCase
         });
     }
 
+    public function test_it_settles_at_the_price_the_reservation_was_made_at(): void
+    {
+        config(['ai.pricing.default.image' => 0.11]);
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'predictions' => [
+                    ['bytesBase64Encoded' => base64_encode("\x89PNG\r\n\x1a\n")],
+                ],
+            ], 200),
+        ]);
+
+        $provider = new GoogleImagenProvider('fake-key');
+
+        $this->assertSame(0.11, $provider->generate(new GenerationInput('image', 'luxury perfume', '1:1'))->costUsd);
+    }
+
     public function test_it_never_sends_a_reference_image_predict_cannot_take(): void
     {
         Storage::fake('s3');

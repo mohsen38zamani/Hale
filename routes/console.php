@@ -1,6 +1,11 @@
 <?php
 
+use App\Domains\AI\Data\GenerationInput;
+use App\Domains\AI\Providers\Google\GoogleImageEditProvider;
+use App\Domains\AI\Providers\Google\GoogleImagenProvider;
+use App\Domains\AI\Providers\Google\GoogleVeoProvider;
 use App\Domains\AI\Services\CircuitBreaker;
+use App\Domains\AI\Services\EnglishTranslator;
 use App\Domains\Billing\Services\SubscriptionService;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
@@ -73,6 +78,75 @@ Artisan::command('ai:check-budget-alert {--threshold=80 : Percentage threshold t
         $this->info('AI budget is within normal limits or alert was already sent for today.');
     }
 })->purpose('Check daily AI budget usage and notify administrators if threshold is reached');
+
+// Every capability Hale ships, asked of the real API exactly once. The
+// providers under test are the production ones, so a green run makes the
+// same claim production would: the endpoint exists, the fields are the
+// ones the service reads, and the bytes come back where the code looks.
+// Nothing here is verifiable from a box without a key, and everything
+// below is what "verified" has to mean.
+Artisan::command('ai:verify', function (): int {
+    $apiKey = (string) config('ai.providers.google.api_key', '');
+    if ($apiKey === '') {
+        $this->error('GOOGLE_AI_API_KEY تنظیم نشده است؛ هیچ مسیری راستی‌آزمایی نمی‌شود.');
+
+        return 1;
+    }
+
+    $this->warn('هر بررسی یک درخواستِ واقعی و پولیِ گوگل است؛ ویدئو چند دقیقه طول می‌کشد.');
+
+    // A real, if tiny, PNG: both reference-image paths inline its bytes,
+    // so they need a file on disk rather than a promise of one.
+    $disk = 'local';
+    $path = 'ai-verify/product.png';
+    Storage::disk($disk)->put($path, (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true));
+
+    $translator = new EnglishTranslator;
+    $translated = $translator->toEnglish('این یک آزمون کوتاه است.');
+
+    $results = [
+        'ترجمهٔ انگلیس' => $translated === null || $translated === 'این یک آزمون کوتاه است.'
+            ? 'ناموفق — چیزی ترجمه نشد'
+            : 'موفق — '.$translated,
+    ];
+
+    try {
+        $result = (new GoogleImagenProvider)->generate(new GenerationInput('image', 'a plain white ceramic mug on a wooden table', '1:1'));
+        $results['تصویر (Imagen)'] = "موفق — {$result->mime} · {$result->model}";
+    } catch (Throwable $e) {
+        $results['تصویر (Imagen)'] = 'ناموفق — '.$e->getMessage();
+    }
+
+    try {
+        $result = (new GoogleImageEditProvider)->generate(new GenerationInput('image', 'the same mug, seen from the front, on a plain background', '1:1', null, $disk, $path));
+        $results['تصویر با عکسِ محصول (نانو بنان)'] = "موفق — {$result->mime} · {$result->model}";
+    } catch (Throwable $e) {
+        $results['تصویر با عکسِ محصول (نانو بنان)'] = 'ناموفق — '.$e->getMessage();
+    }
+
+    try {
+        $result = (new GoogleVeoProvider)->generate(new GenerationInput('video', 'the mug on a slowly turning table, soft morning light', '9:16', 5, $disk, $path));
+        $results['ویدئو با عکسِ محصول (Veo)'] = "موفق — {$result->mime} · {$result->model}";
+    } catch (Throwable $e) {
+        $results['ویدئو با عکسِ محصول (Veo)'] = 'ناموفق — '.$e->getMessage();
+    }
+
+    Storage::disk($disk)->delete($path);
+
+    $failed = 0;
+    foreach ($results as $name => $outcome) {
+        if (str_starts_with($outcome, 'موفق')) {
+            $this->info("{$name}: {$outcome}");
+        } else {
+            $failed++;
+            $this->error("{$name}: {$outcome}");
+        }
+    }
+
+    $this->line(count($results)." مسیر بررسی شد؛ {$failed} ناموفق.");
+
+    return $failed === 0 ? 0 : 1;
+})->purpose('Run every AI capability against the real Google API once');
 
 Artisan::command('search:reindex', function (SearchIndexer $indexer): void {
     $products = 0;
