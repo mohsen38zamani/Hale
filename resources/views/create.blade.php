@@ -144,6 +144,20 @@
                             <select name="video_duration_seconds" data-duration style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(236,72,153,0.3); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;"></select>
                         </div>
 
+                        {{-- The job the product photo does in the video. A still
+                             has no frames to open on, so this appears with the
+                             video formats and stays out of the image ones. --}}
+                        <div data-image-mode-field hidden style="margin-bottom: 24px;">
+                            <label style="display: block; font-size: 13px; font-weight: 600; color: var(--accent-pink); margin-bottom: 8px;">
+                                🎞️ عکس محصول در ویدیو:
+                            </label>
+                            <select name="image_mode" data-image-mode style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(236,72,153,0.3); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;">
+                                <option value="reference">در سراسر ویدیو حاضر باشد</option>
+                                <option value="first">ویدیو دقیقاً از همین عکس شروع شود</option>
+                                <option value="first_last">از همین عکس شروع شود و روی همان بایستد</option>
+                            </select>
+                        </div>
+
                         {{-- Step 5: Scene & Studio Physical Controls (Surfaces, Props, Angles, Lighting) --}}
                         <div class="scene-controls-panel" data-scene-controls-panel>
                             <div class="scene-controls-header" data-scene-toggle role="button" tabindex="0" aria-expanded="true">

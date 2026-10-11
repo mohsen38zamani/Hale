@@ -96,14 +96,17 @@ class GenerationController extends Controller
         // likewise carried by generation metadata, not the project row, and
         // season_theme only decides which pack the brief above received.
         // target_ai follows the same rule: it decided how the prompt was
-        // compiled, the columns know nothing about it.
-        unset($data['campaign'], $data['quality'], $data['season_theme'], $data['target_ai']);
+        // compiled, the columns know nothing about it. image_mode is the
+        // same kind of instruction - it decides how the video is asked for,
+        // and no creative_projects column was built to hold it.
+        $imageMode = (string) ($data['image_mode'] ?? 'reference');
+        unset($data['campaign'], $data['quality'], $data['season_theme'], $data['target_ai'], $data['image_mode']);
 
         try {
-            $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format, $limits, $credits, $estimator, $quality): Generation {
+            $generation = DB::transaction(function () use ($request, $product, $data, $brief, $prompt, $format, $limits, $credits, $estimator, $quality, $imageMode): Generation {
                 $limits->ensureCanGenerateLocked($request->user(), $format->type());
                 $project = $request->user()->creativeProjects()->create([...$data, 'product_id' => $product->id, 'brief' => $brief, 'prompt' => $prompt]);
-                $generation = $project->generations()->create(['user_id' => $request->user()->id, 'type' => $format->type(), 'status' => 'queued', 'prompt_hash' => hash('sha256', $prompt), 'metadata' => ['aspect_ratio' => $format->aspectRatio(), 'quality' => $quality, 'target_ai' => $brief['target_ai'] ?? 'generic']]);
+                $generation = $project->generations()->create(['user_id' => $request->user()->id, 'type' => $format->type(), 'status' => 'queued', 'prompt_hash' => hash('sha256', $prompt), 'metadata' => ['aspect_ratio' => $format->aspectRatio(), 'quality' => $quality, 'target_ai' => $brief['target_ai'] ?? 'generic', 'image_mode' => $imageMode]]);
                 $credits->reserve($request->user(), $generation, $estimator->estimate($format->type(), $data['video_duration_seconds'] ?? null, $quality));
 
                 return $generation;

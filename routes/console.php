@@ -131,6 +131,26 @@ Artisan::command('ai:verify', function (): int {
         $results['ویدئو با عکسِ محصول (Veo)'] = 'ناموفق — '.$e->getMessage();
     }
 
+    // lastFrame is documented as image-to-video only, so this single call
+    // asks for both frame fields at once and settles them together. When
+    // it fails, a second call carrying image alone says which of the two
+    // the service refused - and that second video is only ever paid for
+    // when something is already wrong.
+    $framePrompt = 'the mug holds still while morning light moves across it';
+    try {
+        $result = (new GoogleVeoProvider)->generate(new GenerationInput('video', $framePrompt, '9:16', 5, $disk, $path, null, 'first_last'));
+        $results['ویدئو با قابِ اول و آخر (Veo)'] = "موفق — {$result->mime} · {$result->model}";
+    } catch (Throwable $e) {
+        $results['ویدئو با قابِ اول و آخر (Veo)'] = 'ناموفق — '.$e->getMessage();
+
+        try {
+            $result = (new GoogleVeoProvider)->generate(new GenerationInput('video', $framePrompt, '9:16', 5, $disk, $path, null, 'first'));
+            $results['ویدئو با قابِ اول به‌تنهایی (Veo)'] = "موفق — {$result->mime} · {$result->model}";
+        } catch (Throwable $frame) {
+            $results['ویدئو با قابِ اول به‌تنهایی (Veo)'] = 'ناموفق — '.$frame->getMessage();
+        }
+    }
+
     Storage::disk($disk)->delete($path);
 
     $failed = 0;

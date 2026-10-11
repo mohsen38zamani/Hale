@@ -90,6 +90,78 @@ class ProcessGenerationTest extends TestCase
         $this->assertSame('ftyp', substr((string) Storage::disk('s3')->get($generation->outputMedia->path), 4, 4));
     }
 
+    public function test_the_recorded_frame_choice_reaches_the_provider(): void
+    {
+        $provider = $this->recordingProvider();
+        $generation = $this->queuedVideo(['aspect_ratio' => '9:16', 'image_mode' => 'first_last']);
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), app(CreditService::class));
+
+        // A choice nobody ever carried to the provider would be a setting
+        // on a form and nothing more; this is the only claim worth making.
+        $this->assertSame('first_last', $provider->seen?->imageMode);
+    }
+
+    public function test_a_video_queued_before_the_choice_existed_is_still_a_reference(): void
+    {
+        $provider = $this->recordingProvider();
+        $generation = $this->queuedVideo(['aspect_ratio' => '9:16']);
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), app(CreditService::class));
+
+        // Generations carry metadata from the day they were queued, so the
+        // key is simply absent on the older ones - and absent has to mean
+        // what it has always meant.
+        $this->assertSame('reference', $provider->seen?->imageMode);
+    }
+
+    /**
+     * The local placeholder, wearing a note: it answers exactly as the
+     * fake always has, and keeps the input it was handed.
+     */
+    private function recordingProvider(): object
+    {
+        $provider = new class extends FakeGenerationProvider
+        {
+            public ?GenerationInput $seen = null;
+
+            public function generate(GenerationInput $input): GenerationResult
+            {
+                $this->seen = $input;
+
+                return parent::generate($input);
+            }
+        };
+        $this->app->instance(AiGateway::class, new AiGateway(new ModelRouter([$provider])));
+
+        return $provider;
+    }
+
+    /** @param  array<string, mixed>  $metadata */
+    private function queuedVideo(array $metadata): Generation
+    {
+        Storage::fake('s3');
+        $user = User::factory()->create();
+        $product = $user->products()->create(['name' => 'عطر']);
+        $project = $user->creativeProjects()->create([
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_reel',
+            'brief' => [],
+            'prompt' => 'prompt',
+            'video_duration_seconds' => 5,
+        ]);
+
+        return $user->generations()->create([
+            'creative_project_id' => $project->id,
+            'type' => 'video',
+            'status' => 'queued',
+            'prompt_hash' => hash('sha256', 'prompt'),
+            'metadata' => $metadata,
+        ]);
+    }
+
     public function test_failed_generation_can_be_retried_after_refund(): void
     {
         $user = User::factory()->create();

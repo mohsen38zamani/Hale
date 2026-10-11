@@ -105,11 +105,12 @@ class GoogleVeoProvider implements GenerationProvider
     }
 
     /**
-     * The prompt is the whole instance Hale needs. The product photo rides
-     * along as an ASSET reference - the field the service documents for
-     * "this object belongs in the video" - which is a different promise
-     * than a first frame: the product is referenced throughout rather than
-     * merely being where the clip starts.
+     * The prompt is the whole instance Hale needs; the product photo joins
+     * it in whichever shape the caller asked for. The three shapes are
+     * alternatives, not additions - the service refuses a request carrying
+     * referenceImages alongside image or lastFrame - so whichever role was
+     * named is the only one that goes out, and an unnamed role stays the
+     * reference it has always been.
      *
      * @return array<string, mixed>
      */
@@ -117,18 +118,48 @@ class GoogleVeoProvider implements GenerationProvider
     {
         $instance = ['prompt' => $input->prompt];
 
-        $reference = $this->referenceImage($input);
-        if ($reference !== null) {
-            $instance['referenceImages'] = [$reference];
+        $picture = $this->picture($input);
+        if ($picture === null) {
+            return $instance;
         }
+
+        if ($input->imageMode === 'first') {
+            $instance['image'] = $picture;
+
+            return $instance;
+        }
+
+        if ($input->imageMode === 'first_last') {
+            // lastFrame is documented as image-to-video only, so the
+            // opening frame travels with it. Both are the same picture on
+            // purpose: opening and closing on the product is the whole
+            // promise here, and there is no second asset to close on.
+            $instance['image'] = $picture;
+            $instance['lastFrame'] = $picture;
+
+            return $instance;
+        }
+
+        $instance['referenceImages'] = [[
+            'image' => $picture,
+            // ASSET places the thing itself in the scene. STYLE would only
+            // borrow its colours and light.
+            'referenceType' => 'ASSET',
+        ]];
 
         return $instance;
     }
 
     /**
-     * @return array<string, mixed>|null
+     * The one inline shape all three roles share - {mimeType,
+     * bytesBase64Encoded} - which is what the service reads as
+     * referenceImages[].image, as instances[0].image and as
+     * instances[0].lastFrame. Nothing is inlined when there is no usable
+     * file, and the request simply asks for a video from the prompt.
+     *
+     * @return array<string, string>|null
      */
-    private function referenceImage(GenerationInput $input): ?array
+    private function picture(GenerationInput $input): ?array
     {
         if (! $input->assetDisk || ! $input->assetPath) {
             return null;
@@ -144,13 +175,8 @@ class GoogleVeoProvider implements GenerationProvider
         }
 
         return [
-            'image' => [
-                'mimeType' => $this->mimeType($raw),
-                'bytesBase64Encoded' => base64_encode($raw),
-            ],
-            // ASSET places the thing itself in the scene. STYLE would only
-            // borrow its colours and light.
-            'referenceType' => 'ASSET',
+            'mimeType' => $this->mimeType($raw),
+            'bytesBase64Encoded' => base64_encode($raw),
         ];
     }
 

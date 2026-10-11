@@ -1623,6 +1623,7 @@ if (builderForm) {
 	const formatBox = document.querySelector('[data-formats]');
 	const durationField = document.querySelector('[data-duration-field]');
 	const duration = document.querySelector('[data-duration]');
+	const imageModeField = document.querySelector('[data-image-mode-field]');
 	const estimate = document.querySelector('[data-credit-estimate]');
 
 	// Live Studio Preview Canvas elements
@@ -2386,6 +2387,7 @@ if (builderForm) {
 				const envSelect = document.querySelector('[data-environment]');
 				if (envSelect && data.environment) envSelect.value = data.environment;
 				durationField.hidden = !['instagram_reel', 'tiktok'].includes(data.format);
+				imageModeField.hidden = durationField.hidden;
 				if (data.video_duration_seconds) duration.value = data.video_duration_seconds;
 				message.className = 'form-message success-message';
 				message.textContent = `✨ پیشنهاد خودکار: سبک ${labels[data.style] || data.style} (${labels[data.format] || data.format})`;
@@ -2415,7 +2417,17 @@ if (builderForm) {
 		updateCounter();
 	}
 	formatBox.addEventListener('change', (event) => {
-		durationField.hidden = !['instagram_reel', 'tiktok'].includes(event.target.value);
+		const videoFormat = ['instagram_reel', 'tiktok'].includes(event.target.value);
+		durationField.hidden = !videoFormat;
+		imageModeField.hidden = !videoFormat;
+		// A hidden field still posts its value, and a frame choice left over
+		// from a video format would be turned away by the server once the
+		// format is a still: putting the choice back is the only honest
+		// thing a form can do with a field it has hidden.
+		if (!videoFormat) {
+			const imageModeSelect = document.querySelector('[data-image-mode]');
+			if (imageModeSelect) imageModeSelect.value = 'reference';
+		}
 		updateEstimate().catch(() => {});
 		// A format switch can block (or unblock) the selected target: the
 		// chips and the generate button follow it here.
@@ -2576,6 +2588,9 @@ if (builderForm) {
 			character_consistency: values.character_consistency || defaultCharacterKey,
 			custom_prompt: rawCustomPrompt || null,
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null,
+			// The photo's job in a clip is a video question, so an image
+			// format sends nothing rather than a choice it hid away.
+			image_mode: isVideo ? (values.image_mode || 'reference') : null,
 			campaign: Boolean(campaignEnabled && campaignPack),
 			// Pinned seasonal theme, so the stored prompt matches the pack the
 			// prompt inspector displayed; null lets the server pick by date.

@@ -115,6 +115,57 @@ class GoogleVeoProviderTest extends TestCase
         });
     }
 
+    public function test_it_opens_the_clip_on_the_photo_when_the_first_frame_is_asked_for(): void
+    {
+        Storage::fake('s3');
+        Storage::disk('s3')->put('products/sample.png', base64_decode(self::PNG, true));
+        $this->fakeVideoChain();
+
+        (new GoogleVeoProvider('fake-key'))->generate(new GenerationInput('video', 'product showcase', '9:16', 5, 's3', 'products/sample.png', null, 'first'));
+
+        // instances[0].image is the opening frame - the clip starts on
+        // exactly this picture rather than on whatever the model composes.
+        // The reference is absent because the service refuses a request
+        // that carries both: they are two promises about the same photo.
+        Http::assertSent(function ($request) {
+            if ($request->method() !== 'POST') {
+                return false;
+            }
+            $instance = $request['instances'][0];
+
+            return $instance['prompt'] === 'product showcase'
+                && ! isset($instance['referenceImages'])
+                && ! isset($instance['lastFrame'])
+                && $instance['image']['mimeType'] === 'image/png'
+                && base64_decode($instance['image']['bytesBase64Encoded'], true) === base64_decode(self::PNG, true);
+        });
+    }
+
+    public function test_it_opens_and_closes_on_the_photo_when_both_frames_are_asked_for(): void
+    {
+        Storage::fake('s3');
+        Storage::disk('s3')->put('products/sample.png', base64_decode(self::PNG, true));
+        $this->fakeVideoChain();
+
+        (new GoogleVeoProvider('fake-key'))->generate(new GenerationInput('video', 'product showcase', '9:16', 5, 's3', 'products/sample.png', null, 'first_last'));
+
+        // lastFrame is documented as image-to-video only, so the opening
+        // frame travels with it. Both carry the same bytes on purpose: a
+        // clip that opens and closes on the product is the whole promise,
+        // and the studio has one photo to give.
+        Http::assertSent(function ($request) {
+            if ($request->method() !== 'POST') {
+                return false;
+            }
+            $instance = $request['instances'][0];
+
+            return $instance['prompt'] === 'product showcase'
+                && ! isset($instance['referenceImages'])
+                && isset($instance['image'], $instance['lastFrame'])
+                && $instance['lastFrame'] === $instance['image'];
+        });
+    }
+
     public function test_it_sends_only_the_prompt_when_hale_has_no_photo(): void
     {
         $this->fakeVideoChain();

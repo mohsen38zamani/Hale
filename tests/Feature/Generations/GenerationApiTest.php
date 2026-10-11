@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Generations;
 
+use App\Domains\Billing\Models\Subscription;
+use App\Domains\Credits\Services\CreditService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -70,6 +72,84 @@ class GenerationApiTest extends TestCase
             'format' => 'instagram_reel',
             'video_duration_seconds' => 5,
         ])->assertStatus(402)->assertJsonPath('error.code', 'PLAN_LIMIT_REACHED');
+    }
+
+    public function test_the_first_frame_is_recorded_when_a_video_asks_for_it(): void
+    {
+        $user = $this->videoCapableUser();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+
+        $id = $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'style' => 'luxury',
+            'format' => 'instagram_reel',
+            'video_duration_seconds' => 5,
+            'image_mode' => 'first',
+        ])->assertStatus(202)->json('data.id');
+
+        // The choice is an instruction to the video provider, so it rides
+        // on generation metadata. creative_projects has no column for it
+        // and must not have been given one.
+        $this->getJson("/api/generations/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.metadata.image_mode', 'first')
+            ->assertJsonPath('data.creative_project.image_mode', null);
+    }
+
+    public function test_a_video_without_the_choice_stays_a_reference(): void
+    {
+        $user = $this->videoCapableUser();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+
+        $id = $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'style' => 'luxury',
+            'format' => 'instagram_reel',
+            'video_duration_seconds' => 5,
+        ])->assertStatus(202)->json('data.id');
+
+        // Every video queued before this choice existed, and every one
+        // that does not make it, has to keep meaning what it always meant.
+        $this->getJson("/api/generations/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.metadata.image_mode', 'reference');
+    }
+
+    public function test_an_image_cannot_promise_a_frame(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+
+        // Accepting this silently would sell the user a promise that never
+        // reaches the model: a still has no opening frame.
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'image_mode' => 'first',
+        ])->assertUnprocessable()->assertJsonValidationErrors('image_mode');
+    }
+
+    public function test_an_unknown_frame_is_refused(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $product = $user->products()->create(['name' => 'عطر']);
+
+        $this->postJson('/api/generations', [
+            'product_id' => $product->id,
+            'goal' => 'branding',
+            'style' => 'luxury',
+            'format' => 'instagram_reel',
+            'video_duration_seconds' => 5,
+            'image_mode' => 'somewhere_in_the_middle',
+        ])->assertUnprocessable()->assertJsonValidationErrors('image_mode');
     }
 
     public function test_user_can_regenerate_a_completed_generation(): void
@@ -411,5 +491,26 @@ class GenerationApiTest extends TestCase
             ->assertJsonValidationErrors([
                 'character_consistency' => 'تنظیمات ثبات کاراکتر انتخاب‌شده نامعتبر است.',
             ]);
+    }
+
+    /**
+     * A plan that may render video, with the two things a plan key alone
+     * does not buy: an active subscription (the limit window is
+     * subscription-scoped, and a user with none is treated as free) and a
+     * balance to reserve the render from.
+     */
+    private function videoCapableUser(): User
+    {
+        $user = User::factory()->create(['plan_key' => 'creator']);
+        Subscription::query()->create([
+            'user_id' => $user->id,
+            'plan_key' => 'creator',
+            'status' => 'active',
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addMonth(),
+        ]);
+        app(CreditService::class)->initialize($user, 500);
+
+        return $user;
     }
 }

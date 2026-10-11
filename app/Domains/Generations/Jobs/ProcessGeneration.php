@@ -91,6 +91,11 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
                 $asset?->disk,
                 $asset?->path,
                 $generation->id,
+                // How the photo above joins a video: as a reference, as the
+                // opening frame, or as both the opening and the closing
+                // one. The key is absent on generations queued before the
+                // choice existed, and 'reference' is what they got.
+                (string) ($generation->metadata['image_mode'] ?? 'reference'),
             ));
             $result = $response['result'];
             $providerFailures = $response['failures'] ?? [];

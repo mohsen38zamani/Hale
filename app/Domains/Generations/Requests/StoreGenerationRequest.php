@@ -33,6 +33,7 @@ class StoreGenerationRequest extends FormRequest
             'lighting_setup' => ['nullable', 'string', Rule::in(array_keys(config('creative.lighting_setups')))],
             'character_consistency' => ['nullable', 'string', Rule::in(array_keys(config('creative.character_consistencies')))],
             'quality' => ['sometimes', Rule::in(['standard', 'premium'])],
+            'image_mode' => ['nullable', 'string', Rule::in(['reference', 'first', 'first_last'])],
             'campaign' => ['sometimes', 'boolean'],
             'season_theme' => ['nullable', 'string', Rule::in(array_column(config('seasons.themes'), 'key'))],
             'target_ai' => ['nullable', 'string', Rule::in(array_keys(config('creative.target_ais'))), new CompilableTargetAi],
@@ -48,6 +49,15 @@ class StoreGenerationRequest extends FormRequest
                 if (! $moderator->passes((string) $this->input('custom_prompt'))) {
                     $validator->errors()->add('custom_prompt', 'توضیحات دلخواه با قوانین محتوایی سازگار نیست.');
                 }
+            }
+
+            // Opening and closing on the product photo are things a clip can
+            // do and a still cannot: the choice means nothing for an image,
+            // so accepting it silently would sell the user a promise that
+            // never reaches the model.
+            if (in_array($this->input('image_mode'), ['first', 'first_last'], true)
+                && CreativeFormat::tryFrom((string) $this->input('format'))?->type() !== 'video') {
+                $validator->errors()->add('image_mode', 'قابِ اول و آخر فقط برای قالب‌های ویدیویی انتخاب می‌شود.');
             }
         });
     }
@@ -74,6 +84,7 @@ class StoreGenerationRequest extends FormRequest
             'lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
             'character_consistency.in' => 'تنظیمات ثبات کاراکتر انتخاب‌شده نامعتبر است.',
             'quality.in' => 'کیفیت خروجی باید استاندارد (standard) یا پرمیوم (premium) باشد.',
+            'image_mode.in' => 'حالت تصویر انتخاب‌شده نعتبر است.',
             'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
             'season_theme.in' => 'تم فصلی انتخاب‌شده نامعتبر است.',
             'target_ai.in' => 'مدل هوش مصنوعی انتخاب‌شده نامعتبر است.',
