@@ -7,7 +7,6 @@ use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Data\GenerationResult;
 use App\Domains\AI\Exceptions\AiProviderException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 
 class GoogleVeoProvider implements GenerationProvider
 {
@@ -51,20 +50,19 @@ class GoogleVeoProvider implements GenerationProvider
 
         $duration = $input->durationSeconds ?? 5;
 
+        // `instances` carries the prompt and nothing else; the knobs live in
+        // `parameters`. The product photo is deliberately not inlined: this
+        // endpoint has no image input Hale can name, and a field it does not
+        // document is a permanent 400 - and Veo is the only real video
+        // provider here, so such a 400 would take the whole video path down
+        // instead of falling through to anything. A photo-conditioned video
+        // wants the photo rendered first and a model that takes a frame;
+        // that is backlog item ۱۰, not a guess in a request body.
         $instances = [
             [
                 'prompt' => $input->prompt,
-                'durationSeconds' => $duration,
-                'aspectRatio' => $input->aspectRatio,
             ],
         ];
-
-        if ($input->assetDisk && $input->assetPath && Storage::disk($input->assetDisk)->exists($input->assetPath)) {
-            $rawImage = Storage::disk($input->assetDisk)->get($input->assetPath);
-            $instances[0]['referenceImage'] = [
-                'bytesBase64Encoded' => base64_encode($rawImage),
-            ];
-        }
 
         $url = rtrim($this->baseUrl, '/')."/models/{$this->model}:predictVideo?key={$this->apiKey}";
 

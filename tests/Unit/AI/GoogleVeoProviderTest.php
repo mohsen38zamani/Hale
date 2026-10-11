@@ -6,6 +6,7 @@ use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Exceptions\AiProviderException;
 use App\Domains\AI\Providers\Google\GoogleVeoProvider;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -64,6 +65,34 @@ class GoogleVeoProviderTest extends TestCase
         Http::assertSent(function ($request) {
             return str_contains($request->url(), 'models/veo-2.0-generate-001:predictVideo')
                 && $request['parameters']['durationSeconds'] === 8
+                && $request['parameters']['aspectRatio'] === '9:16';
+        });
+    }
+
+    public function test_it_sends_a_prompt_and_nothing_the_endpoint_may_not_recognise(): void
+    {
+        Storage::fake('s3');
+        Storage::disk('s3')->put('products/sample.png', 'raw-sample-bytes');
+
+        $fakeMp4 = "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom";
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'predictions' => [['bytesBase64Encoded' => base64_encode($fakeMp4)]],
+            ], 200),
+        ]);
+
+        $provider = new GoogleVeoProvider('fake-key');
+        $provider->generate(new GenerationInput('video', 'product showcase', '9:16', 5, 's3', 'products/sample.png'));
+
+        // Veo is the only real video provider in the chain, so a field
+        // predictVideo does not recognise would be a permanent 400 with
+        // nothing behind it but the local placeholder. The instance is the
+        // prompt, the parameters are the knobs, and the product photo on
+        // disk stays out of both - a photo-conditioned video is backlog
+        // item ۱۰, not a guess in a request body.
+        Http::assertSent(function ($request) {
+            return $request['instances'] === [['prompt' => 'product showcase']]
+                && $request['parameters']['durationSeconds'] === 5
                 && $request['parameters']['aspectRatio'] === '9:16';
         });
     }
