@@ -42,7 +42,7 @@ class SendWebPushNotification implements ShouldQueue
         }
 
         $data = $event->notification->toDatabase($user);
-        $message = (string) ($data['message'] ?? 'اعلان جدیدی از Hale داری.');
+        $message = (string) ($data['message'] ?? 'اعلان جدیدی از حله داری.');
 
         $url = isset($data['generation_id'])
             ? '/generations/'.$data['generation_id']

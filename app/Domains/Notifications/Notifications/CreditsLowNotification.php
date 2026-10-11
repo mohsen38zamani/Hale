@@ -31,7 +31,7 @@ class CreditsLowNotification extends Notification implements ShouldQueue, Should
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('اعتبار Hale شما کم است')
+            ->subject('اعتبار حله شما کم است')
             ->greeting('سلام '.$notifiable->name)
             ->line('اعتبار باقی‌مانده شما '.$this->balance.' Credit است.')
             ->action('ارتقای پلن', url('/pricing'));

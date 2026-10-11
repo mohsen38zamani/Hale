@@ -39,7 +39,7 @@ class ImageEditStatusNotification extends Notification implements ShouldQueue, S
     {
         $completed = $this->status === 'completed';
 
-        $subject = $completed ? 'ویرایش تصویر Hale آماده است' : 'ویرایش تصویر Hale ناموفق بود';
+        $subject = $completed ? 'ویرایش تصویر حله آماده است' : 'ویرایش تصویر حله ناموفق بود';
         $line = $completed
             ? 'خروجی ابزار هوش مصنوعی شما آماده دانلود است.'
             : 'اجرای ابزار ناموفق بود و اعتبار پرداخت‌شده برگشت داده شد.';

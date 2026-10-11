@@ -1,6 +1,6 @@
 <div dir="rtl">
 
-# نقشه راه کدنویسی — Hale (AI Content Studio)
+# نقشه راه کدنویسی — حله (AI Content Studio)
 
 **نوع سند:** Development Roadmap / Implementation Roadmap  
 **نسخه:** 1.1  
@@ -12,7 +12,7 @@
 
 ## درباره این سند
 
-برنامه زمانی و فنی توسعه Hale — **چه چیزهایی، به چه ترتیبی، با چه تکنولوژی** ساخته می‌شوند.
+برنامه زمانی و فنی توسعه حله — **چه چیزهایی، به چه ترتیبی، با چه تکنولوژی** ساخته می‌شوند.
 
 مشخصات محصول Phase 1 در سند جداگانه [`MVP_Specification_FA.md`](MVP_Specification_FA.md) آمده است.
 

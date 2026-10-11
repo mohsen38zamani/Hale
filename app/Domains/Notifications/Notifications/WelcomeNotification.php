@@ -20,16 +20,16 @@ class WelcomeNotification extends Notification implements ShouldQueue
     {
         return [
             'kind' => 'welcome',
-            'message' => 'به Hale خوش آمدید. اولین محتوای تبلیغاتی خود را بسازید.',
+            'message' => 'به حله خوش آمدید. اولین محتوای تبلیغاتی خود را بسازید.',
         ];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('به Hale خوش آمدید')
+            ->subject('به حله خوش آمدید')
             ->greeting('سلام '.$notifiable->name)
-            ->line('به Hale خوش آمدید. اولین محتوای تبلیغاتی خود را بسازید.')
+            ->line('به حله خوش آمدید. اولین محتوای تبلیغاتی خود را بسازید.')
             ->action('شروع ساخت', url('/create'));
     }
 }

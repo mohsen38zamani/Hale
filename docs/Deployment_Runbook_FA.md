@@ -1,17 +1,17 @@
 <div dir="rtl">
 
-# مستند عملیاتی و راهنمای استقرار (Production Deployment & Operations Runbook) — Hale
+# مستند عملیاتی و راهنمای استقرار (Production Deployment & Operations Runbook) — حله
 
 **نوع سند:** Deployment & Operations Runbook  
 **نسخه:** 1.0  
 **مخاطب:** تیم DevOps، مدیران سیستم (Sysadmins) و توسعه‌دهندگان ارشد  
-**پروژه:** استودیو هوشمند تولید محتوای تبلیغاتی Hale  
+**پروژه:** استودیو هوشمند تولید محتوای تبلیغاتی حله  
 
 ---
 
 ## ۱. مرور کلی معماری و پیش‌نیازهای استقرار
 
-پروژه **Hale** بر پایه معماری ماژولار لاراول (Laravel 12)، پایگاه‌داده MySQL 8.0، کش و صف ریدیس (Redis 7.0) و فضای ذخیره‌سازی شی‌ءگرا (S3 / MinIO / ArvanCloud Object Storage) طراحی شده است.
+پروژه **حله** بر پایه معماری ماژولار لاراول (Laravel 12)، پایگاه‌داده MySQL 8.0، کش و صف ریدیس (Redis 7.0) و فضای ذخیره‌سازی شی‌ءگرا (S3 / MinIO / ArvanCloud Object Storage) طراحی شده است.
 
 ### نیازمندی‌های سرور (Production Server Requirements)
 - **سیستم‌عامل:** Ubuntu 22.04 LTS یا Ubuntu 24.04 LTS
@@ -30,7 +30,7 @@
 فایل `.env.production` را با رعایت اصول امنیتی در سرور اصلی پیکربندی کنید:
 
 ```ini
-APP_NAME=Hale
+APP_NAME=حله
 APP_ENV=production
 APP_KEY=base64:... # با اجرای php artisan key:generate ساخته می‌شود
 APP_DEBUG=false

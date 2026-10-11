@@ -41,7 +41,7 @@ class PaymentSucceededNotification extends Notification implements ShouldQueue, 
             : 'پرداخت پلن '.$this->payment->plan_key.' با موفقیت ثبت شد.';
 
         return (new MailMessage)
-            ->subject('پرداخت Hale با موفقیت انجام شد')
+            ->subject('پرداخت حله با موفقیت انجام شد')
             ->greeting('سلام '.$notifiable->name)
             ->line($summary)
             ->line('مبلغ: '.$this->payment->amount.' ریال')

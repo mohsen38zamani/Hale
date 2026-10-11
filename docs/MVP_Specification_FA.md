@@ -1,6 +1,6 @@
 <div dir="rtl">
 
-# MVP — Hale (AI Content Studio)
+# MVP — حله (AI Content Studio)
 
 **نوع سند:** MVP Specification / Product Requirements Document (PRD)  
 **نسخه:** 1.0  
@@ -589,7 +589,7 @@ notifications
 
 ```text
 ┌─────────────────────────────────────┐
-│  Hale          🔔   💎 ۱۲۰ Credit   │
+│  حله          🔔   💎 ۱۲۰ Credit   │
 ├─────────────────────────────────────┤
 │                                     │
 │   امروز چی می‌خوای بسازی؟           │

@@ -40,8 +40,8 @@ class GenerationStatusNotification extends Notification implements ShouldQueue, 
         $completed = $this->status === 'completed';
         $cancelled = $this->status === 'cancelled';
 
-        $subject = $completed ? 'خروجی Hale آماده است'
-            : ($cancelled ? 'تولید Hale لغو شد' : 'تولید Hale ناموفق بود');
+        $subject = $completed ? 'خروجی حله آماده است'
+            : ($cancelled ? 'تولید حله لغو شد' : 'تولید حله ناموفق بود');
         $line = $completed ? 'خروجی شما با موفقیت آماده شده است.'
             : ($cancelled
                 ? 'تولید شما توسط مدیر لغو شد و اعتبار رزروشده برگشت داده شد.'

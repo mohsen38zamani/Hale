@@ -1,6 +1,6 @@
-# معماری Domain در Hale
+# معماری Domain در حله
 
-Hale یک Modular Monolith است. هر Domain منطق و Request و Service مرتبط خود را در `app/Domains` نگه می‌دارد و concerns مشترک در `app/Support` قرار می‌گیرند.
+حله یک Modular Monolith است. هر Domain منطق و Request و Service مرتبط خود را در `app/Domains` نگه می‌دارد و concerns مشترک در `app/Support` قرار می‌گیرند.
 
 ## مرزهای فعلی Domainها
 `Auth`, `Products`, `Media`, `Creative`, `Generations`, `AI`, `Editing`, `Credits`, `Billing`, `Notifications`, `Search`, `Favorites`, `Brand`, `Templates`, `Calendar`, `Admin`.
