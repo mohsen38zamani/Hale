@@ -112,7 +112,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/campaigns', [CalendarController::class, 'storeCampaign']);
     Route::get('/edits/costs', [ImageEditController::class, 'costs']);
     Route::get('/edits', [ImageEditController::class, 'index']);
+    Route::post('/edits/variants', [ImageEditController::class, 'variants'])->middleware(['verified', 'throttle:generation']);
     Route::post('/edits', [ImageEditController::class, 'store'])->middleware(['verified', 'throttle:generation']);
+    Route::get('/edits/{edit}/thread', [ImageEditController::class, 'thread']);
     Route::get('/edits/{edit}', [ImageEditController::class, 'show']);
     Route::get('/edits/{edit}/download', [ImageEditController::class, 'download']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);

@@ -2,6 +2,7 @@
 
 namespace App\Domains\Editing\Controllers;
 
+use App\Domains\AI\Services\PromptModerator;
 use App\Domains\Credits\Exceptions\InsufficientCredits;
 use App\Domains\Credits\Services\CreditEstimator;
 use App\Domains\Credits\Services\CreditService;
@@ -10,7 +11,10 @@ use App\Domains\Editing\Exceptions\SourceNotProcessableException;
 use App\Domains\Editing\Jobs\ProcessImageEdit;
 use App\Domains\Editing\Models\ImageEdit;
 use App\Domains\Editing\Requests\StoreImageEditRequest;
+use App\Domains\Editing\Requests\StoreVariantsRequest;
+use App\Domains\Editing\Services\EditPromptBuilder;
 use App\Domains\Editing\Services\EditSourceResolver;
+use App\Domains\Editing\Services\EditThread;
 use App\Domains\Media\Services\ImageOptimizer;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
@@ -27,7 +31,7 @@ class ImageEditController extends Controller
     public function index(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'source_type' => ['nullable', 'string', 'in:generation,product'],
+            'source_type' => ['nullable', 'string', 'in:generation,product,edit'],
             'source_id' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'string', 'in:queued,processing,completed,failed'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
@@ -55,7 +59,7 @@ class ImageEditController extends Controller
      * money moves), apply the plan gate, then charge + enqueue atomically
      * so a rolled-back transaction never leaves a charged orphan row.
      */
-    public function store(StoreImageEditRequest $request, EditSourceResolver $resolver, CreditEstimator $estimator, CreditService $credits): JsonResponse
+    public function store(StoreImageEditRequest $request, EditSourceResolver $resolver, CreditEstimator $estimator, CreditService $credits, EditThread $thread, PromptModerator $moderator): JsonResponse
     {
         $user = $request->user();
         $data = $request->validated();
@@ -68,6 +72,19 @@ class ImageEditController extends Controller
             return $this->failure('SOURCE_NOT_FOUND', $exception->getMessage(), 404);
         } catch (SourceNotProcessableException $exception) {
             return $this->failure('SOURCE_NOT_PROCESSABLE', $exception->getMessage(), 422);
+        }
+
+        // A conversation is capped, and checked before any money moves: an
+        // unbounded thread is an unbounded bill with a chat window on it.
+        if ($gate = $this->chainGate($request, $data, $thread)) {
+            return $gate;
+        }
+
+        // A conversational instruction is the user's own words, so it is the
+        // one part of an edit that needs moderating; the fixed tools speak in
+        // prompts Hale wrote itself and need no such check.
+        if ($operation === 'custom' && ! $moderator->passes((string) $data['message'])) {
+            return $this->failure('PROMPT_REJECTED', 'درخواست با سیاست محتوایی سازگار نیست.', 422);
         }
 
         // Upscaling past HD mirrors the premium quality gate.
@@ -94,6 +111,7 @@ class ImageEditController extends Controller
                     'source_type' => $data['source_type'],
                     'source_id' => $data['source_id'],
                     'operation' => $operation,
+                    'message' => $data['message'] ?? null,
                     'options' => $options,
                     'status' => 'queued',
                     'credits_spent' => $cost,
@@ -114,6 +132,108 @@ class ImageEditController extends Controller
         // fresh(): under the sync queue the job already ran inline, so the
         // response must reflect the settled status, not the creation one.
         return $this->success($edit->fresh(), 202);
+    }
+
+    /**
+     * N creative takes of one image, created as N sibling edits that share a
+     * source. Each is charged under its own idempotent key so the job's
+     * existing failure handler refunds only the takes that actually failed -
+     * a half-finished batch costs what finished.
+     */
+    public function variants(StoreVariantsRequest $request, EditSourceResolver $resolver, CreditEstimator $estimator, CreditService $credits, EditThread $thread): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validated();
+        $count = (int) $data['count'];
+
+        try {
+            $resolver->resolve((string) $data['source_type'], (int) $data['source_id'], $user);
+        } catch (SourceNotFoundException $exception) {
+            return $this->failure('SOURCE_NOT_FOUND', $exception->getMessage(), 404);
+        } catch (SourceNotProcessableException $exception) {
+            return $this->failure('SOURCE_NOT_PROCESSABLE', $exception->getMessage(), 422);
+        }
+
+        if ($gate = $this->chainGate($request, $data, $thread)) {
+            return $gate;
+        }
+
+        $each = $estimator->estimateEdit('variant');
+        if ($credits->account($user)->balance < $each * $count) {
+            return $this->failure('INSUFFICIENT_CREDITS', 'اعتبار کافی نیست.', 402);
+        }
+
+        try {
+            $edits = DB::transaction(function () use ($user, $data, $each, $count, $credits): array {
+                $edits = [];
+
+                foreach (range(0, $count - 1) as $index) {
+                    $edit = $user->imageEdits()->create([
+                        'source_type' => $data['source_type'],
+                        'source_id' => $data['source_id'],
+                        'operation' => 'variant',
+                        'options' => ['take_index' => $index % count(EditPromptBuilder::TAKES)],
+                        'status' => 'queued',
+                        'credits_spent' => $each,
+                    ]);
+
+                    $credits->spendForTask($user, null, $each, "edit:{$edit->id}", ['edit_id' => $edit->id, 'operation' => 'variant'], 'edit');
+
+                    $edits[] = $edit;
+                }
+
+                return $edits;
+            });
+        } catch (InsufficientCredits $exception) {
+            return $this->failure('INSUFFICIENT_CREDITS', $exception->getMessage(), 402);
+        }
+
+        foreach ($edits as $edit) {
+            ProcessImageEdit::dispatch($edit->id)->onQueue('generations');
+        }
+
+        return $this->success(
+            collect($edits)->map(static fn (ImageEdit $edit): ImageEdit => $edit->fresh())->values(),
+            202,
+        );
+    }
+
+    /**
+     * The conversation an edit belongs to, root first, so the UI can render
+     * the whole thread from any step the user happens to be looking at.
+     */
+    public function thread(Request $request, ImageEdit $edit, EditThread $thread): JsonResponse
+    {
+        abort_unless($edit->user_id === $request->user()->id, 404);
+
+        return $this->success([
+            'steps' => $thread->thread($edit, $request->user()),
+            'depth' => $thread->depth($edit, $request->user()),
+            'max_depth' => (int) config('ai.max_edit_chain'),
+        ]);
+    }
+
+    /**
+     * Refuse a reply that would sit past the depth cap. Returns null when the
+     * request is within bounds, so the caller reads as "no gate tripped".
+     */
+    private function chainGate(Request $request, array $data, EditThread $thread): ?JsonResponse
+    {
+        if (($data['source_type'] ?? null) !== 'edit') {
+            return null;
+        }
+
+        $parent = $request->user()->imageEdits()->find((int) ($data['source_id'] ?? 0));
+        if ($parent === null) {
+            return null; // The resolver already answered for a missing source.
+        }
+
+        $max = (int) config('ai.max_edit_chain');
+        if ($thread->depth($parent, $request->user()) >= $max) {
+            return $this->failure('EDIT_CHAIN_TOO_LONG', "گفتگوی ویرایش به حداکثر {$max} مرحله رسیده است؛ از یک تصویر تازه ادامه دهید.", 422);
+        }
+
+        return null;
     }
 
     public function show(Request $request, ImageEdit $edit): JsonResponse
@@ -138,12 +258,21 @@ class ImageEditController extends Controller
                 'remove_bg' => $estimator->estimateEdit('remove_bg'),
                 'shadow' => $estimator->estimateEdit('shadow'),
                 'expand' => $estimator->estimateEdit('expand'),
+                'custom' => $estimator->estimateEdit('custom'),
+                'variant' => $estimator->estimateEdit('variant'),
                 'upscale' => [
                     'hd' => $estimator->estimateEdit('upscale', 'hd'),
                     '2k' => $estimator->estimateEdit('upscale', '2k'),
                     '4k' => $estimator->estimateEdit('upscale', '4k'),
                 ],
             ],
+            // What a variant changes, named: the API cannot promise "the
+            // model will randomize", so it sells the axes instead.
+            'variants' => [
+                'takes' => EditPromptBuilder::takes(),
+                'count' => ['min' => 2, 'max' => 4],
+            ],
+            'max_depth' => (int) config('ai.max_edit_chain'),
             'balance' => $credits->account($user)->balance,
             'plan' => [
                 'key' => $planKey,

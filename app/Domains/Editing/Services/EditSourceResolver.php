@@ -27,6 +27,7 @@ class EditSourceResolver
         $asset = match ($sourceType) {
             'generation' => $this->generationAsset($sourceId, $user),
             'product' => $this->productAsset($sourceId, $user),
+            'edit' => $this->editAsset($sourceId, $user),
             default => throw new SourceNotFoundException('نوع منبع ویرایش معتبر نیست.'),
         };
 
@@ -57,6 +58,25 @@ class EditSourceResolver
         }
 
         return $generation->outputMedia;
+    }
+
+    /**
+     * A conversational edit is fed by the previous step's result, so the
+     * chain keeps the user's own edits in front of the provider and each
+     * answer becomes the next question's subject.
+     */
+    private function editAsset(int $sourceId, User $user): ?MediaAsset
+    {
+        $edit = $user->imageEdits()->find($sourceId);
+        if ($edit === null) {
+            return null;
+        }
+
+        if ($edit->status !== 'completed' || $edit->output_media_id === null) {
+            throw new SourceNotProcessableException('این ویرایش هنوز تصویر تکمیل‌شده‌ای ندارد.');
+        }
+
+        return $edit->outputMedia;
     }
 
     private function productAsset(int $sourceId, User $user): ?MediaAsset

@@ -87,7 +87,13 @@ class ProcessImageEdit implements ShouldBeUnique, ShouldQueueAfterCommit
 
         try {
             $source = $resolver->resolve($edit->source_type, (int) $edit->source_id, $edit->user);
-            $options = (array) $edit->options;
+            // A conversational instruction lives in its own column - it is
+            // content the thread renders, not an operation parameter - but it
+            // reaches the builder as an option, the same as the fixed tools'.
+            $options = array_merge(
+                (array) $edit->options,
+                $edit->message === null || $edit->message === '' ? [] : ['message' => $edit->message],
+            );
             $response = $gateway->generate(new GenerationInput(
                 type: 'image_edit',
                 prompt: $prompts->build($edit->operation, $options),

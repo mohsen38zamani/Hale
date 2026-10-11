@@ -17,15 +17,21 @@ class StoreImageEditRequest extends FormRequest
      *  - upscale:   target=hd|2k|4k (default hd; 2k/4k need a premium plan)
      *  - expand:    aspect_ratio is mandatory (the canvas target)
      *  - shadow:    effect=shadow|reflection (default shadow)
+     *  - custom:    message is the instruction, in the user's own words
+     *
+     * `variant` is deliberately absent: it takes several images and has its
+     * own endpoint, and accepting it here would mean one row pretending to
+     * be a batch.
      *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
-            'source_type' => ['required', 'string', 'in:generation,product'],
+            'source_type' => ['required', 'string', 'in:generation,product,edit'],
             'source_id' => ['required', 'integer', 'min:1'],
-            'operation' => ['required', 'string', 'in:remove_bg,upscale,expand,shadow'],
+            'operation' => ['required', 'string', 'in:remove_bg,upscale,expand,shadow,custom'],
+            'message' => ['required_if:operation,custom', 'nullable', 'string', 'min:3', 'max:500'],
             'background' => ['nullable', 'string', 'in:transparent,white'],
             'target' => ['nullable', 'string', 'in:hd,2k,4k'],
             'aspect_ratio' => ['required_if:operation,expand', 'nullable', 'string', 'in:1:1,4:5,3:4,1:1.91,16:9,9:16'],
@@ -40,10 +46,13 @@ class StoreImageEditRequest extends FormRequest
     {
         return [
             'source_type.required' => 'منبع ویرایش الزامی است.',
-            'source_type.in' => 'منبع ویرایش باید خروجی یا محصول باشد.',
+            'source_type.in' => 'منبع ویرایش باید خروجی، محصول یا یک ویرایش قبلی باشد.',
             'source_id.required' => 'شناسه منبع ویرایش الزامی است.',
             'operation.required' => 'عملیات ویرایش را انتخاب کنید.',
             'operation.in' => 'عملیات ویرایش معتبر نیست.',
+            'message.required_if' => 'تغییری که می‌خواهید را بنویسید.',
+            'message.min' => 'متن ویرایش باید دست‌کم ۳ نویسه باشد.',
+            'message.max' => 'متن ویرایش نباید بیش از ۵۰۰ نویسه باشد.',
             'background.in' => 'پس‌زمینه باید شفاف یا سفید باشد.',
             'target.in' => 'وضوح مقصد باید hd، 2k یا 4k باشد.',
             'aspect_ratio.required_if' => 'نسبت تصویر مقصد برای بسط کادر الزامی است.',

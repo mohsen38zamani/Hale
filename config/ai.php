@@ -26,6 +26,9 @@ return [
         ],
     ],
     'processing_lease_seconds' => (int) env('AI_PROCESSING_LEASE_SECONDS', 600),
+    // How many chained edits one conversation may reach. A reply is checked
+    // before it is charged: an unbounded thread is an unbounded bill.
+    'max_edit_chain' => (int) env('AI_MAX_EDIT_CHAIN', 8),
     // Text completion settings (caption generator). Falls back to the
     // deterministic template whenever the model is unreachable.
     'text' => [

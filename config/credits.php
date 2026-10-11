@@ -13,6 +13,11 @@ return [
             'remove_bg' => 5,
             'shadow' => 5,
             'expand' => 10,
+            // Conversational edit: the user's own instruction, so it costs
+            // the same as any other creative pass.
+            'custom' => 5,
+            // Priced per take, and a batch charges each take separately.
+            'variant' => 5,
             // upscale targets: hd is free-for-all, 2k/4k need a premium plan.
             'upscale' => ['hd' => 5, '2k' => 10, '4k' => 15],
         ],

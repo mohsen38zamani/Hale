@@ -67,4 +67,52 @@ class EditPromptBuilderTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->builder->build('magic');
     }
+
+    public function test_a_conversation_instruction_is_what_the_model_actually_reads(): void
+    {
+        $prompt = $this->builder->build('custom', ['message' => 'بطری را رو به چپ بچرخان']);
+
+        $this->assertStringContainsString('بطری را رو به چپ بچرخان', $prompt);
+        $this->assertStringContainsString('Keep everything you were not asked to change', $prompt);
+        // The tool guard would veto the request it is attached to: it forbids
+        // exactly the repositioning the user just asked for.
+        $this->assertStringNotContainsString('unchanged in position, colour and proportions', $prompt);
+    }
+
+    public function test_an_empty_conversation_instruction_is_rejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->builder->build('custom', ['message' => '   ']);
+    }
+
+    public function test_each_variant_take_changes_a_different_axis_of_the_same_product(): void
+    {
+        $prompts = array_map(
+            fn (int $index): string => $this->builder->build('variant', ['take_index' => $index]),
+            range(0, count(EditPromptBuilder::TAKES) - 1),
+        );
+
+        $this->assertCount(3, array_unique($prompts));
+        foreach ($prompts as $prompt) {
+            $this->assertStringContainsString('changing only', $prompt);
+            $this->assertStringContainsString('must stay exactly as it is', $prompt);
+        }
+    }
+
+    public function test_an_out_of_range_take_falls_back_to_the_first_axis(): void
+    {
+        $this->assertSame(
+            $this->builder->build('variant', ['take_index' => 0]),
+            $this->builder->build('variant', ['take_index' => 99]),
+        );
+    }
+
+    public function test_the_axes_exposed_to_the_api_carry_no_prompt_text(): void
+    {
+        foreach (EditPromptBuilder::takes() as $take) {
+            $this->assertArrayHasKey('key', $take);
+            $this->assertArrayHasKey('label', $take);
+            $this->assertArrayNotHasKey('clause', $take);
+        }
+    }
 }

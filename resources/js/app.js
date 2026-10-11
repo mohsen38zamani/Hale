@@ -322,6 +322,12 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 	const target = root.querySelector('[data-tool-target]');
 	const ratio = root.querySelector('[data-tool-ratio]');
 	const effect = root.querySelector('[data-tool-effect]');
+	const messageBox = root.querySelector('[data-tool-message]');
+	const countSelect = root.querySelector('[data-tool-count]');
+	const threadBox = root.querySelector('[data-tool-thread]');
+	const threadSteps = root.querySelector('[data-tool-thread-steps]');
+	const replyBox = root.querySelector('[data-tool-reply]');
+	const replyButton = root.querySelector('[data-tool-reply-run]');
 	const costLabel = root.querySelector('[data-tool-cost]');
 	const balanceLabel = root.querySelector('[data-tool-balance]');
 	const runButton = root.querySelector('[data-tool-run]');
@@ -331,8 +337,18 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 	const download = root.querySelector('[data-tool-download]');
 	const meta = root.querySelector('[data-tool-meta]');
 	let operation = 'remove_bg';
+	let lastEditId = null;
 	let objectUrl = null;
 	let polling = false;
+
+	const operationLabels = {
+		remove_bg: 'حذف پس‌زمینه',
+		upscale: 'ارتقای وضوح',
+		expand: 'بسط کادر',
+		shadow: 'سایه',
+		custom: 'ویرایش دلخواه',
+		variant: 'برداشت',
+	};
 
 	const setStatus = (text, isError = false) => {
 		if (!status) return;
@@ -343,6 +359,12 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 	const currentCost = () => {
 		const costs = imageToolsCosts?.costs;
 		if (!costs) return null;
+		if (operation === 'variants') {
+			// A batch is priced per take, so the label has to say what the
+			// batch costs, not what one of its takes costs.
+			const each = costs.variant ?? null;
+			return each == null ? null : each * Number(countSelect?.value || 2);
+		}
 		return operation === 'upscale'
 			? (costs.upscale?.[target?.value || 'hd'] ?? null)
 			: (costs[operation] ?? null);
@@ -393,6 +415,7 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 	};
 
 	const showResult = async (edit) => {
+		lastEditId = edit.id;
 		try {
 			const response = await authFetch(`/api/edits/${edit.id}/download`, { headers: { Accept: 'image/*' } });
 			if (!response.ok) throw new Error('دریافت نتیجه ممکن نیست.');
@@ -407,6 +430,7 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 			if (resultBox) resultBox.hidden = false;
 			if (meta) meta.textContent = `هزینه: ${edit.credits_spent} Credit`;
 			setStatus('✓ ویرایش با موفقیت تکمیل شد.');
+			await renderThread(edit.id);
 		} catch (error) {
 			setStatus(error.message, true);
 		}
@@ -458,13 +482,22 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 		if (operation === 'upscale' && target) payload.target = target.value;
 		if (operation === 'expand' && ratio) payload.aspect_ratio = ratio.value;
 		if (operation === 'shadow' && effect) payload.effect = effect.value;
+		if (operation === 'custom') {
+			const instruction = (messageBox?.value || '').trim();
+			if (instruction.length < 3) {
+				setStatus('تغییری که می‌خواهید را بنویسید.', true);
+				return;
+			}
+			payload.message = instruction;
+		}
+		if (operation === 'variants') payload.count = Number(countSelect?.value || 2);
 
 		if (runButton) runButton.disabled = true;
 		polling = true;
 		if (resultBox) resultBox.hidden = true;
 		setStatus('در حال ارسال درخواست...');
 		try {
-			const response = await authFetch('/api/edits', {
+			const response = await authFetch(operation === 'variants' ? '/api/edits/variants' : '/api/edits', {
 				method: 'POST',
 				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload),
@@ -482,6 +515,12 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 				}
 				return;
 			}
+			if (operation === 'variants') {
+				// A batch answers with the takes themselves; the preview shows
+				// the first one that lands, and the status counts the rest.
+				await pollBatch(result.data.map((take) => take.id));
+				return;
+			}
 			const edit = result.data;
 			if (edit.status === 'completed') {
 				settleRun();
@@ -496,11 +535,136 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 		}
 	};
 
+	// A batch has no single edit to poll, so the takes settle together and
+	// the run reports how many of them actually landed.
+	const pollBatch = async (ids, attempt = 0) => {
+		if (!polling) return;
+		setTimeout(async () => {
+			if (!polling) return;
+			try {
+				const responses = await Promise.all(ids.map((id) => authFetch(`/api/edits/${id}`, { headers: { Accept: 'application/json' } })));
+				const takes = [];
+				for (const response of responses) {
+					const result = await response.json();
+					if (!response.ok) throw new Error(result.error?.message || 'پیگیری نتیجه ممکن نیست.');
+					takes.push(result.data);
+				}
+				const pending = takes.filter((take) => take.status !== 'completed' && take.status !== 'failed');
+				if (pending.length) {
+					setStatus(`در حال پردازش ${takes.length - pending.length} از ${takes.length} برداشت...`);
+					pollBatch(ids, attempt + 1);
+					return;
+				}
+
+				settleRun();
+				const done = takes.filter((take) => take.status === 'completed');
+				if (!done.length) {
+					setStatus('هیچ‌یک از برداشت‌ها ساخته نشد؛ اعتبار پرداخت‌شده برگشت داده شد.', true);
+				} else {
+					await showResult(done[0]);
+					const failed = takes.length - done.length;
+					setStatus(`${done.length} برداشت آماده شد${failed ? `؛ ${failed} مورد ناموفق بود و اعتبارش برگشت خورد` : ''}.`);
+				}
+				await refreshCosts();
+			} catch (error) {
+				// Transient network blips: retry a few times before giving up.
+				if (attempt < 3) {
+					pollBatch(ids, attempt + 1);
+					return;
+				}
+				settleRun();
+				setStatus(error.message, true);
+			}
+		}, Math.min(10000, 2000 + attempt * 1500));
+	};
+
+	// The conversation behind the result: every step, oldest first, so the
+	// user can keep talking to the image instead of starting over.
+	const renderThread = async (editId) => {
+		if (!threadBox || !threadSteps) return;
+		try {
+			const response = await authFetch(`/api/edits/${editId}/thread`, { headers: { Accept: 'application/json' } });
+			if (!response.ok) return;
+			const steps = (await response.json()).data?.steps || [];
+			threadSteps.innerHTML = '';
+			if (steps.length < 2) {
+				threadBox.hidden = true;
+				return;
+			}
+			steps.forEach((step) => {
+				const row = document.createElement('div');
+				row.style.cssText = 'display: flex; gap: 8px; align-items: baseline; font-size: 11px; color: var(--text-secondary); padding: 3px 0; border-bottom: 1px dashed var(--border-subtle);';
+				const index = document.createElement('span');
+				index.textContent = String(steps.indexOf(step) + 1);
+				index.style.color = 'var(--text-muted)';
+				const label = document.createElement('span');
+				// textContent, never innerHTML: the message is the user's own
+				// words and the same rule applies here as in the inspector.
+				label.textContent = step.message || operationLabels[step.operation] || step.operation;
+				row.append(index, label);
+				threadSteps.appendChild(row);
+			});
+			threadBox.hidden = false;
+		} catch {
+			// The thread is an extra, not the result: never fail the run for it.
+			threadBox.hidden = true;
+		}
+	};
+
+	const sendReply = async () => {
+		const instruction = (replyBox?.value || '').trim();
+		if (!lastEditId) {
+			setStatus('ابتدا یک ویرایش اجرا کنید تا بتوانید ادامه دهید.', true);
+			return;
+		}
+		if (instruction.length < 3) {
+			setStatus('تغییری که می‌خواهید را بنویسید.', true);
+			return;
+		}
+
+		if (replyButton) replyButton.disabled = true;
+		polling = true;
+		if (resultBox) resultBox.hidden = true;
+		setStatus('در حال ارسال پیام...');
+		try {
+			const response = await authFetch('/api/edits', {
+				method: 'POST',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				body: JSON.stringify({ source_type: 'edit', source_id: lastEditId, operation: 'custom', message: instruction }),
+			});
+			const result = await response.json();
+			if (!response.ok) {
+				settleRun();
+				setStatus(result.error?.message || 'ادامه گفتگو انجام نشد.', true);
+				return;
+			}
+			if (replyBox) replyBox.value = '';
+			if (result.data.status === 'completed') {
+				settleRun();
+				await showResult(result.data);
+				return;
+			}
+			setStatus('در صف پردازش...');
+			pollEdit(result.data.id);
+		} catch (error) {
+			settleRun();
+			setStatus(error.message, true);
+		}
+	};
+
 	opButtons.forEach((button) => button.addEventListener('click', () => {
 		operation = button.dataset.toolOp;
 		applyOperation();
 	}));
-	[background, target, ratio, effect].forEach((control) => control?.addEventListener('change', refreshLabels));
+	[background, target, ratio, effect, countSelect].forEach((control) => control?.addEventListener('change', refreshLabels));
+	messageBox?.addEventListener('input', refreshLabels);
+	replyButton?.addEventListener('click', sendReply);
+	replyBox?.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			sendReply();
+		}
+	});
 	runButton?.addEventListener('click', run);
 	applyOperation();
 	loadImageToolsCosts()
@@ -510,8 +674,13 @@ const mountImageTools = (root, { sourceType, getSourceId }) => {
 	return {
 		reset() {
 			polling = false;
+			lastEditId = null;
 			if (runButton) runButton.disabled = false;
+			if (replyButton) replyButton.disabled = false;
 			if (resultBox) resultBox.hidden = true;
+			if (threadBox) threadBox.hidden = true;
+			if (threadSteps) threadSteps.innerHTML = '';
+			if (replyBox) replyBox.value = '';
 			setStatus('');
 		},
 	};

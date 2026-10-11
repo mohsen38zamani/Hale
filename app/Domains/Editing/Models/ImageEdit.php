@@ -10,15 +10,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ImageEdit extends Model
 {
-    public const OPERATIONS = ['remove_bg', 'upscale', 'expand', 'shadow'];
+    public const OPERATIONS = ['remove_bg', 'upscale', 'expand', 'shadow', 'custom', 'variant'];
 
-    public const SOURCE_TYPES = ['generation', 'product'];
+    // An edit may be fed by a previous edit, which is what makes a
+    // conversation possible; generation and product are the roots.
+    public const SOURCE_TYPES = ['generation', 'product', 'edit'];
 
     protected $fillable = [
         'user_id',
         'source_type',
         'source_id',
         'operation',
+        'message',
         'options',
         'status',
         'error_message',

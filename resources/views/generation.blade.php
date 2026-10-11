@@ -121,6 +121,8 @@
                     <button class="small-button" type="button" data-tool-op="upscale" aria-pressed="false">ارتقای وضوح</button>
                     <button class="small-button" type="button" data-tool-op="expand" aria-pressed="false">بسط کادر</button>
                     <button class="small-button" type="button" data-tool-op="shadow" aria-pressed="false">سایه و رفلکس</button>
+                    <button class="small-button" type="button" data-tool-op="custom" aria-pressed="false">ویرایش دلخواه</button>
+                    <button class="small-button" type="button" data-tool-op="variants" aria-pressed="false">چند برداشت</button>
                 </div>
 
                 <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px;">
@@ -156,6 +158,18 @@
                             <option value="reflection">رفلکس سه‌بعدی</option>
                         </select>
                     </label>
+                    <label data-tool-opt="custom" hidden style="font-size: 12px; color: var(--text-muted); display: flex; flex: 1; flex-direction: column; gap: 6px;">
+                        تغییری که می‌خواهید
+                        <textarea data-tool-message rows="2" placeholder="مثلاً: بطری را رو به چپ بچرخان" aria-label="متن ویرایش دلخواه" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0; resize: vertical; font-family: inherit;"></textarea>
+                    </label>
+                    <label data-tool-opt="variants" hidden style="font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+                        تعداد برداشت
+                        <select data-tool-count aria-label="تعداد برداشت‌ها" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0;">
+                            <option value="2">۲ برداشت</option>
+                            <option value="3">۳ برداشت</option>
+                            <option value="4">۴ برداشت</option>
+                        </select>
+                    </label>
                     <div style="display: flex; gap: 12px; align-items: center; margin-inline-start: auto;">
                         <span data-tool-cost style="font-size: 12px; color: var(--text-muted);"></span>
                         <button class="btn-aurora" type="button" data-tool-run style="padding: 8px 18px; font-size: 13px;">اجرا ✦</button>
@@ -169,6 +183,15 @@
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <a class="small-button" data-tool-download download style="text-decoration: none;">دانلود نتیجه ⬇</a>
                         <span data-tool-meta style="font-size: 11px; color: var(--text-muted);"></span>
+                    </div>
+                </div>
+
+                <div data-tool-thread hidden style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-size: 11px; color: var(--text-muted);">گفتگو روی این تصویر</span>
+                    <div data-tool-thread-steps style="display: flex; flex-direction: column; gap: 4px;"></div>
+                    <div style="display: flex; gap: 8px; align-items: flex-end;">
+                        <textarea data-tool-reply rows="1" placeholder="ادامه دهید؛ مثلاً: سایه را ملایم‌تر کن" aria-label="ادامه گفتگوی ویرایش" style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 6px 10px; color: #FFFFFF; font-size: 12px; outline: 0; resize: vertical; font-family: inherit;"></textarea>
+                        <button class="small-button" type="button" data-tool-reply-run>ارسال ↵</button>
                     </div>
                 </div>
             </div>
