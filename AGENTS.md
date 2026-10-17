@@ -38,15 +38,21 @@ docker compose run --rm app php artisan migrate --force           # مایگری
 
 ## ۴. وضعیت فعلی (آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۱۷)
 
-- HEAD: `3ef7d6a` — درخت **تمیز**
-- **۳ کامیت push‌نشده:** `3ef7d6a`، `9416238`، `a74349b` (تا وقتی کاربر نگوید push نکن)
-- suite: **۵۱۴ تست / ۴۹۸۸ assertion** سبز، Pint سبز، PHPStan بدون خطا، build سبز
+- HEAD: `e9fb80a` — درخت **تمیز**
+- **۷ کامیت push‌نشده** (بچ‌های استودیو: `745929a`، `fe5678a`، `10e1896`، `57ad1f6`، `e129aee`، `77f1f0d`، `e9fb80a`)
+  — تا وقتی کاربر نگوید push نکن؛ **فهرست را با `git log origin/main..HEAD` چک کن، نه از روی این خط** (سه کامیت قدیمی `3ef7d6a`/`9416238`/`a74349b` حالا روی `origin/main` هستند)
+- suite: **۵۸۲ تست / ۵۹۶۷ assertion** سبز، Pint سبز، PHPStan بدون خطا، build سبز
 - آخرین اجرای CI گیت‌هاب (run #14 روی `0656656`) **شکست خورده** — بخش ۷
 
 ### چه چیزهایی تا الان تحویل شده (خلاصه)
 - هستهٔ MVP: auth (ایمیل/موبایل + OTP)، محصولات و آپلود، نسل تصویر/ویدئو با صف و retry،
   کیف پول اعتباری، اشتراک و پرداخت زرین‌پال (webhook امضاشده و idempotent)، نوتیفیکیشن،
   admin و بازپرداخت، watermark، جستجو، تقویم محتوا و کمپین
+- **Product Creative Studio (بند ۱۲) — ۶ فاز از ۷ فاز در ۷ بچ:** ۱۰ صنف + `FidelityMode`/
+  `CreativeWorkflow`/`ReferenceMode`، مایگریشن و `brief()`، تزریق `CategoryPromptBuilder` در
+  ۱۲ کامپایلر، `ProductCompositor`، تحلیل دورگهٔ عکس محصول، رابط صنف + پریست‌های ۱-کلیکی +
+  اسلایدر قبل/بعد، و فریم مادر با کراپ‌های ۱:۱/۴:۵/۹:۱۶ — **فاز ۳ بند ۲ (پاسِ Inpainting
+  نانو بنان برای `foreground_invariant_inpainting`) باز است** (انحراف ۴ در `TODO.md`)
 - **AI Utility Tools** (حذف پس‌زمینه، سایه، بزرگ‌نمایی، Expand) با دامنهٔ `Editing`
 - **ویرایش مکالمه‌ای** (`EditThread`) با زنجیرهٔ edit، takeهای متعدد (Variants) و سقف `AI_MAX_EDIT_CHAIN=8`
 - **۱۲+ کامپایلر پرامپت** در `app/Domains/Creative/Prompts/*` + `PromptCompilerFactory`
@@ -60,6 +66,17 @@ docker compose run --rm app php artisan migrate --force           # مایگری
 - **`config/creative.php` منبع واحد گزینه‌های استودیو است:** `/api/creative/options`، چیپ‌های UI،
   `Rule::in` در validation و تمپلیت‌ها همه از همان config تغذیه می‌شوند → افزودن/تغییر آیتم
   در config خودکار در همه‌جا اعمال می‌شود.
+- **`config/creative_categories.php` منبع واحد ۱۰ صنف است** (`scale_lock`، `protected_features`،
+  `banned_words`، ۳ پریست هر صنف): انوم‌ها، `CategoryPromptBuilder`، `/api/creative/options` و
+  چیپ‌های `/create` از همان‌جا می‌خوانند؛ **بدونِ صنف در brief، خروجیِ هر ۱۲ کامپایلر باید
+  بایت‌به‌بایت قدیمی بماند** (تست قرارداد دارد).
+- **فریم مادر و کراپ‌ها (بند ۵.۲ مشخصات):** نسبت‌ها و سقف `max_dimension` از
+  `config('creative.master_canvas')` می‌آیند؛ `GET /api/generations/{id}/crop?ratio=...` اول
+  کراپ را می‌سازد و در `crops/{generationId}-{ratio}.{ext}` روی **همان دیسکِ media** ذخیره
+  می‌کند و بعدی‌ها همان را می‌خوانند → هر تستی که این مسیر را می‌زند باید `Storage::fake('s3')` داشته باشد.
+- **صنف، آینهٔ JS را به سرور می‌برد:** `asksServer = (targetKey && targetKey !== mirrorTargetKey) || Boolean(tradeKey)`
+  چون قفل مقیاس و guardrail فقط داخل کامپایلرها هستند؛ آینه فقط برای `generic` بدونِ صنف
+  بایت‌به‌بایت می‌ماند.
 - **ساخت پرامپت فقط سمت سرور است** (`CreativeEngine` + کامپایلرها). بازرس پرامپت در استودیو
   متن واقعی را از `POST /api/creative/preview` (`prompt_preview`) می‌گیرد و بین پاسخ‌ها
   یک آینهٔ فوری در `resources/js/app.js` دارد؛ اگر پرامپت را عوض کردی، **باید آینهٔ JS را هم
@@ -99,11 +116,11 @@ docker compose run --rm app php artisan migrate --force           # مایگری
 
 | خط | آیتم | وزن |
 |----|------|-----|
-| ۳۴۷ / ۶۵۵ | **استودیوی تخصصی تولید محتوای محصول** (۱۰ صنف) با معماری دوگانهٔ «کپی پرامپت خودکفا + ساخت مستقیم داخلی» — طبق `docs/Product_Creative_Studio_Specification_FA.md` | خیلی سنگین، چندبچ |
-| ۶۸۳ | **زیرساخت مالی و مدل درآمدی دو مسیرهٔ اعتباری** — طبق بیزینس پلن و PRD | سنگین |
-| ۳۴۸ | Organizations، Workspace، Team/RBAC و Public API | سنگین |
-| ۳۴۹ | White Label و Social Auto Publish | سنگین |
-| ۷۳۰–۷۳۲ | معیارهای خروج: پیاده‌سازی بندهای ۱۲ و ۱۳ + **حداقل ۲۰ کاربر beta** (این یکی **blocked** است: نیازمند استقرار روی سرور واقعی) | عملیاتی |
+| ۳۴۷ / ۶۵۶ | **استودیوی تخصصی تولید محتوای محصول** (۱۰ صنف) با معماری دوگانهٔ «کپی پرامپت خودکفا + ساخت مستقیم داخلی» — **۶ فاز از ۷ فاز بسته**؛ باقی‌مانده فقط «فاز ۳ بند ۲: پاسِ Inpainting محافظت لبه‌ای با نانو بنان» (نیازمند تأیید: فراخوانی AI پولی دوم) | یک بچ کوچک باقی مانده |
+| ۷۰۳ | **زیرساخت مالی و مدل درآمدی دو مسیرهٔ اعتباری** — طبق بیزینس پلن و PRD | سنگین |
+| ۳۴۹ | Organizations، Workspace، Team/RBAC و Public API | سنگین |
+| ۳۵۰ | White Label و Social Auto Publish | سنگین |
+| ۷۵۰–۷۵۲ | معیارهای خروج: پیاده‌سازی بندهای ۱۲ و ۱۳ + **حداقل ۲۰ کاربر beta** (این یکی **blocked** است: نیازمند استقرار روی سرور واقعی) | عملیاتی |
 
 بخش‌های بازتر P0/P1 و آیتم‌های ۱ تا ۱۱ باک‌لاگ بازطراحی **همه بسته شده‌اند** — دوباره بازشان نکن.
 

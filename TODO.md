@@ -345,6 +345,7 @@
   - [x] **Content Calendar و Campaign** — جدول‌های `campaigns`/`scheduled_posts` ([migration](file:///var/www/html/Hale'/database/migrations/2026_10_04_110000_create_campaigns_and_scheduled_posts_tables.php)) و [CalendarController](file:///var/www/html/Hale'/app/Domains/Calendar/Controllers/CalendarController.php): `GET/POST/PATCH/DELETE /api/calendar/posts` (بازهٔ تاریخ، مالکیت 404، `after_or_equal:today`، وضعیت draft|scheduled|published) + `GET/POST /api/campaigns` با ساخت پست‌های پلکانی start + i×interval (حداکثر ۳۰ پست، فاصلهٔ ۱ تا ۳۰ روز) و رد اتمیکی شناسه‌های غیرمالک.
   - پنل «تقویم محتوا» در داشبورد با `Intl.DateTimeFormat('fa-IR', {calendar:'persian'})` بدون پکیج جدید: گرید ماهانه با شمارش پست هر روز، لیست روز با تغییر وضعیت/تاریخ/حذف و فرم ساخت کمپین از خروجی‌های تکمیل‌شده؛ پوشش با `ContentCalendarTest` (۱۰ تست).
 - [ ] استودیوی هوشمند تخصصی تولید محتوای محصول (Product Creative Studio): استودیوهای ۱۰ صنف (طلا، ساعت، کفش...) با معماری دوگانهٔ کپی پرامپت خودکفا برای ۱۲ مدل هوش مصنوعی و ساخت مستقیم داخلی (طبق `docs/Product_Creative_Studio_Specification_FA.md`).
+  - **پیشرفت:** ۶ فاز از ۷ فاز در بخش ۱۲ بسته شد (۷ بچ، کامیت‌های `745929a` تا `e9fb80a`)؛ فقط «فاز ۳ — اتصال لایهٔ Inpainting محافظت لبه‌ای با نانو بنان» باز است و تصمیم/تأیید جدا می‌خواهد.
 - [ ] Organizations، Workspace، Team/RBAC و Public API.
 - [ ] White Label و Social Auto Publish.
 - [x] Image optimization/compression برای web delivery.
@@ -654,30 +655,49 @@
 ### ۱۲. استودیوی هوشمند تخصصی تولید محتوای محصول و کامپایلرهای چندمدلی (Product Creative Studio & Multi-Model Compilers)
 - [ ] **پیاده‌سازی معماری دوگانهٔ استودیو (کپی پرامپت خودکفا + ساخت مستقیم داخلی) طبق `docs/Product_Creative_Studio_Specification_FA.md`:**
   - **مسئله:** کاربران دو دسته‌اند؛ برخی دکمهٔ ساخت داخل سامانه را می‌زنند و برخی پرامپت مهندسی‌شده را برای استفاده در Midjourney، Flux، ChatGPT یا Stable Diffusion کپی می‌کنند. تمام هوش حفاظت و صحنه‌پردازی اصناف نمی‌تواند صرفاً در کدهای سرور پنهان بماند؛ کامپایلرهای پرامپت باید خودکفا باشند و هم‌زمان پایپ‌لاین تولید مستقیم نیز به درستی کار کند.
-  - [ ] **فاز ۱: هسته اصناف، انوم‌ها و کاتالوگ قواعد فیزیکی (Domain & Presets Core):**
-    - [ ] تعریف انوم‌های دامنه: `ProductCategory` (شامل ۱۰ صنف: jewelry, watches, shoes, perfumes, cosmetics, fashion, bags, eyewear, accessories, home_decor همراه با متدهای کمکی `isMacro()`, `defaultScaleInstruction()`).
-    - [ ] تعریف انوم‌های استراتژی: `FidelityMode` (`catalog_white_composite`, `foreground_invariant_inpainting`) و `CreativeWorkflow` (۶ گردش‌کار رسمی: quick_shot, catalog, lifestyle, seasonal, creative_campaign, custom) و `ReferenceMode` (`style_inspo`, `scene_inspo`).
-    - [ ] تدوین کاتالوگ جامع اصناف در `config/creative_categories.php` حاوی پایه‌ها، سطوح، پالت‌های نوری و واژگان ممنوعه به تفکیک هر صنف.
-    - [ ] مایگریشن‌های دیتابیس: افزودن ستون‌های `category` و `fidelity_mode` به جدول‌های `products` و `creative_projects`.
-  - [ ] **فاز ۲: تزریق قواعد اصناف و تثبیت مقیاس به کامپایلرهای ۱۲ مدل (Self-Contained Compilers):**
-    - [ ] پیاده‌سازی قرارداد `CategoryPromptDecoratorInterface` و ایجاد کلاس `CategoryPromptBuilder`.
-    - [ ] پیاده‌سازی قفل مقیاس فیزیکی (Physical Scale-Locking) برای طلا/جواهر (میکرو و ماکرو ۱۰۰mm)، ساعت (پروپورشن ۴۲mm)، کفش (ابعاد واقعی انسانی) و عطر (تناسب بطری ۱۰۰ml روی سطح).
-    - [ ] تزریق دستورات تثبیت ساختار و هندسه کالا (`Keep original product geometry, dials, prongs, and logos unchanged`) در پرامپت کامپایل‌شده برای Midjourney, Flux, SD, ChatGPT, Claude.
+  - [x] **فاز ۱: هسته اصناف، انوم‌ها و کاتالوگ قواعد فیزیکی (Domain & Presets Core):**
+    - [x] تعریف انوم‌های دامنه: `ProductCategory` (شامل ۱۰ صنف و متدهای کمکی `isMacro()`, `defaultScaleInstruction()`) — **انحراف ۱:** مجموعهٔ نهایی `jewelry, watches, shoes, perfumes, cosmetics, fashion, bags, electronics, home_decor, general` است؛ `eyewear`/`accessories` از فهرست مشخصات جاماندند و `electronics`/`general` جایگزین شدند.
+    - [x] تعریف انوم‌های استراتژی: `FidelityMode` (`catalog_white_composite`, `foreground_invariant_inpainting`) و `CreativeWorkflow` (۶ گردش‌کار رسمی: quick_shot, catalog, lifestyle, seasonal, creative_campaign, custom) و `ReferenceMode` (`style_inspo`, `scene_inspo`).
+    - [x] تدوین کاتالوگ جامع اصناف در `config/creative_categories.php` حاوی پایه‌ها، سطوح، پالت‌های نوری و واژگان ممنوعه به تفکیک هر صنف.
+    - [x] مایگریشن‌های دیتابیس: افزودن ستون‌های `category` و `fidelity_mode` به جدول‌های `products` و `creative_projects`.
+  - [x] **فاز ۲: تزریق قواعد اصناف و تثبیت مقیاس به کامپایلرهای ۱۲ مدل (Self-Contained Compilers):**
+    - [x] پیاده‌سازی قرارداد `CategoryPromptDecoratorInterface` و ایجاد کلاس `CategoryPromptBuilder`.
+    - [x] پیاده‌سازی قفل مقیاس فیزیکی (Physical Scale-Locking) برای طلا/جواهر (میکرو و ماکرو ۱۰۰mm)، ساعت (پروپورشن ۴۲mm)، کفش (ابعاد واقعی انسانی) و عطر (تناسب بطری ۱۰۰ml روی سطح).
+    - [x] تزریق دستورات تثبیت ساختار و هندسه کالا (`Keep original product geometry, dials, prongs, and logos unchanged`) در پرامپت کامپایل‌شده برای Midjourney, Flux, SD, ChatGPT, Claude.
   - [ ] **فاز ۳: پایپ‌لاین تولید و کامپوزیتینگ داخلی (Native Execution & Compositing Engine):**
-    - [ ] پیاده‌سازی سرویس `ProductCompositor` بر پایه PHP/GD برای حالت کاتالوگ سفید خالص (`#FFFFFF`) با سایه نرم تماسی (Grounding Shadow) بدون تغییر در پیکسل‌های کالا.
-    - [ ] اتصال به لایه Inpainting محافظت لبه‌ای (Specular Rim / Light Wrap) با نانو بنان برای صحنه‌های لوکس دکوراتیو با حفظ ۱۰۰٪ فرم و جزئیات کالا.
-  - [ ] **فاز ۴: تحلیل دورگه تصویر محصول (Hybrid Two-Stage Analyzer):**
-    - [ ] پیاده‌سازی لایه ۱ تحلیل محلی با PHP/GD (ابعاد، نسبت کادر، تشخیص لایه شفاف آلفا و سلامت هدر فایل در صفر ثانیه بدون هزینه API).
-    - [ ] پیاده‌سازی لایه ۲ بینایی ماشین سبک با Gemini Flash جهت تشخیص صنف و رنگ در قالب JSON سبک به صورت غیرمسدودکننده (Non-blocking).
-  - [ ] **فاز ۵: رابط کاربری هدایت‌شده استودیو `/create` (Guided Studio UI & Live Inspector):**
-    - [ ] طراحی ۳ پکیج پیشنهادی ۱-کلیکی برای هر صنف (مثلاً طلا: کاتالوگ سفید، مخمل مشکی، لایف‌استایل مینیمال).
-    - [ ] اسلایدر لمسی مقایسه قبل و بعد (Before/After Slider Overlay) در نمایش خروجی.
-    - [ ] اتصال پنل ویرایش تعاملی (Conversational Fix) بدون سوختن اعتبار تصادفی.
-  - [ ] **فاز ۶: بسته محتوایی چندکاناله بر پایه فریم مادر (Master Canvas & Safe-Zone Framing):**
-    - [ ] تولید صحنه با فریم مادر متناسب با منطقه امن (Safe Zone).
-    - [ ] استخراج هوشمند نسبت‌های ۱:۱ (پست)، ۴:۵ (فید) و ۹:۱۶ (استوری با فضای منفی برای قیمت/استیکر) با ۱ درخواست بدون هزینه رندرهای مکرر.
-  - [ ] **فاز ۷: تست‌های انتها-به-انتها و اعتبارسنجی نهایی:**
-    - [ ] پوشش کامل با تست‌های واحد و Feature برای هر صنف، تست‌های نگبان پرامپت و تضمین سبز بودن ابزارهای ۴گانه.
+    - [x] پیاده‌سازی سرویس `ProductCompositor` بر پایه PHP/GD برای حالت کاتالوگ سفید خالص (`#FFFFFF`) با سایه نرم تماسی (Grounding Shadow) بدون تغییر در پیکسل‌های کالا — متصل به `ProcessGeneration` و فقط وقتی `fidelity_mode=catalog_white_composite` است.
+    - [ ] اتصال به لایه Inpainting محافظت لبه‌ای (Specular Rim / Light Wrap) با نانو بنان برای صحنه‌های لوکس دکوراتیو با حفظ ۱۰۰٪ فرم و جزئیات کالا. **باز است:** مسیر `foreground_invariant_inpainting` امروز فقط در `brief` و قالب‌ها ثبت می‌شود و هیچ پاسِ پس‌پردازشی ندارد؛ موتور ویرایش نانو بنان در دامنهٔ `Editing` وجود دارد ولی به این حالت وصل نیست. چون این پاس یک فراخوانی AI پولی دوم است، اجرایش تصمیم/تأیید جدا می‌خواهد (انحراف ۴).
+  - [x] **فاز ۴: تحلیل دورگه تصویر محصول (Hybrid Two-Stage Analyzer):**
+    - [x] پیاده‌سازی لایه ۱ تحلیل محلی با PHP/GD (ابعاد، نسبت کادر، تشخیص لایه شفاف آلفا و سلامت هدر فایل در صفر ثانیه بدون هزینه API).
+    - [x] پیاده‌سازی لایه ۲ بینایی ماشین سبک با Gemini Flash جهت تشخیص صنف و رنگ در قالب JSON سبک به صورت غیرمسدودکننده (Non-blocking) — **انحراف ۲:** روی `MediaAsset` عکس اصلی محصول سوار شد نه روی `Generation`، چون اندپوینت روی محصول است؛ قرارداد API و هزینه تغییری نکرد.
+  - [x] **فاز ۵: رابط کاربری هدایت‌شده استودیو `/create` (Guided Studio UI & Live Inspector):**
+    - [x] طراحی ۳ پکیج پیشنهادی ۱-کلیکی برای هر صنف (مثلاً طلا: کاتالوگ سفید، مخمل مشکی، لایف‌استایل مینیمال).
+    - [x] اسلایدر لمسی مقایسه قبل و بعد (Before/After Slider Overlay) در نمایش خروجی.
+    - [x] اتصال پنل ویرایش تعاملی (Conversational Fix) بدون سوختن اعتبار تصادفی.
+  - [x] **فاز ۶: بسته محتوایی چندکاناله بر پایه فریم مادر (Master Canvas & Safe-Zone Framing):**
+    - [x] تولید صحنه با فریم مادر متناسب با منطقه امن (Safe Zone).
+    - [x] استخراج هوشمند نسبت‌های ۱:۱ (پست)، ۴:۵ (فید) و ۹:۱۶ (استوری با فضای منفی برای قیمت/استیکر) با ۱ درخواست بدون هزینه رندرهای مکرر — `MasterCanvasCropper` + `GET /api/generations/{id}/crop?ratio=...` با کراپ لنگرگرفته روی سوژه و کشِ سمت دیسک.
+  - [x] **فاز ۷: تست‌های انتها-به-انتها و اعتبارسنجی نهایی:**
+    - [x] پوشش کامل با تست‌های واحد و Feature برای هر صنف، تست‌های نگبان پرامپت و تضمین سبز بودن ابزارهای ۴گانه.
+
+  - **بسته‌شدن در ۷ بچ با کامیت مستقل (هر بچ با سبز شدن test + pint + phpstan + build):**
+
+    | بچ | کامیت | تحویل |
+    |----|-------|-------|
+    | ۱ | `745929a` | انوم‌ها + `config/creative_categories.php` (۱۰ صنف، ۳ پریست هر صنف) + اکسپوز `categories`/`fidelity_modes` |
+    | ۲ | `fe5678a` | مایگریشن `category`/`fidelity_mode` روی `products` و `creative_projects` + validation + حمل در `brief()` |
+    | ۳ | `10e1896` | `CategoryPromptBuilder` + تزریق در ۱۲ کامپایلر + تست‌های قرارداد کامپایلرها |
+    | ۴ | `57ad1f6` | `ProductCompositor` (کاتالوگ سفید ۱۶۰۰×۱۶۰۰ + سایهٔ تماسی) + اتصال در `ProcessGeneration` |
+    | ۵ | `e129aee` | تحلیل دورگهٔ تصویر محصول + `GET /api/products/{product}/analysis` |
+    | ۶ | `77f1f0d` | انتخاب‌گر صنف، بسته‌های ۱-کلیکی، فیدلیتی و اسلایدر قبل/بعد در صفحهٔ خروجی |
+    | ۷ | `e9fb80a` | فریم مادر و کراپ‌های ۱:۱/۴:۵/۹:۱۶ + فاز ۷ (تست‌های انتها-به-انتها) |
+
+  - **انحراف‌های ثبت‌شده (بند ۴ قواعد همکاری):**
+    - **انحراف ۱ — مجموعهٔ صنف‌ها:** فهرست مشخصات (`eyewear`, `accessories`) با `electronics` و `general` عوض شد؛ `general` حالت بدون صنف است و بدون آن، خروجیِ ۱۲ کامپایلر برای کاربری که صنفی انتخاب نمی‌کند باید بایت‌به‌بایت قدیمی بماند.
+    - **انحراف ۲ — تحلیلگر روی `MediaAsset` نه `Generation`:** اندپوینت تحلیل روی محصول است، پس لایهٔ ۱ و ۲ روی عکسِ اصلیِ محصول سوار شد؛ رفتار، قرارداد API و هزینه تغییری نکرد.
+    - **انحراف ۳ — badge تأثیر برای صنف اضافه نشد:** صنف «حفاظت اصالت» است نه کنترل صحنه؛ افزودنش به `config('creative.impacts')` شمارش‌های قفل‌شدهٔ `CreativeImpactTest`/`SceneEffectsTest`/`summary_template` را می‌شکست. پس fieldset صنف بدون `data-impact-hint` است و ۹ کنترلِ قبلی دست‌نخورده ماند.
+    - **انحراف ۴ — فاز ۳ بند ۲ باز ماند:** (بالا، زیر همان بند ثبت شد.)
+  - **وضعیت چک‌ها در پایان بچ ۷:** ۵۸۲ تست / ۵۹۶۷ assertion سبز، Pint سبز، PHPStan بدون خطا، build سبز.
 
 ### ۱۳. پیاده‌سازی زیرساخت مالی و مدل درآمدی دو مسیره مبتنی بر اعتبار (Dual-Track Credit Architecture & Unit Economics Engine)
 - [ ] **پیاده‌سازی مدل درآمدی و اعتباری مصوب پلتفرم طبق مستندات بیزینس پلن و PRD:**
