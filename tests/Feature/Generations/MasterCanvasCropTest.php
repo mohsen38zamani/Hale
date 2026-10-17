@@ -141,6 +141,20 @@ class MasterCanvasCropTest extends TestCase
         Storage::disk('s3')->assertMissing("crops/{$generation->id}-21x9.png");
     }
 
+    public function test_a_master_that_vanished_from_the_disk_is_reported_not_found(): void
+    {
+        Storage::fake('s3');
+        $generation = $this->completedGeneration($this->png(800, 800));
+        Sanctum::actingAs($generation->user);
+        Storage::disk('s3')->delete($generation->outputMedia->path);
+
+        $this->getJson("/api/generations/{$generation->id}/crop?ratio=1:1")
+            ->assertStatus(404)
+            ->assertJsonPath('error.code', 'OUTPUT_NOT_FOUND');
+
+        Storage::disk('s3')->assertMissing("crops/{$generation->id}-1x1.png");
+    }
+
     public function test_a_video_has_no_master_frame_to_cut(): void
     {
         Storage::fake('s3');

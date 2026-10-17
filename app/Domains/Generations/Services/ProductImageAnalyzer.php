@@ -28,6 +28,9 @@ class ProductImageAnalyzer implements ProductImageAnalyzerInterface
     /** عمر پیشنهاد دورگه (۷ روز). */
     public const CACHE_TTL = 60 * 60 * 24 * 7;
 
+    /** عمر نشانگر شکست لایهٔ بینایی (۱ ساعت): نرخِ دوباره‌صف‌شدن را سقف می‌زند. */
+    public const FAILURE_TTL = 60 * 60;
+
     /** حداقل عرض/ارتفاع برای تحلیل. */
     public const MIN_SIDE = 256;
 
@@ -66,7 +69,7 @@ class ProductImageAnalyzer implements ProductImageAnalyzerInterface
         ];
     }
 
-    public function suggestion(MediaAsset $asset): array
+    public function suggestion(MediaAsset $asset, ?array $local = null): array
     {
         $cached = Cache::get(self::CACHE_PREFIX.$asset->id);
 
@@ -74,8 +77,16 @@ class ProductImageAnalyzer implements ProductImageAnalyzerInterface
             return ['status' => 'ready', 'suggestion' => $cached];
         }
 
-        if (! $this->analyzeLocally($asset)['analyzable']) {
+        $local ??= $this->analyzeLocally($asset);
+
+        if (! $local['analyzable']) {
             return ['status' => 'none', 'suggestion' => null];
+        }
+
+        // نشانگر شکستِ تازه یعنی همان فراخوانی پولی تازه تکرار می‌شد؛ تا
+        // سررسید نشانگر، «در دسترس نیست» صادقانه‌تر از صف‌زدن دوباره است.
+        if (Cache::get($this->failureKey((int) $asset->id))) {
+            return ['status' => 'unavailable', 'suggestion' => null];
         }
 
         // لایهٔ ۲ فقط در صف اجرا می‌شود؛ پاسخ API هرگز منتظر شبکه نمی‌ماند.
@@ -89,12 +100,16 @@ class ProductImageAnalyzer implements ProductImageAnalyzerInterface
         $binary = $this->readBinary($asset);
 
         if ($binary === null) {
+            $this->markFailure((int) $asset->id);
+
             return;
         }
 
         $apiKey = (string) config('ai.providers.google.api_key');
 
         if ($apiKey === '') {
+            $this->markFailure((int) $asset->id);
+
             return;
         }
 
@@ -119,6 +134,7 @@ TEXT;
             ])->json();
         } catch (\Throwable $e) {
             Log::info('trade-analysis-vision-failed', ['asset' => $asset->id, 'error' => $e->getMessage()]);
+            $this->markFailure((int) $asset->id);
 
             return;
         }
@@ -127,6 +143,8 @@ TEXT;
         $parsed = $this->parseJson($text);
 
         if ($parsed === null) {
+            $this->markFailure((int) $asset->id);
+
             return;
         }
 
@@ -141,6 +159,18 @@ TEXT;
         ];
 
         Cache::put(self::CACHE_PREFIX.$asset->id, $result, self::CACHE_TTL);
+        Cache::forget($this->failureKey((int) $asset->id));
+    }
+
+    /** کلید نشانگر شکست اخیر لایهٔ بینایی برای یک تصویر. */
+    private function failureKey(int $assetId): string
+    {
+        return self::CACHE_PREFIX.$assetId.'.failed';
+    }
+
+    private function markFailure(int $assetId): void
+    {
+        Cache::put($this->failureKey($assetId), true, self::FAILURE_TTL);
     }
 
     /**

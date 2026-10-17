@@ -151,6 +151,23 @@ class ProductAnalysisTest extends TestCase
         $this->assertNull(Cache::get(ProductImageAnalyzer::CACHE_PREFIX.$asset->id));
     }
 
+    public function test_a_recent_vision_failure_is_backed_off_not_requeued_per_request(): void
+    {
+        Storage::fake('s3');
+        Queue::fake();
+        config(['ai.providers.google.api_key' => 'test-key']);
+        $asset = $this->assetWith($this->pngWithAlpha());
+        $analyzer = app(ProductImageAnalyzer::class);
+
+        Http::fake(fn () => Http::response('boom', 500));
+        $analyzer->analyzeWithVision($asset);
+
+        // Each /analysis hit must not stack up a fresh paid vision call;
+        // the failure marker buys an hour of silence instead.
+        $this->assertSame('unavailable', $analyzer->suggestion($asset)['status']);
+        Queue::assertNotPushed(AnalyzeProductTrade::class);
+    }
+
     public function test_a_product_without_assets_is_rejected(): void
     {
         Storage::fake('s3');

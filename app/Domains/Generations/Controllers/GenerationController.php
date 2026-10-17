@@ -483,8 +483,14 @@ class GenerationController extends Controller
         $path = sprintf('crops/%d-%s.%s', $generation->id, str_replace(':', 'x', $ratio), $this->extension($mime));
 
         if (! $disk->exists($path)) {
+            $master = $disk->get($media->path);
+
+            if ($master === null) {
+                return $this->failure('OUTPUT_NOT_FOUND', 'فایل خروجی این تولید در دسترس نیست.', 404);
+            }
+
             $frame = $cropper->frame(
-                (string) $disk->get($media->path),
+                $master,
                 $media->mime,
                 $definition,
                 (int) config('creative.master_canvas.max_dimension', 1600)

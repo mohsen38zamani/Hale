@@ -88,7 +88,7 @@ class ProductController extends Controller
         }
 
         $local = $analyzer->analyzeLocally($asset);
-        $suggestion = $analyzer->suggestion($asset);
+        $suggestion = $analyzer->suggestion($asset, $local);
 
         return $this->success([
             'local' => $local,
