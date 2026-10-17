@@ -12,6 +12,22 @@ return [
         'foreground_invariant_inpainting' => 'صحنه‌سازی با حفظ پیش‌زمینه (فقط اطراف محصول تغییر می‌کند)',
     ],
 
+    // Spec 5.2 - the master canvas: the scene is rendered once and every
+    // channel frame is cut from that one master, so three sizes never cost
+    // three model calls. The studio offers exactly these keys and the
+    // cropper refuses anything else, so adding a ratio here is all it takes
+    // to sell a new channel.
+    'master_canvas' => [
+        'ratios' => [
+            '1:1' => ['w' => 1, 'h' => 1, 'label' => '۱:۱ — پست و کاتالوگ'],
+            '4:5' => ['w' => 4, 'h' => 5, 'label' => '۴:۵ — فید اینستاگرام'],
+            '9:16' => ['w' => 9, 'h' => 16, 'label' => '۹:۱۶ — استوری'],
+        ],
+        // Longest edge of a derived frame: a bigger master is scaled down to
+        // it and a smaller one is never blown up past its own pixels.
+        'max_dimension' => 1600,
+    ],
+
     // How strongly a scene control steers the final image. `short` is the
     // compact chip tag, `hint` is the caption/tooltip explaining the effect.
     'impact_levels' => [

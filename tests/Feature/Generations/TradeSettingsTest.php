@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Generations;
 
+use App\Domains\Creative\Prompts\CategoryPromptBuilder;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -130,5 +131,45 @@ class TradeSettingsTest extends TestCase
         $this->patchJson("/api/products/{$product}", ['category' => 'cosmetics'])
             ->assertOk()
             ->assertJsonPath('data.category', 'cosmetics');
+    }
+
+    /**
+     * Phase 7: every trade, end to end. The copied prompt is the half of the
+     * studio that has to survive without the server behind it, so each of the
+     * ten trades must reach the text a user copies carrying both clauses the
+     * trade owns - the scale lock and the "keep ... unchanged" guardrail -
+     * whatever the engine compiled it through.
+     */
+    public function test_every_trade_reaches_the_copied_prompt_with_its_scale_and_guardrail(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $builder = new CategoryPromptBuilder;
+
+        foreach (array_keys((array) config('creative_categories.categories')) as $trade) {
+            $key = (string) $trade;
+            $product = $user->products()->create(['name' => "کالای {$key}"]);
+
+            $prompt = $this->postJson('/api/creative/preview', [
+                'product_id' => $product->id,
+                'goal' => 'sales',
+                'category' => $key,
+            ])
+                ->assertOk()
+                ->assertJsonPath('data.category', $key)
+                ->json('data.prompt_preview');
+
+            $this->assertIsString($prompt, "Trade [{$key}] produced no prompt at all.");
+            $this->assertStringContainsString(
+                $builder->scale($key),
+                $prompt,
+                "The [{$key}] prompt lost its physical scale lock."
+            );
+            $this->assertStringContainsString(
+                $builder->guardrail($key),
+                $prompt,
+                "The [{$key}] prompt lost the features no model may redraw."
+            );
+        }
     }
 }

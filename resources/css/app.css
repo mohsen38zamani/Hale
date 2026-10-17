@@ -1917,6 +1917,41 @@ html.has-stage-product .mini-product::before {
   z-index: 3;
 }
 
+/* Master canvas: the channel frames cut from the one render. */
+.crop-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 14px 18px;
+}
+
+.crop-row-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.crop-link {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 7px 14px;
+  text-decoration: none;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.crop-link:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
 .stage-product {
   position: absolute;
   inset: 0;

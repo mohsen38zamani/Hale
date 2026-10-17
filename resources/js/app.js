@@ -2806,6 +2806,7 @@ if (generationPage) {
 	const baHandle = document.querySelector('[data-ba-handle]');
 	const baRange = document.querySelector('[data-ba-range]');
 	const baHint = document.querySelector('[data-ba-hint]');
+	const cropRow = document.querySelector('[data-crop-row]');
 	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.', cancelled: 'تولید لغو شد.' };
 	let outputUrl;
 	let originalUrl;
@@ -2913,6 +2914,14 @@ if (generationPage) {
 				if (baPanel) baPanel.hidden = true;
 			} else {
 				void setupCompare(generation, output.url);
+			}
+			// The channel frames are cuts of this very render, so they open
+			// only for a still - a clip has no master frame to crop from.
+			if (cropRow && !isVideo) {
+				cropRow.querySelectorAll('[data-crop]').forEach((link) => {
+					link.href = `/api/generations/${generationId}/crop?ratio=${encodeURIComponent(link.dataset.crop)}`;
+				});
+				cropRow.hidden = false;
 			}
 			actions.hidden = false;
 			const downloadLink = document.querySelector('[data-download]');

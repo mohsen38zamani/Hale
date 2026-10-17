@@ -89,6 +89,16 @@
                     </div>
                     <p class="form-message" data-ba-hint role="status" style="margin: 10px 0 0; font-size: 12px;"></p>
                 </div>
+
+                {{-- Master canvas (spec 5.2): the channel frames of this one
+                     render. They are cuts, not calls, so the row only opens
+                     once a still output actually exists to cut from. --}}
+                <div class="crop-row" data-crop-row hidden>
+                    <span class="crop-row-label">نسخه‌های چندکاناله:</span>
+                    @foreach ((array) config('creative.master_canvas.ratios') as $ratioKey => $ratio)
+                        <a class="crop-link" data-crop="{{ $ratioKey }}" href="#" download>{{ $ratio['label'] }}</a>
+                    @endforeach
+                </div>
             </div>
 
             {{-- Result Actions Buttons --}}

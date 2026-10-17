@@ -17,6 +17,7 @@ use App\Domains\Generations\Jobs\ProcessGeneration;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Generations\Requests\BulkGenerationRequest;
 use App\Domains\Generations\Requests\StoreGenerationRequest;
+use App\Domains\Generations\Services\MasterCanvasCropper;
 use App\Domains\Generations\Services\RetryGeneration;
 use App\Domains\Media\Services\ImageOptimizer;
 use App\Domains\Products\Models\Product;
@@ -445,6 +446,67 @@ class GenerationController extends Controller
             fpassthru($stream);
             fclose($stream);
         }, "generation-{$generation->id}.{$this->extension($mime)}", ['Content-Type' => $mime] + $cacheHeaders);
+    }
+
+    /**
+     * The master canvas (spec 5.2): 1:1, 4:5 and 9:16 frames cut out of the
+     * render that already exists. Every ratio is derived pixels, so the whole
+     * package costs one render and the extracts are free - which is the whole
+     * point of cutting them here instead of asking the model three times.
+     *
+     * The first request does the cut and stores it beside the master; the
+     * next ones read the stored frame, so the work happens once per ratio
+     * even though the endpoint is a plain download.
+     */
+    public function crop(Request $request, Generation $generation, MasterCanvasCropper $cropper)
+    {
+        abort_unless($generation->user_id === $request->user()->id, 404);
+        $media = $generation->outputMedia;
+        abort_unless($generation->status === 'completed' && $media !== null, 404);
+
+        if (! str_starts_with((string) $media->mime, 'image/')) {
+            return $this->failure('OUTPUT_NOT_IMAGE', 'این خروجی ویدئو است؛ بستهٔ چندکاناله فقط برای تصویر معنا دارد.', 415);
+        }
+
+        $ratios = (array) config('creative.master_canvas.ratios');
+        $ratio = (string) $request->query('ratio', (string) array_key_first($ratios));
+        $definition = $ratios[$ratio] ?? null;
+        if (! is_array($definition)) {
+            return $this->failure('UNSUPPORTED_RATIO', 'این نسبت تصویر پشتیبانی نمی‌شود.', 422);
+        }
+
+        $disk = Storage::disk($media->disk);
+        // What a frame is stored as, decided before the file exists: the
+        // encoder answers png for any format it cannot write back, and the
+        // cached branch has to name and type the same bytes the first one did.
+        $mime = in_array($media->mime, ['image/png', 'image/jpeg', 'image/webp'], true) ? $media->mime : 'image/png';
+        $path = sprintf('crops/%d-%s.%s', $generation->id, str_replace(':', 'x', $ratio), $this->extension($mime));
+
+        if (! $disk->exists($path)) {
+            $frame = $cropper->frame(
+                (string) $disk->get($media->path),
+                $media->mime,
+                $definition,
+                (int) config('creative.master_canvas.max_dimension', 1600)
+            );
+            if ($frame === null) {
+                return $this->failure('UNREADABLE_OUTPUT', 'خروجی این تولید قابل خواندن نیست.', 422);
+            }
+            $disk->put($path, $frame['bytes']);
+        }
+
+        $etag = HttpCache::etag($generation->getKey(), $path, $generation->updated_at?->getTimestamp() ?? 0);
+        $cacheHeaders = ['Cache-Control' => 'private, max-age=86400', 'ETag' => $etag];
+        if (HttpCache::notModified($request, $etag)) {
+            return response('', 304, $cacheHeaders);
+        }
+
+        return response()->streamDownload(function () use ($disk, $path): void {
+            $stream = $disk->readStream($path);
+            abort_unless(is_resource($stream), 404);
+            fpassthru($stream);
+            fclose($stream);
+        }, sprintf('generation-%d-%s.%s', $generation->id, str_replace(':', 'x', $ratio), $this->extension($mime)), ['Content-Type' => $mime] + $cacheHeaders);
     }
 
     /**
