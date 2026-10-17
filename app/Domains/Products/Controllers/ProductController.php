@@ -3,6 +3,7 @@
 namespace App\Domains\Products\Controllers;
 
 use App\Domains\Favorites\Services\FavoriteService;
+use App\Domains\Generations\Services\ProductImageAnalyzer;
 use App\Domains\Media\Services\MediaUploadService;
 use App\Domains\Products\Models\Product;
 use App\Domains\Products\Requests\StoreProductRequest;
@@ -72,6 +73,28 @@ class ProductController extends Controller
         }
 
         return $this->success(['message' => 'محصول حذف شد.']);
+    }
+
+    public function analysis(Request $request, Product $product, ProductImageAnalyzer $analyzer): JsonResponse
+    {
+        $this->ensureOwner($request, $product);
+
+        $asset = $product->assets()
+            ->wherePivot('is_primary', true)
+            ->first() ?? $product->assets()->first();
+
+        if (! $asset) {
+            return $this->error('product.no_asset', 'برای این محصول تصویری آپلود نشده است؛ ابتدا عکس محصول را اضافه کنید.', 422);
+        }
+
+        $local = $analyzer->analyzeLocally($asset);
+        $suggestion = $analyzer->suggestion($asset);
+
+        return $this->success([
+            'local' => $local,
+            'suggestion_status' => $suggestion['status'],
+            'suggestion' => $suggestion['suggestion'],
+        ]);
     }
 
     private function ensureOwner(Request $request, Product $product): void

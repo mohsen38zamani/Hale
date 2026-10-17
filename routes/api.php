@@ -71,6 +71,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/products/{product}/assets', [ProductAssetController::class, 'store']);
     Route::get('/products/{product}/assets/{asset}/download', [ProductAssetController::class, 'download']);
     Route::delete('/products/{product}/assets/{asset}', [ProductAssetController::class, 'destroy']);
+    Route::get('/products/{product}/analysis', [ProductController::class, 'analysis']);
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
     Route::get('/creative/options', [CreativeController::class, 'options']);

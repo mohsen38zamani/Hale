@@ -55,6 +55,9 @@ return [
             'base_url' => env('GOOGLE_AI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
             'imagen_model' => env('GOOGLE_IMAGEN_MODEL', 'imagen-3.0-generate-002'),
             'text_model' => env('GOOGLE_TEXT_MODEL', 'gemini-2.0-flash'),
+            // Trade analysis (category/style detection) — the only vision call
+            // that runs outside a generation, so it gets its own model knob.
+            'vision_model' => env('GOOGLE_VISION_MODEL', 'gemini-2.5-flash'),
             'edit_model' => env('GOOGLE_IMAGE_EDIT_MODEL', 'gemini-2.5-flash-image'),
             'veo_model' => env('GOOGLE_VEO_MODEL', 'veo-2.0-generate-001'),
             'timeout' => (int) env('GOOGLE_AI_TIMEOUT', 60),
