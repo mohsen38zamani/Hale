@@ -124,6 +124,26 @@ class CreativeEngine
             }
         }
 
+        // The trade the scene is built for. The studio's explicit choice
+        // wins; the product's own trade is the fallback, so a jewelry shot
+        // gets its scale lock even when nobody re-picked the trade in the
+        // form. Absent both, the brief stays free of the key and the
+        // compilers stay exactly as generic as they were before the trade
+        // studios existed.
+        $category = filled($settings['category'] ?? null)
+            ? (string) $settings['category']
+            : ($product->category?->value ?? null);
+        if ($category !== null) {
+            $brief['category'] = $category;
+        }
+
+        // Which fidelity pipeline the scene belongs to: the pure white
+        // catalog composite or the guarded inpainting. A generation that
+        // chose neither keeps the behavior it always had.
+        if (filled($settings['fidelity_mode'] ?? null)) {
+            $brief['fidelity_mode'] = (string) $settings['fidelity_mode'];
+        }
+
         // Redesign 6: which model the prompt is written for travels inside the
         // brief, exactly like the campaign pack, so the compiled prompt, the
         // stored project and the preview endpoint all read one value. An empty

@@ -2,7 +2,9 @@
 
 namespace App\Domains\Products\Requests;
 
+use App\Domains\Creative\Enums\ProductCategory;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -17,6 +19,7 @@ class UpdateProductRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'status' => ['sometimes', 'in:active,archived'],
+            'category' => ['sometimes', 'nullable', 'string', Rule::enum(ProductCategory::class)],
         ];
     }
 
@@ -27,6 +30,7 @@ class UpdateProductRequest extends FormRequest
             'name.max' => 'نام محصول نمی‌تواند بیش از ۱۵۰ کاراکتر باشد.',
             'description.max' => 'توضیحات محصول نمی‌تواند بیش از ۵۰۰۰ کاراکتر باشد.',
             'status.in' => 'وضعیت محصول باید یکی از موارد active یا archived باشد.',
+            'category.enum' => 'صنف محصول انتخاب‌شده نامعتبر است.',
         ];
     }
 }

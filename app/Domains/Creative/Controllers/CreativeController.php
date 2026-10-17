@@ -67,7 +67,7 @@ class CreativeController extends Controller
         // inspector has to quote the prompt the user is looking at, not the
         // one autoBest would have proposed in its place. Blank inputs keep
         // the suggested value, which is why filled() decides.
-        foreach (['style', 'format', 'environment', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'target_ai'] as $key) {
+        foreach (['style', 'format', 'environment', 'category', 'fidelity_mode', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'target_ai'] as $key) {
             if ($request->filled($key)) {
                 $settings[$key] = $request->input($key);
             }

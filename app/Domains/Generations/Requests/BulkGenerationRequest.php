@@ -6,6 +6,8 @@ use App\Domains\AI\Services\PromptModerator;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
+use App\Domains\Creative\Enums\FidelityMode;
+use App\Domains\Creative\Enums\ProductCategory;
 use App\Domains\Creative\Rules\CompilableTargetAi;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,6 +32,8 @@ class BulkGenerationRequest extends FormRequest
             'style' => ['sometimes', Rule::enum(CreativeStyle::class)],
             'format' => ['sometimes', Rule::enum(CreativeFormat::class)],
             'environment' => ['sometimes', Rule::in(config('creative.environments'))],
+            'category' => ['sometimes', 'nullable', 'string', Rule::enum(ProductCategory::class)],
+            'fidelity_mode' => ['sometimes', 'nullable', 'string', Rule::enum(FidelityMode::class)],
             'video_duration_seconds' => [Rule::requiredIf(fn (): bool => in_array($this->input('format'), ['instagram_reel', 'tiktok'], true)), 'nullable', 'integer', Rule::in(config('creative.video_durations'))],
             'custom_prompt' => ['nullable', 'string', 'max:1000'],
             'surface' => ['sometimes', Rule::in(array_keys(config('creative.surfaces')))],
@@ -72,6 +76,8 @@ class BulkGenerationRequest extends FormRequest
             'style.enum' => 'سبک انتخاب‌شده نامعتبر است.',
             'format.enum' => 'قالب خروجی انتخاب‌شده نامعتبر است.',
             'environment.in' => 'محیط صحنه انتخاب‌شده نامعتبر است.',
+            'category.enum' => 'صنف محصول انتخاب‌شده نامعتبر است.',
+            'fidelity_mode.enum' => 'حالت حفظ اصالت انتخاب‌شده نامعتبر است.',
             'video_duration_seconds.required' => 'برای تولید ویدیو، تعیین مدت زمان الزامی است.',
             'video_duration_seconds.in' => 'مدت زمان ویدیوی انتخاب‌شده معتبر نیست.',
             'custom_prompt.string' => 'توضیحات دلخواه باید به صورت متن باشد.',

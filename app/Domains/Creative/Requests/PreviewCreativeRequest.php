@@ -5,6 +5,8 @@ namespace App\Domains\Creative\Requests;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
+use App\Domains\Creative\Enums\FidelityMode;
+use App\Domains\Creative\Enums\ProductCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,6 +34,8 @@ class PreviewCreativeRequest extends FormRequest
             'style' => ['sometimes', Rule::enum(CreativeStyle::class)],
             'format' => ['sometimes', Rule::enum(CreativeFormat::class)],
             'environment' => ['nullable', Rule::in(config('creative.environments'))],
+            'category' => ['nullable', 'string', Rule::enum(ProductCategory::class)],
+            'fidelity_mode' => ['nullable', 'string', Rule::enum(FidelityMode::class)],
             'video_duration_seconds' => ['nullable', 'integer', Rule::in(config('creative.video_durations'))],
             'custom_prompt' => ['nullable', 'string', 'max:1000'],
             'surface' => ['nullable', 'string', Rule::in(array_keys(config('creative.surfaces')))],
@@ -54,6 +58,8 @@ class PreviewCreativeRequest extends FormRequest
             'style.enum' => 'سبک انتخاب‌شده نامعتبر است.',
             'format.enum' => 'قالب خروجی انتخاب‌شده نامعتبر است.',
             'environment.in' => 'محیط صحنه انتخاب‌شده نامعتبر است.',
+            'category.enum' => 'صنف محصول انتخاب‌شده نامعتبر است.',
+            'fidelity_mode.enum' => 'حالت حفظ اصالت انتخاب‌شده نامعتبر است.',
             'video_duration_seconds.integer' => 'مدت زمان ویدیو باید عدد باشد.',
             'video_duration_seconds.in' => 'مدت زمان ویدیوی انتخاب‌شده معتبر نیست.',
             'custom_prompt.string' => 'توضیحات دلخواه باید به صورت متن باشد.',

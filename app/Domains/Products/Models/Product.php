@@ -2,6 +2,7 @@
 
 namespace App\Domains\Products\Models;
 
+use App\Domains\Creative\Enums\ProductCategory;
 use App\Domains\Media\Models\MediaAsset;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,12 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'status'];
+    protected $fillable = ['name', 'description', 'status', 'category'];
+
+    protected function casts(): array
+    {
+        return ['category' => ProductCategory::class];
+    }
 
     public function user(): BelongsTo
     {

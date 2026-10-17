@@ -5,6 +5,8 @@ namespace App\Domains\Creative\Models;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
+use App\Domains\Creative\Enums\FidelityMode;
+use App\Domains\Creative\Enums\ProductCategory;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Products\Models\Product;
 use App\Models\User;
@@ -14,11 +16,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CreativeProject extends Model
 {
-    protected $fillable = ['product_id', 'goal', 'style', 'format', 'environment', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'video_duration_seconds', 'settings', 'brief', 'prompt'];
+    protected $fillable = ['product_id', 'goal', 'style', 'format', 'environment', 'category', 'fidelity_mode', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'video_duration_seconds', 'settings', 'brief', 'prompt'];
 
     protected function casts(): array
     {
-        return ['goal' => CreativeGoal::class, 'style' => CreativeStyle::class, 'format' => CreativeFormat::class, 'settings' => 'array', 'brief' => 'array'];
+        return ['goal' => CreativeGoal::class, 'style' => CreativeStyle::class, 'format' => CreativeFormat::class, 'category' => ProductCategory::class, 'fidelity_mode' => FidelityMode::class, 'settings' => 'array', 'brief' => 'array'];
     }
 
     public function user(): BelongsTo
