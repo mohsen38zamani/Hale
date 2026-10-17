@@ -4,6 +4,14 @@ return [
     'environments' => ['studio', 'nature', 'luxury', 'urban', 'home', 'abstract'],
     'video_durations' => [5, 8, 10],
 
+    // The two fidelity pipelines, in the words the studio picker shows. The
+    // keys are FidelityMode values; the wording belongs here so the picker,
+    // the summary and the engine all describe the same promise.
+    'fidelity_mode_labels' => [
+        'catalog_white_composite' => 'کاتالوگ سفید خالص (بی‌واسطهٔ مدل، بدون دست‌کاری پیکسل محصول)',
+        'foreground_invariant_inpainting' => 'صحنه‌سازی با حفظ پیش‌زمینه (فقط اطراف محصول تغییر می‌کند)',
+    ],
+
     // How strongly a scene control steers the final image. `short` is the
     // compact chip tag, `hint` is the caption/tooltip explaining the effect.
     'impact_levels' => [

@@ -158,7 +158,42 @@
                             </select>
                         </div>
 
-                        {{-- Step 5: Scene & Studio Physical Controls (Surfaces, Props, Angles, Lighting) --}}
+                        {{-- Step 5: The trade. Which of the ten trades this
+                             product belongs to, and how honest the pipeline
+                             has to be about its own pixels. The chips, the
+                             fidelity lines and the three one-click packages
+                             all ride with the page from
+                             config/creative_categories.php. --}}
+                        <fieldset style="border: 0; padding: 0; margin: 0 0 28px 0;" data-trade-field>
+                            <legend style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 8px;">
+                                ۵. صنف محصول کدام است؟
+                            </legend>
+                            <small style="display: block; color: var(--text-muted); font-size: 11px; margin-bottom: 12px; line-height: 1.6;">
+                                صنف، مقیاس واقعی کالا و جزئیاتی را که مدل حق ندارد بازآفرینی کند قفل می‌کند. اگر چیزی انتخاب نکنی، صنف از روی محصول حدس زده می‌شود.
+                            </small>
+                            <div class="choice-grid compact-grid" data-trade-grid></div>
+                            <p class="trade-note" data-trade-note role="status"></p>
+
+                            <div class="trade-fidelity" data-fidelity-field hidden>
+                                <label for="fidelity_mode" style="display: block; font-size: 12px; font-weight: 600; color: #FFFFFF; margin-bottom: 6px;">
+                                    حفظ اصالت کالا:
+                                </label>
+                                <select name="fidelity_mode" data-fidelity-mode id="fidelity_mode" style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 10px 14px; color: #FFFFFF; font-size: 13px; outline: 0;">
+                                    <option value="">پیشنهاد خودکار (از روی صنف)</option>
+                                    @foreach (\App\Domains\Creative\Enums\FidelityMode::cases() as $fidelityMode)
+                                        <option value="{{ $fidelityMode->value }}">{{ $fidelityMode->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="trade-presets" data-trade-presets hidden>
+                                <span class="trade-presets-title">بسته‌های آمادهٔ این صنف:</span>
+                                <div class="trade-preset-row" data-trade-preset-row></div>
+                                <p class="form-message" data-trade-preset-message role="status"></p>
+                            </div>
+                        </fieldset>
+
+                        {{-- Scene & Studio Physical Controls (Surfaces, Props, Angles, Lighting) --}}
                         <div class="scene-controls-panel" data-scene-controls-panel>
                             <div class="scene-controls-header" data-scene-toggle role="button" tabindex="0" aria-expanded="true">
                                 <h3>
@@ -349,6 +384,7 @@
                             <span class="inspector-chip" data-chip-camera>دوربین: روبرو</span>
                             <span class="inspector-chip" data-chip-lighting>نور: سافت‌باکس</span>
                             <span class="inspector-chip" data-chip-character>کاراکتر: مدل جدید</span>
+                            <span class="inspector-chip" data-chip-trade hidden>صنف: —</span>
                             <span class="inspector-chip" data-chip-format>فرمت: ۱:۱</span>
                             <span class="inspector-chip" data-chip-target-ai>مدل: {{ config('creative.target_ais.'.config('creative.target_ai_default').'.label', '—') }}</span>
                         </div>

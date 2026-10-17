@@ -1649,6 +1649,17 @@ if (builderForm) {
 	const chipCamera = document.querySelector('[data-chip-camera]');
 	const chipLighting = document.querySelector('[data-chip-lighting]');
 	const chipCharacter = document.querySelector('[data-chip-character]');
+	// The trade studio (batch 6): which of the ten trades this product is, the
+	// fidelity promise that goes with it, and the three packages the trade
+	// carries. All three ride with the page from config/creative_categories.php.
+	const tradeGrid = document.querySelector('[data-trade-grid]');
+	const tradeNote = document.querySelector('[data-trade-note]');
+	const fidelityField = document.querySelector('[data-fidelity-field]');
+	const fidelitySelect = document.querySelector('[data-fidelity-mode]');
+	const tradePresets = document.querySelector('[data-trade-presets]');
+	const tradePresetRow = document.querySelector('[data-trade-preset-row]');
+	const tradePresetMessage = document.querySelector('[data-trade-preset-message]');
+	const chipTrade = document.querySelector('[data-chip-trade]');
 	const productsMap = new Map();
 	const cachedProductBlobUrls = new Map();
 	// The scene the studio is currently describing. The peek cards read it so
@@ -1675,6 +1686,9 @@ if (builderForm) {
 	let cameraAnglesData = [];
 	let lightingSetupsData = [];
 	let characterConsistenciesData = [];
+	// The ten trades, straight from /api/creative/options: label, icon, scale
+	// lock, protected features and the three one-click packages each.
+	let tradesData = [];
 	// Single source for the preselected/fallback character state: the server
 	// renders it from config/creative.php on the form itself.
 	const defaultCharacterKey = builderForm.dataset.defaultCharacter || 'dynamic';
@@ -1866,6 +1880,11 @@ if (builderForm) {
 		const cameraAngle = builderForm.querySelector('input[name="camera_angle"]:checked')?.value || 'eye_level';
 		const lighting = builderForm.querySelector('input[name="lighting_setup"]:checked')?.value || 'softbox';
 		const characterConsistency = builderForm.querySelector('input[name="character_consistency"]:checked')?.value || defaultCharacterKey;
+		// The trade and its fidelity promise. Both are optional: with neither
+		// chosen the engine falls back to the product's own category, so the
+		// payload must carry null rather than a made-up trade.
+		const tradeKey = builderForm.querySelector('input[name="category"]:checked')?.value || '';
+		const fidelityKey = fidelitySelect ? fidelitySelect.value : '';
 
 		const selectedProductId = select.value;
 		const product = productsMap.get(String(selectedProductId));
@@ -1912,6 +1931,15 @@ if (builderForm) {
 		if (chipCamera) chipCamera.textContent = `دوربین: ${cameraObj?.label || 'روبرو'}`;
 		if (chipLighting) chipLighting.textContent = `نور: ${lightingObj?.label || 'سافت‌باکس'}`;
 		if (chipCharacter) chipCharacter.textContent = `کاراکتر: ${characterObj?.label || 'مدل جدید'}`;
+
+		// The trade chip only speaks when a trade was chosen. With none picked
+		// the engine falls back to the product's own category, and claiming a
+		// trade the user never picked would be a lie in the inspector.
+		if (chipTrade) {
+			const trade = tradesData.find((item) => item.key === tradeKey);
+			chipTrade.hidden = !trade;
+			if (trade) chipTrade.textContent = `صنف: ${trade.label}`;
+		}
 		if (chipFormat) chipFormat.textContent = `فرمت: ${aspectRatios[format] || '۱:۱'}`;
 		// Read inline rather than through a helper so this line can never be
 		// reached before the selector has rendered its default chip.
@@ -1965,8 +1993,18 @@ if (builderForm) {
 			// Hybrid inspector: the browser assembles the generic prompt and
 			// asks the server for every other dialect, carrying the whole
 			// studio state so the text quoted is the text that will be sent.
-			const targetKey = builderForm.querySelector('input[name="target_ai"]:checked')?.value || '';
-			if (targetKey && targetKey !== mirrorTargetKey) {
+			//
+			// A named trade also forces the server path, even under the generic
+			// dialect: the engine adds the trade's scale lock and its
+			// "keep ... unchanged" guardrail, and neither lives in this
+			// mirror. Quoting a prompt without them would show the user a
+			// sentence the model is never going to read.
+			// Nothing selected means the generic dialect, which is exactly what
+			// the mirror speaks; asking with an empty key would only fall back
+			// to the same default on the server.
+			const targetKey = builderForm.querySelector('input[name="target_ai"]:checked')?.value || mirrorTargetKey;
+			const asksServer = (targetKey && targetKey !== mirrorTargetKey) || Boolean(tradeKey);
+			if (asksServer) {
 				queueInspectorPrompt(targetKey, {
 					product_id: Number(selectedProductId),
 					goal,
@@ -1978,6 +2016,8 @@ if (builderForm) {
 					camera_angle: cameraAngle,
 					lighting_setup: lighting,
 					character_consistency: characterConsistency,
+					category: tradeKey || null,
+					fidelity_mode: fidelityKey || null,
 					custom_prompt: customPromptText || null,
 					video_duration_seconds: isVideo && duration.value ? Number(duration.value) : null,
 					campaign: Boolean(campaignEnabled && campaignPack),
@@ -2163,6 +2203,60 @@ if (builderForm) {
 		}).join('');
 		wireChoicePeeks(target);
 	};
+
+	// One row of package buttons for the chosen trade. Picking one is not a
+	// new form field: it sets the controls the package actually decides and
+	// lets the user keep editing everything it left alone.
+	const renderTradePresets = (tradeKey) => {
+		const trade = tradesData.find((item) => item.key === tradeKey);
+		if (fidelityField) fidelityField.hidden = !trade;
+		if (!tradePresets || !tradePresetRow) return;
+
+		const presets = Array.isArray(trade?.presets) ? trade.presets : [];
+		tradePresets.hidden = presets.length === 0;
+		tradePresetRow.innerHTML = presets.map((preset) => (
+			`<button type="button" class="trade-preset" data-trade-preset="${escapeHtml(preset.key)}">${escapeHtml(preset.label)}</button>`
+		)).join('');
+		if (tradePresetMessage) {
+			tradePresetMessage.textContent = '';
+			tradePresetMessage.className = 'form-message';
+		}
+	};
+
+	const applyTradePreset = (preset) => {
+		const setRadio = (name, value) => {
+			if (value === undefined || value === null || value === '') return;
+			const radio = builderForm.querySelector(`input[name="${name}"][value="${value}"]`);
+			if (!radio) return;
+			radio.checked = true;
+			radio.dispatchEvent(new Event('change', { bubbles: true }));
+		};
+		// Every one of these is a real catalogue key (the catalog test keeps
+		// that true), so a missing radio means the control is not on the page
+		// rather than the package being wrong.
+		setRadio('goal', preset.goal);
+		setRadio('style', preset.style);
+		setRadio('surface', preset.surface);
+		setRadio('props', preset.props);
+		setRadio('camera_angle', preset.camera_angle);
+		setRadio('lighting_setup', preset.lighting_setup);
+
+		const envSelect = document.querySelector('[data-environment]');
+		if (envSelect && preset.environment) {
+			envSelect.value = preset.environment;
+			envSelect.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+		if (fidelitySelect && preset.fidelity_mode) {
+			fidelitySelect.value = preset.fidelity_mode;
+			fidelitySelect.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+		if (tradePresetMessage) {
+			tradePresetMessage.className = 'form-message success-message';
+			tradePresetMessage.textContent = `بسته «${preset.label}» اعمال شد؛ بقیهٔ انتخاب‌هایت دست‌نخورده مانده‌اند.`;
+		}
+		updateCanvasState();
+	};
+
 	Promise.all([
 		authFetch('/api/products?per_page=50', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
 		authFetch('/api/creative/options', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
@@ -2188,6 +2282,17 @@ if (builderForm) {
 		renderChoices(document.querySelector('[data-camera-angles]'), cameraAnglesData, 'camera_angle', false, true);
 		renderChoices(document.querySelector('[data-lighting-setups]'), lightingSetupsData, 'lighting_setup', false, true);
 		renderChoices(document.querySelector('[data-character-consistencies]'), characterConsistenciesData, 'character_consistency', false, true);
+
+		// The trade picker: a radio per trade so the choice is a real form
+		// field, but never `required` - with no trade named the engine falls
+		// back to the product's own category, which is a valid brief.
+		tradesData = options.data.categories || [];
+		if (tradeGrid) {
+			tradeGrid.innerHTML = tradesData.map((trade) => (
+				`<label class="choice"><input type="radio" name="category" value="${escapeHtml(trade.key)}"><span>${escapeHtml(trade.icon || '')} ${escapeHtml(trade.label)}</span></label>`
+			)).join('');
+		}
+		renderTradePresets(null);
 
 		// Initialize default radio selections if needed
 		const defaultGoal = builderForm.querySelector('input[name="goal"]');
@@ -2233,7 +2338,34 @@ if (builderForm) {
 		'[data-lighting-setups]',
 		'[data-character-consistencies]',
 		'[data-target-ai-grid]',
+		'[data-trade-grid]',
+		'[data-fidelity-mode]',
 	].forEach((selector) => document.querySelector(selector)?.addEventListener('change', updateCanvasState));
+
+	// Choosing a trade repaints its packages and lets the inspector ask the
+	// server for a prompt that now carries the trade's scale and guardrail.
+	tradeGrid?.addEventListener('change', () => {
+		const tradeKey = builderForm.querySelector('input[name="category"]:checked')?.value || '';
+		renderTradePresets(tradeKey);
+		const trade = tradesData.find((item) => item.key === tradeKey);
+		if (tradeNote) {
+			tradeNote.textContent = trade
+				? `${trade.icon ? `${trade.icon} ` : ''}مقیاس قفل‌شده: ${trade.scale_lock || '—'}`
+				: '';
+		}
+		// Leaving a trade must not leave its fidelity promise behind: the
+		// promise only means something next to the trade that made it.
+		if (!tradeKey && fidelitySelect) fidelitySelect.value = '';
+	});
+
+	tradePresetRow?.addEventListener('click', (event) => {
+		const button = event.target.closest('[data-trade-preset]');
+		if (!button) return;
+		const tradeKey = builderForm.querySelector('input[name="category"]:checked')?.value || '';
+		const trade = tradesData.find((item) => item.key === tradeKey);
+		const preset = (trade?.presets || []).find((item) => item.key === button.dataset.tradePreset);
+		if (preset) applyTradePreset(preset);
+	});
 
 	// --- Target AI selector (redesign 6): four category tabs over one chip grid ---
 	const targetAiTabs = document.querySelector('[data-target-ai-tabs]');
@@ -2445,7 +2577,7 @@ if (builderForm) {
 	const templateConfirm = document.querySelector('[data-template-confirm]');
 	const templateCancel = document.querySelector('[data-template-cancel]');
 	const templateMessage = document.querySelector('[data-template-message]');
-	const TEMPLATE_KEYS = ['goal', 'style', 'format', 'environment', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'video_duration_seconds', 'custom_prompt', 'target_ai'];
+	const TEMPLATE_KEYS = ['goal', 'style', 'format', 'environment', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'category', 'fidelity_mode', 'video_duration_seconds', 'custom_prompt', 'target_ai'];
 	let templatesCache = [];
 
 	const renderTemplates = () => {
@@ -2469,6 +2601,17 @@ if (builderForm) {
 		['goal', 'style', 'format', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'target_ai'].forEach((key) => {
 			if (settings[key] !== undefined && settings[key] !== null) setRadio(key, String(settings[key]));
 		});
+		// The trade restores through the same radio path, but it also has to
+		// repaint its packages; the fidelity promise is a select and is set
+		// directly so the option actually exists before it is chosen.
+		if (settings.category !== undefined && settings.category !== null) {
+			setRadio('category', String(settings.category));
+			renderTradePresets(String(settings.category));
+		}
+		if (settings.fidelity_mode !== undefined && settings.fidelity_mode !== null && fidelitySelect) {
+			fidelitySelect.value = String(settings.fidelity_mode);
+			fidelitySelect.dispatchEvent(new Event('change', { bubbles: true }));
+		}
 		const envSelect = document.querySelector('[data-environment]');
 		if (settings.environment && envSelect) {
 			envSelect.value = settings.environment;
@@ -2586,6 +2729,10 @@ if (builderForm) {
 			camera_angle: values.camera_angle || null,
 			lighting_setup: values.lighting_setup || null,
 			character_consistency: values.character_consistency || defaultCharacterKey,
+			// The trade and its fidelity promise are both optional: an empty
+			// choice means "work it out from the product", not "force a trade".
+			category: values.category || null,
+			fidelity_mode: values.fidelity_mode || null,
 			custom_prompt: rawCustomPrompt || null,
 			video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null,
 			// The photo's job in a clip is a video question, so an image
@@ -2651,8 +2798,17 @@ if (generationPage) {
 	const captionText = document.querySelector('[data-caption-text]');
 	const captionTags = document.querySelector('[data-caption-tags]');
 	const captionMeta = document.querySelector('[data-caption-meta]');
+	const baPanel = document.querySelector('[data-ba-panel]');
+	const baSlider = document.querySelector('[data-ba-slider]');
+	const baBefore = document.querySelector('[data-ba-before]');
+	const baAfterClip = document.querySelector('[data-ba-after]');
+	const baAfterImg = document.querySelector('[data-ba-after-img]');
+	const baHandle = document.querySelector('[data-ba-handle]');
+	const baRange = document.querySelector('[data-ba-range]');
+	const baHint = document.querySelector('[data-ba-hint]');
 	const statusLabels = { queued: 'در صف پردازش...', processing: 'در حال ساخت...', completed: 'خروجی آماده است.', failed: 'ساخت محتوا ناموفق بود.', cancelled: 'تولید لغو شد.' };
 	let outputUrl;
+	let originalUrl;
 	let pollTimeoutId = null;
 	let isFinished = false;
 
@@ -2665,6 +2821,56 @@ if (generationPage) {
 		// The served mime decides the filename: web previews download as
 		// webp, fallbacks and videos keep their real format.
 		return { url: outputUrl, mime: blob.type };
+	};
+
+	// Before/after slider (spec 5.1): the original product photo sits under
+	// the generated frame, the frame clipped above it, one handle between.
+	// Without the original there is nothing to compare, so the panel says so
+	// instead of showing an empty layer.
+	const setSplit = (percent) => {
+		if (baAfterClip) baAfterClip.style.clipPath = `inset(0 0 0 ${percent}%)`;
+		if (baHandle) baHandle.style.left = `${percent}%`;
+	};
+
+	if (baRange) baRange.addEventListener('input', () => setSplit(Number(baRange.value)));
+
+	const compareUnavailable = (reason) => {
+		if (!baPanel) return;
+		if (baSlider) baSlider.hidden = true;
+		if (baHint) {
+			baHint.textContent = reason;
+			baHint.hidden = false;
+		}
+		baPanel.hidden = false;
+	};
+
+	const setupCompare = async (generation, generatedUrl) => {
+		if (!baPanel) return;
+		const product = generation.creative_project?.product;
+		const asset = product?.assets?.[0];
+		if (!product?.id || !asset?.id) {
+			compareUnavailable('عکس اصلی محصول ثبت نشده؛ فقط خروجی را می‌بینی.');
+			return;
+		}
+		if (baAfterImg) baAfterImg.src = generatedUrl;
+		let response;
+		try {
+			response = await authFetch(`/api/products/${product.id}/assets/${asset.id}/download`, { headers: { Accept: 'application/octet-stream' } });
+		} catch {
+			response = null;
+		}
+		if (!response?.ok) {
+			compareUnavailable('عکس اصلی محصول در دسترس نیست؛ فقط خروجی را می‌بینی.');
+			return;
+		}
+		if (originalUrl) URL.revokeObjectURL(originalUrl);
+		originalUrl = URL.createObjectURL(await response.blob());
+		if (baBefore) baBefore.src = originalUrl;
+		if (baHint) baHint.hidden = true;
+		if (baSlider) baSlider.hidden = false;
+		if (baRange) baRange.value = '50';
+		setSplit(50);
+		baPanel.hidden = false;
 	};
 
 	let pollAttempt = 0;
@@ -2701,6 +2907,13 @@ if (generationPage) {
 			// variant-less fallbacks stream the original bytes.
 			const output = await loadOutput(isVideo ? null : 'web');
 			frame.innerHTML = isVideo ? `<video controls src="${output.url}"></video>` : `<img alt="خروجی تولیدشده" src="${output.url}">`;
+			// The comparison only makes sense for a still with an original to
+			// hold it against; a video has no "before" frame worth lining up.
+			if (isVideo) {
+				if (baPanel) baPanel.hidden = true;
+			} else {
+				void setupCompare(generation, output.url);
+			}
 			actions.hidden = false;
 			const downloadLink = document.querySelector('[data-download]');
 			downloadLink.href = output.url;
@@ -2744,6 +2957,7 @@ if (generationPage) {
 	window.addEventListener('beforeunload', () => {
 		if (pollTimeoutId) clearTimeout(pollTimeoutId);
 		if (outputUrl) URL.revokeObjectURL(outputUrl);
+		if (originalUrl) URL.revokeObjectURL(originalUrl);
 	});
 	document.querySelector('[data-feedback="positive"]')?.addEventListener('click', () => sendFeedback('positive'));
 	document.querySelector('[data-feedback="negative"]')?.addEventListener('click', () => sendFeedback('negative'));

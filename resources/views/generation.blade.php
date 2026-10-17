@@ -64,6 +64,31 @@
                         <small style="color: var(--text-muted); font-size: 12px;">سیستم به محض آماده‌سازی فایل را بارگذاری می‌کند.</small>
                     </div>
                 </div>
+
+                {{-- Before/After quality check (spec 5.1): the original product
+                     photograph underneath, the generated frame clipped above
+                     it, one handle the user drags. A video has no "before"
+                     worth comparing pixel for pixel, so this only appears for
+                     a still that actually has an original to show. --}}
+                <div class="ba-panel" data-ba-panel hidden style="margin-top: 14px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                        <strong style="font-size: 13px; color: #FFFFFF;">بررسی کیفیت: عکس اصلی در برابر خروجی</strong>
+                        <span style="font-size: 11px; color: var(--text-muted);">دستگیره را بکش تا تفاوت نگین، آرم یا عقربه‌ها را ببینی.</span>
+                    </div>
+                    <div class="ba-slider" data-ba-slider>
+                        <img data-ba-before alt="عکس اصلی محصول">
+                        <div class="ba-slider-after" data-ba-after style="clip-path: inset(0 0 0 50%);">
+                            <img data-ba-after-img alt="خروجی تولیدشده">
+                        </div>
+                        <span class="ba-slider-tag ba-slider-tag-before">اصلی</span>
+                        <span class="ba-slider-tag ba-slider-tag-after">خروجی</span>
+                        <div class="ba-slider-handle" data-ba-handle style="left: 50%;">
+                            <span class="ba-slider-grip">⇔</span>
+                        </div>
+                        <input class="ba-slider-range" data-ba-range type="range" min="0" max="100" value="50" step="1" aria-label="مقایسه عکس اصلی و خروجی">
+                    </div>
+                    <p class="form-message" data-ba-hint role="status" style="margin: 10px 0 0; font-size: 12px;"></p>
+                </div>
             </div>
 
             {{-- Result Actions Buttons --}}

@@ -24,4 +24,14 @@ enum FidelityMode: string
     {
         return $this === self::CatalogWhiteComposite;
     }
+
+    /**
+     * The Persian line the studio reads under the picker. The wording lives in
+     * config exactly like every other studio catalogue, so the option cards
+     * and the summary can never drift from the engine.
+     */
+    public function label(): string
+    {
+        return (string) config("creative.fidelity_mode_labels.{$this->value}", $this->value);
+    }
 }
