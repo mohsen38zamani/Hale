@@ -5,6 +5,7 @@ namespace App\Domains\Creative\Controllers;
 use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
+use App\Domains\Creative\Enums\FidelityMode;
 use App\Domains\Creative\Requests\PreviewCreativeRequest;
 use App\Domains\Creative\Services\CreativeEngine;
 use App\Domains\Creative\Services\SeasonThemeService;
@@ -33,6 +34,11 @@ class CreativeController extends Controller
             'character_consistencies' => array_values(config('creative.character_consistencies')),
             'impact_levels' => array_values(config('creative.impact_levels')),
             'impacts' => config('creative.impacts'),
+            // The ten trades with their protection rules, scale locks and
+            // one-click packages, in catalogue order, plus the two fidelity
+            // pipelines the packages choose between.
+            'categories' => array_values(config('creative_categories.categories')),
+            'fidelity_modes' => array_map(fn (FidelityMode $mode) => $mode->value, FidelityMode::cases()),
         ]);
     }
 
