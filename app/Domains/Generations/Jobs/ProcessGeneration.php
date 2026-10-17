@@ -5,6 +5,7 @@ namespace App\Domains\Generations\Jobs;
 use App\Domains\AI\Data\GenerationInput;
 use App\Domains\AI\Gateway\AiGateway;
 use App\Domains\AI\Services\CircuitBreaker;
+use App\Domains\Creative\Services\ProductCompositor;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Services\ImageOptimizer;
@@ -52,12 +53,13 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
         return (string) $this->generationId;
     }
 
-    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null, ?SearchIndexer $searchIndexer = null, ?ImageOptimizer $imageOptimizer = null): void
+    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null, ?SearchIndexer $searchIndexer = null, ?ImageOptimizer $imageOptimizer = null, ?ProductCompositor $compositor = null): void
     {
         $watermarks ??= app(WatermarkService::class);
         $circuitBreaker ??= app(CircuitBreaker::class);
         $searchIndexer ??= app(SearchIndexer::class);
         $imageOptimizer ??= app(ImageOptimizer::class);
+        $compositor ??= app(ProductCompositor::class);
 
         $claimed = DB::transaction(function (): ?array {
             $generation = Generation::query()->whereKey($this->generationId)->lockForUpdate()->firstOrFail();
@@ -83,20 +85,57 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
         try {
             $project = $generation->creativeProject;
             $asset = $project->product?->assets->first(fn ($asset) => (bool) $asset->pivot->is_primary) ?? $project->product?->assets->first();
-            $response = $gateway->generate(new GenerationInput(
-                $generation->type,
-                $project->prompt,
-                $generation->metadata['aspect_ratio'],
-                $project->video_duration_seconds,
-                $asset?->disk,
-                $asset?->path,
-                $generation->id,
-                // How the photo above joins a video: as a reference, as the
-                // opening frame, or as both the opening and the closing
-                // one. The key is absent on generations queued before the
-                // choice existed, and 'reference' is what they got.
-                (string) ($generation->metadata['image_mode'] ?? 'reference'),
-            ));
+
+            // The catalog-white pipeline: when the project chose it, the
+            // model receives the cutout already resting on pure white under
+            // a grounding shadow - our own pixels, drawn by GD, no redraw
+            // between the product and the page. A photo GD cannot read
+            // still travels as it arrived: the frame is a promise about
+            // pixels, not a gate on the generation.
+            $assetDisk = $asset?->disk;
+            $assetPath = $asset?->path;
+            $compositedPath = null;
+            if ($asset !== null && ($project->fidelity_mode?->isComposite() ?? false)) {
+                try {
+                    $staged = "composites/{$generation->user_id}/{$generation->id}.png";
+                    $composited = $compositor->composite((string) Storage::disk($asset->disk)->get($asset->path));
+                    if (Storage::disk(config('ai.output_disk'))->put($staged, $composited)) {
+                        $compositedPath = $staged;
+                        $assetDisk = (string) config('ai.output_disk');
+                        $assetPath = $staged;
+                    }
+                } catch (Throwable $compositeException) {
+                    report($compositeException);
+                }
+            }
+
+            try {
+                $response = $gateway->generate(new GenerationInput(
+                    $generation->type,
+                    $project->prompt,
+                    $generation->metadata['aspect_ratio'],
+                    $project->video_duration_seconds,
+                    $assetDisk,
+                    $assetPath,
+                    $generation->id,
+                    // How the photo above joins a video: as a reference, as the
+                    // opening frame, or as both the opening and the closing
+                    // one. The key is absent on generations queued before the
+                    // choice existed, and 'reference' is what they got.
+                    (string) ($generation->metadata['image_mode'] ?? 'reference'),
+                ));
+            } finally {
+                // The staged composite served its one purpose the moment the
+                // provider read it; a leftover on the output disk would be
+                // litter nobody owns.
+                if ($compositedPath !== null) {
+                    try {
+                        Storage::disk(config('ai.output_disk'))->delete($compositedPath);
+                    } catch (Throwable) {
+                        // Never let cleanup turn a settled call into a retry.
+                    }
+                }
+            }
             $result = $response['result'];
             $providerFailures = $response['failures'] ?? [];
             // Quality tier: resize to the plan tier's dimension before the
