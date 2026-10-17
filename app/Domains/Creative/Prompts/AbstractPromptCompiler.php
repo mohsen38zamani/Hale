@@ -2,6 +2,7 @@
 
 namespace App\Domains\Creative\Prompts;
 
+use App\Domains\Creative\Contracts\CategoryPromptDecoratorInterface;
 use App\Domains\Creative\Contracts\PromptCompilerInterface;
 use App\Domains\Creative\Enums\CreativeFormat;
 
@@ -16,7 +17,10 @@ use App\Domains\Creative\Enums\CreativeFormat;
  */
 abstract class AbstractPromptCompiler implements PromptCompilerInterface
 {
-    public function __construct(protected readonly PromptClauses $clauses = new PromptClauses) {}
+    public function __construct(
+        protected readonly PromptClauses $clauses = new PromptClauses,
+        protected readonly CategoryPromptDecoratorInterface $categories = new CategoryPromptBuilder,
+    ) {}
 
     /**
      * The ready-to-paste image prompt this brief would generate, compiled by
@@ -26,7 +30,20 @@ abstract class AbstractPromptCompiler implements PromptCompilerInterface
      */
     protected function imagePrompt(array $brief, CreativeFormat $format): string
     {
-        return (new GenericPromptCompiler($this->clauses))->compile($brief, $format);
+        return (new GenericPromptCompiler($this->clauses, $this->categories))->compile($brief, $format);
+    }
+
+    /**
+     * The trade the brief was built for, or null - so the category builder
+     * stays silent on a brief that predates the trade studios.
+     *
+     * @param  array<string, mixed>  $brief
+     */
+    protected function category(array $brief): ?string
+    {
+        return is_string($brief['category'] ?? null) && trim($brief['category']) !== ''
+            ? $brief['category']
+            : null;
     }
 
     /**
@@ -53,6 +70,8 @@ abstract class AbstractPromptCompiler implements PromptCompilerInterface
 
         $labelled = [
             'Scene' => PromptClauses::body($this->clauses->scene($brief)),
+            'Physical scale' => PromptClauses::body($this->categories->scale($this->category($brief))),
+            'Protected features' => PromptClauses::body($this->categories->guardrail($this->category($brief))),
             'Custom scene details' => PromptClauses::body($this->clauses->custom($brief)),
             'Brand' => PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
             'Campaign' => PromptClauses::body($this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : [])),

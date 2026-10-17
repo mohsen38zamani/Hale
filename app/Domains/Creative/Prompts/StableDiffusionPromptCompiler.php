@@ -44,6 +44,8 @@ class StableDiffusionPromptCompiler extends AbstractPromptCompiler
             PromptClauses::body($this->clauses->camera($brief)),
             PromptClauses::body($this->clauses->custom($brief)),
             PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
+            PromptClauses::body($this->categories->scale($this->category($brief))),
+            PromptClauses::body($this->categories->guardrail($this->category($brief))),
         ] as $clause) {
             $trimmed = rtrim($clause, '. ');
             if ($trimmed !== '') {
@@ -76,6 +78,13 @@ class StableDiffusionPromptCompiler extends AbstractPromptCompiler
 
                 $negative[] = sprintf('(%s:1.1)', $keyword);
             }
+        }
+
+        // The other trades' signature nouns: a jewelry frame that drifts
+        // into drawing a wristwatch is a defect the sampler can be told
+        // about in its own grammar.
+        foreach ($this->categories->bannedWords($this->category($brief)) as $word) {
+            $negative[] = sprintf('(%s:1.1)', $word);
         }
 
         return 'Positive prompt: '.implode(', ', $positive)."\n"

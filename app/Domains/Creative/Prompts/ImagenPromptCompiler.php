@@ -41,6 +41,8 @@ class ImagenPromptCompiler extends AbstractPromptCompiler
             $this->clauses->scene($brief),
             PromptClauses::body($this->clauses->custom($brief)),
             PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
+            PromptClauses::body($this->categories->scale($this->category($brief))),
+            PromptClauses::body($this->categories->guardrail($this->category($brief))),
         ] as $clause) {
             $trimmed = trim($clause);
             if ($trimmed !== '') {

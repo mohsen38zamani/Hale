@@ -28,6 +28,21 @@ class ClaudePromptCompiler extends AbstractPromptCompiler
         $lines[] = $this->tag('audience', $this->audience($brief), 2);
         $lines[] = '  </product_context>';
 
+        // The trade's own fidelity block: the real-world size and the
+        // features no redraw may touch, in the document's own grammar.
+        $scale = $this->categories->scale($this->category($brief));
+        $guardrail = $this->categories->guardrail($this->category($brief));
+        if ($scale !== '' || $guardrail !== '') {
+            $lines[] = '  <product_fidelity>';
+            if ($scale !== '') {
+                $lines[] = $this->tag('physical_scale', $scale, 2);
+            }
+            if ($guardrail !== '') {
+                $lines[] = $this->tag('protected_features', $guardrail, 2);
+            }
+            $lines[] = '  </product_fidelity>';
+        }
+
         // The locked decisions: what the model may not re-imagine.
         $lines[] = '  <creative_direction>';
         $lines[] = $this->tag('objective', (string) ($brief['objective'] ?? ''), 2);

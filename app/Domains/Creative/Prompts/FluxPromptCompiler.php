@@ -32,6 +32,8 @@ class FluxPromptCompiler extends AbstractPromptCompiler
                 $description !== '' ? ', '.$description : ''
             ),
             'The original product design and packaging are preserved exactly as supplied.',
+            $this->categories->scale($this->category($brief)),
+            $this->categories->guardrail($this->category($brief)),
             trim($this->clauses->scene($brief)),
             PromptClauses::body($this->clauses->camera($brief)),
             PromptClauses::body($this->clauses->custom($brief)),

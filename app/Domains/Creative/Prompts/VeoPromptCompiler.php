@@ -33,6 +33,8 @@ class VeoPromptCompiler extends AbstractPromptCompiler
             $this->clauses->character($brief),
             $this->clauses->scene($brief),
             $this->clauses->custom($brief),
+            $this->categories->scale($this->category($brief)),
+            $this->categories->guardrail($this->category($brief)),
         ] as $clause) {
             $trimmed = trim($clause);
             if ($trimmed !== '') {

@@ -35,6 +35,8 @@ class MidjourneyPromptCompiler extends AbstractPromptCompiler
             $this->phrase($this->clauses->character($brief)),
             $this->phrase($this->clauses->custom($brief)),
             $this->phrase($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
+            $this->phrase($this->categories->scale($this->category($brief))),
+            $this->phrase($this->categories->guardrail($this->category($brief))),
             'accurate product packaging, photorealistic commercial composition',
         ];
 
@@ -45,13 +47,16 @@ class MidjourneyPromptCompiler extends AbstractPromptCompiler
 
         // `--no text` and a brief that asked for its own wording are opposite
         // instructions: Midjourney would drop the very line the brand is
-        // paying for. The watermark stays banned either way.
-        $forbidden = $this->clauses->requestsRenderedText($brief) ? 'watermark' : 'text, watermark';
+        // paying for. The watermark stays banned either way, and the other
+        // trades' nouns stay banned always - a watch in a jewelry frame is a
+        // defect whoever pastes this prompt would have to fix by hand.
+        $forbidden = $this->clauses->requestsRenderedText($brief) ? ['watermark'] : ['text', 'watermark'];
+        $forbidden = [...$forbidden, ...$this->categories->bannedWords($this->category($brief))];
 
         return $body
             .' --ar '.$format->aspectRatio()
             .' --style raw --v 6.1'
-            .' --no '.$forbidden;
+            .' --no '.implode(', ', array_unique($forbidden));
     }
 
     /**

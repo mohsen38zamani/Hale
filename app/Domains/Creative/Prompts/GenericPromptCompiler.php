@@ -2,6 +2,7 @@
 
 namespace App\Domains\Creative\Prompts;
 
+use App\Domains\Creative\Contracts\CategoryPromptDecoratorInterface;
 use App\Domains\Creative\Contracts\PromptCompilerInterface;
 use App\Domains\Creative\Enums\CreativeFormat;
 
@@ -15,11 +16,16 @@ use App\Domains\Creative\Enums\CreativeFormat;
  * It is also the prompt the browser mirrors byte for byte in updateCanvasState,
  * so the frame line, the labels and the product description have to be built
  * identically on both sides or the inspector would quote one prompt while the
- * engine sends another.
+ * engine sends another. The trade clauses below only appear on a brief that
+ * names a trade, and the studio form cannot name one until its picker lands -
+ * until then the mirror has nothing to miss.
  */
 class GenericPromptCompiler implements PromptCompilerInterface
 {
-    public function __construct(private readonly PromptClauses $clauses = new PromptClauses) {}
+    public function __construct(
+        private readonly PromptClauses $clauses = new PromptClauses,
+        private readonly CategoryPromptDecoratorInterface $categories = new CategoryPromptBuilder,
+    ) {}
 
     public function key(): string
     {
@@ -32,6 +38,15 @@ class GenericPromptCompiler implements PromptCompilerInterface
         $brandPart = $this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : []);
         $campaignPart = $this->clauses->campaign(is_array($brief['campaign'] ?? null) ? $brief['campaign'] : []);
 
+        // The trade's scale lock and protected features: the two sentences
+        // that keep a ring from growing into a bowl and a dial from being
+        // re-imagined, carried by the sentence every other compiler quotes.
+        $category = is_string($brief['category'] ?? null) && trim($brief['category']) !== ''
+            ? $brief['category']
+            : null;
+        $scalePart = ($scale = $this->categories->scale($category)) !== '' ? ' '.$scale : '';
+        $guardrailPart = ($guardrail = $this->categories->guardrail($category)) !== '' ? ' '.$guardrail : '';
+
         // The product's own description is the only sentence that says what the
         // product looks like, so it belongs next to its name rather than being
         // left to the compilers that happen to reach for it.
@@ -39,7 +54,7 @@ class GenericPromptCompiler implements PromptCompilerInterface
         $descriptionPart = $description === '' ? '' : ' '.$description.'.';
 
         $base = sprintf(
-            'Create a professional commercial advertising visual for %s.%s%s%s Objective: %s. Style: %s. Environment: %s. %s%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, %s.',
+            'Create a professional commercial advertising visual for %s.%s%s%s Objective: %s. Style: %s. Environment: %s. %s%s%s%s%s%s%s High-end commercial production, photorealistic, cinematic lighting, ultra-sharp detail, preserve original product design and packaging, no distracting watermarks, %s.',
             $brief['product'],
             $descriptionPart,
             $this->clauses->camera($brief),
@@ -52,6 +67,8 @@ class GenericPromptCompiler implements PromptCompilerInterface
             $customPromptPart,
             $brandPart,
             $campaignPart,
+            $scalePart,
+            $guardrailPart,
             $this->clauses->textSuppression($brief)
         );
 

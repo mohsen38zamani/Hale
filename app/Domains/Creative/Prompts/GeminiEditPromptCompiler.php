@@ -36,6 +36,16 @@ class GeminiEditPromptCompiler extends AbstractPromptCompiler
             '- Placement: the product keeps its position and scale in the '.$format->aspectRatio().' frame.',
         ];
 
+        // The trade's own terms of survival: the real-world size it was
+        // photographed at, and the features an edit may not redraw.
+        if (($scale = $this->categories->scale($this->category($brief))) !== '') {
+            $lines[] = '- '.$scale.' The product keeps this real-world size.';
+        }
+
+        if (($guardrail = $this->categories->guardrail($this->category($brief))) !== '') {
+            $lines[] = '- '.$guardrail;
+        }
+
         $angle = trim($this->clauses->camera($brief));
         if ($angle !== '') {
             $lines[] = '- '.$angle.' The framing must be preserved.';

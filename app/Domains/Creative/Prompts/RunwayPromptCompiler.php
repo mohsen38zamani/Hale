@@ -54,6 +54,8 @@ class RunwayPromptCompiler extends AbstractPromptCompiler
 
         $sheet = [
             'Scene' => $set,
+            'Physical scale' => PromptClauses::body($this->categories->scale($this->category($brief))),
+            'Protected' => PromptClauses::body($this->categories->guardrail($this->category($brief))),
             'Subject' => PromptClauses::body($this->clauses->character($brief)),
             'Custom' => PromptClauses::body($this->clauses->custom($brief)),
             'Brand' => PromptClauses::body($this->clauses->brand(is_array($brief['brand'] ?? null) ? $brief['brand'] : [])),
