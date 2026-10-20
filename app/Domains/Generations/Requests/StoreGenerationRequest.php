@@ -90,7 +90,7 @@ class StoreGenerationRequest extends FormRequest
             'lighting_setup.in' => 'نورپردازی انتخاب‌شده نامعتبر است.',
             'character_consistency.in' => 'تنظیمات ثبات کاراکتر انتخاب‌شده نامعتبر است.',
             'quality.in' => 'کیفیت خروجی باید استاندارد (standard) یا پرمیوم (premium) باشد.',
-            'image_mode.in' => 'حالت تصویر انتخاب‌شده نعتبر است.',
+            'image_mode.in' => 'حالت تصویر انتخاب‌شده نامعتبر است.',
             'campaign.boolean' => 'وضعیت کمپین فصلی نامعتبر است.',
             'season_theme.in' => 'تم فصلی انتخاب‌شده نامعتبر است.',
             'target_ai.in' => 'مدل هوش مصنوعی انتخاب‌شده نامعتبر است.',

@@ -131,7 +131,7 @@ TEXT;
                         ['inline_data' => ['mime_type' => $this->mimeOf($binary), 'data' => base64_encode($binary)]],
                     ],
                 ]],
-            ])->json();
+            ]);
         } catch (\Throwable $e) {
             Log::info('trade-analysis-vision-failed', ['asset' => $asset->id, 'error' => $e->getMessage()]);
             $this->markFailure((int) $asset->id);
@@ -139,7 +139,18 @@ TEXT;
             return;
         }
 
-        $text = (string) ($response['candidates'][0]['content']['parts'][0]['text'] ?? '');
+        if (! $response->successful()) {
+            Log::info('trade-analysis-vision-failed', [
+                'asset' => $asset->id,
+                'status' => $response->status(),
+                'error' => $response->body(),
+            ]);
+            $this->markFailure((int) $asset->id);
+
+            return;
+        }
+
+        $text = (string) ($response->json('candidates.0.content.parts.0.text') ?? '');
         $parsed = $this->parseJson($text);
 
         if ($parsed === null) {
@@ -218,6 +229,11 @@ TEXT;
             // بدون GD یا decode ناموفق: همین که فرمت شفاف‌پذیر باشد کافی است.
             return true;
         }
+
+        // Palette PNGs carry their alpha in a tRNS chunk; converting to
+        // truecolor first ensures imagecolorat returns truecolor ARGB
+        // with the alpha channel instead of a palette index.
+        imagepalettetotruecolor($image);
 
         $hasAlpha = false;
         $width = imagesx($image);

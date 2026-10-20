@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Generations;
 
+use App\Domains\Generations\Contracts\ProductImageAnalyzerInterface;
 use App\Domains\Generations\Jobs\AnalyzeProductTrade;
 use App\Domains\Generations\Services\ProductImageAnalyzer;
 use App\Domains\Media\Models\MediaAsset;
@@ -29,7 +30,7 @@ class ProductAnalysisTest extends TestCase
         Storage::fake('s3');
         $asset = $this->assetWith($this->pngWithAlpha());
 
-        $local = app(ProductImageAnalyzer::class)->analyzeLocally($asset);
+        $local = app(ProductImageAnalyzerInterface::class)->analyzeLocally($asset);
 
         $this->assertSame(self::EDGE, $local['width']);
         $this->assertSame(self::EDGE, $local['height']);
@@ -38,6 +39,16 @@ class ProductAnalysisTest extends TestCase
         $this->assertTrue($local['analyzable']);
         $this->assertSame(40, $local['safe_zone']['left']);
         $this->assertSame(360, $local['safe_zone']['right']);
+    }
+
+    public function test_local_analysis_detects_alpha_on_palette_png(): void
+    {
+        Storage::fake('s3');
+        $asset = $this->assetWith($this->palettePngWithAlpha());
+
+        $local = app(ProductImageAnalyzerInterface::class)->analyzeLocally($asset);
+
+        $this->assertTrue($local['has_alpha'], 'A palette PNG with transparency must be flagged as having alpha.');
     }
 
     public function test_a_tiny_image_is_not_analyzable(): void
@@ -241,6 +252,22 @@ class ProductAnalysisTest extends TestCase
 
         ob_start();
         imagepng($image);
+
+        return (string) ob_get_clean();
+    }
+
+    private function palettePngWithAlpha(): string
+    {
+        $image = imagecreate(self::EDGE, self::EDGE);
+        $transparent = imagecolorallocatealpha($image, 0, 0, 0, 127);
+        imagecolortransparent($image, $transparent);
+        imagefill($image, 0, 0, $transparent);
+        $red = imagecolorallocate($image, 230, 25, 25);
+        imagefilledrectangle($image, 40, 40, self::EDGE - 40, self::EDGE - 40, $red);
+
+        ob_start();
+        imagepng($image);
+        imagedestroy($image);
 
         return (string) ob_get_clean();
     }

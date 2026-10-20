@@ -3,7 +3,7 @@
 namespace App\Domains\Products\Controllers;
 
 use App\Domains\Favorites\Services\FavoriteService;
-use App\Domains\Generations\Services\ProductImageAnalyzer;
+use App\Domains\Generations\Contracts\ProductImageAnalyzerInterface;
 use App\Domains\Media\Services\MediaUploadService;
 use App\Domains\Products\Models\Product;
 use App\Domains\Products\Requests\StoreProductRequest;
@@ -75,7 +75,7 @@ class ProductController extends Controller
         return $this->success(['message' => 'محصول حذف شد.']);
     }
 
-    public function analysis(Request $request, Product $product, ProductImageAnalyzer $analyzer): JsonResponse
+    public function analysis(Request $request, Product $product, ProductImageAnalyzerInterface $analyzer): JsonResponse
     {
         $this->ensureOwner($request, $product);
 

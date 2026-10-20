@@ -147,4 +147,34 @@ class StudioTradeUiTest extends TestCase
             ->assertJsonPath('data.creative_project.product.assets.0.id', $primary->id)
             ->assertJsonCount(1, 'data.creative_project.product.assets');
     }
+
+    public function test_the_generation_payload_falls_back_to_first_asset_when_no_primary_is_flagged(): void
+    {
+        Storage::fake('s3');
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $product = $user->products()->create(['name' => 'عطر بهار']);
+        $asset = $user->mediaAssets()->create(['disk' => 's3', 'path' => "products/{$user->id}/bottle.png", 'mime' => 'image/png', 'size' => 10]);
+        $product->assets()->attach($asset->id, ['is_primary' => false]);
+
+        $project = $user->creativeProjects()->create([
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'luxury',
+            'format' => 'instagram_post',
+            'brief' => [],
+            'prompt' => 'prompt',
+        ]);
+        $generation = $project->generations()->create([
+            'user_id' => $user->id,
+            'type' => 'image',
+            'status' => 'completed',
+            'prompt_hash' => hash('sha256', 'prompt'),
+        ]);
+
+        $this->getJson("/api/generations/{$generation->id}")->assertOk()
+            ->assertJsonPath('data.creative_project.product.assets.0.id', $asset->id)
+            ->assertJsonCount(1, 'data.creative_project.product.assets');
+    }
 }

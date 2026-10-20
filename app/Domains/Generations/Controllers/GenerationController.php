@@ -248,12 +248,16 @@ class GenerationController extends Controller
         // The product's primary photograph rides along so the result page can
         // put the original next to the generated frame in the before/after
         // slider: "did the stone survive?" is only answerable side by side.
-        return $this->success($generation->load([
-            'creativeProject.product' => function ($query): void {
-                $query->with(['assets' => fn ($assets) => $assets->wherePivot('is_primary', true)]);
-            },
-            'outputMedia',
-        ]));
+        // Primary asset leads, falling back to the first attached photo if
+        // none was explicitly flagged primary.
+        $generation->load(['creativeProject.product.assets', 'outputMedia']);
+        if ($product = $generation->creativeProject?->product) {
+            $primary = $product->assets->first(fn ($asset): bool => (bool) $asset->pivot->is_primary)
+                ?? $product->assets->first();
+            $product->setRelation('assets', $primary ? collect([$primary]) : collect());
+        }
+
+        return $this->success($generation);
     }
 
     public function retry(Request $request, Generation $generation, RetryGeneration $retry): JsonResponse

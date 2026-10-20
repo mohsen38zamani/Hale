@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Generations\Jobs;
 
-use App\Domains\Generations\Services\ProductImageAnalyzer;
+use App\Domains\Generations\Contracts\ProductImageAnalyzerInterface;
 use App\Domains\Media\Models\MediaAsset;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -33,7 +33,7 @@ class AnalyzeProductTrade implements ShouldBeUnique, ShouldQueue
         return 'product-trade-analysis-'.$this->assetId;
     }
 
-    public function handle(ProductImageAnalyzer $analyzer): void
+    public function handle(ProductImageAnalyzerInterface $analyzer): void
     {
         $asset = MediaAsset::find($this->assetId);
 
