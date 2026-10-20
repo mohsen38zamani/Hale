@@ -2892,8 +2892,13 @@ if (builderForm) {
 					method: 'POST',
 					headers: {
 						Accept: 'application/json',
-						'Content-Type': 'application/json',
-						'Idempotency-Key': crypto.randomUUID()
+						'Content-Type': 'application/json'
+						// No Idempotency-Key here on purpose: the server
+						// derives one deterministically from product+settings,
+						// so a retry after a dropped response re-uses the same
+						// key and never charges twice. A random key per click
+						// would throw that protection away (and crypto.randomUUID
+						// doesn't exist on insecure origins anyway).
 					},
 					body: JSON.stringify(payload)
 				});
@@ -2932,7 +2937,7 @@ if (builderForm) {
 				}
 
 				message.className = 'form-message success-message';
-				message.textContent = `✓ پرامپت مهندسی‌شده با موفقیت صادر شد (${result.data.credits_deducted} Credit کسر گردید). متن در بازرس پرامپت قرار گرفت و در کلیپ‌بورد کپی شد.`;
+				message.textContent = `✓ پرامپت مهندسی‌شده با موفقیت صادر شد (${result.data.credits_charged} Credit کسر گردید). متن در بازرس پرامپت قرار گرفت و در کلیپ‌بورد کپی شد.`;
 				updateEstimate().catch(() => {});
 			} catch (error) {
 				message.className = 'form-message error-message';

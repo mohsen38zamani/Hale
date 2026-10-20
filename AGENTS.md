@@ -38,7 +38,7 @@ docker compose run --rm app php artisan migrate --force           # مایگری
 
 ## ۴. وضعیت فعلی (آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۰)
 
-- suite: **۶۱۹ تست / ۶۱۸۱ assertion** سبز، Pint سبز، PHPStan بدون خطا، build سبز
+- suite: **۶۲۲ تست / ۶۱۹۷ assertion** سبز، Pint سبز، PHPStan بدون خطا، build سبز
 - آخرین اجرای CI گیت‌هاب (run #14 روی `0656656`) **شکست خورده** — بخش ۷
 
 ### چه چیزهایی تا الان تحویل شده (خلاصه)

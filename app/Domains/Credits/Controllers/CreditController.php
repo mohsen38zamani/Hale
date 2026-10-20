@@ -4,12 +4,14 @@ namespace App\Domains\Credits\Controllers;
 
 use App\Domains\Billing\Requests\TopupRequest;
 use App\Domains\Billing\Services\BillingService;
+use App\Domains\Creative\Enums\ProductCategory;
 use App\Domains\Credits\Services\CreditEstimator;
 use App\Domains\Credits\Services\CreditService;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CreditController extends Controller
 {
@@ -52,7 +54,7 @@ class CreditController extends Controller
             'target' => ['nullable', 'string', 'in:hd,2k,4k'],
             'prompt_type' => ['nullable', 'string', 'in:simple,image,video'],
             'has_trade' => ['nullable', 'boolean'],
-            'category' => ['nullable', 'string'],
+            'category' => ['nullable', 'string', Rule::enum(ProductCategory::class)],
         ], [
             'type.required' => 'انتخاب نوع خروجی الزامی است.',
             'type.in' => 'نوع خروجی باید تصویر (image)، ویدیو (video)، متن (text)، ویرایش (edit) یا پرامپت (prompt) باشد.',
@@ -71,7 +73,7 @@ class CreditController extends Controller
         // Prompt-only track (spec item 13, phase 1).
         if ($data['type'] === 'prompt') {
             $promptType = $data['prompt_type'] ?? 'image';
-            $hasTrade = (bool) ($data['has_trade'] ?? (! empty($data['category']) && $data['category'] !== 'general'));
+            $hasTrade = (bool) ($data['has_trade'] ?? ProductCategory::namesTrade($data['category'] ?? null));
             $cost = $estimator->estimatePrompt($promptType, $hasTrade);
             $balance = $credits->account($request->user())->balance;
 
@@ -112,7 +114,7 @@ class CreditController extends Controller
         }
 
         $cost = $estimator->estimate($data['type'], $data['video_duration_seconds'] ?? null, $blocked ? 'standard' : $quality);
-        $hasTrade = (bool) ($data['has_trade'] ?? (! empty($data['category']) && $data['category'] !== 'general'));
+        $hasTrade = (bool) ($data['has_trade'] ?? ProductCategory::namesTrade($data['category'] ?? null));
         $promptCost = $estimator->estimatePrompt($data['type'], $hasTrade);
         $balance = $credits->account($request->user())->balance;
 
@@ -124,6 +126,9 @@ class CreditController extends Controller
             'prompt_cost' => $promptCost,
             'balance' => $balance,
             'sufficient' => $balance >= $cost,
+            // Both tracks quote from the same wallet; the dual-track cards
+            // read this instead of re-deriving the price of the second one.
+            'sufficient_for_prompt' => $balance >= $promptCost,
             'pricing_url' => $balance >= $cost ? null : '/pricing',
         ]);
     }

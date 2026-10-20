@@ -173,4 +173,58 @@ class CompilePromptTest extends TestCase
         ])->assertStatus(422)
             ->assertJsonValidationErrors(['target_ai']);
     }
+
+    public function test_undecided_studio_fields_sent_as_explicit_null_are_accepted_and_priced_as_generic(): void
+    {
+        $user = User::factory()->create();
+        $credits = app(CreditService::class);
+        $credits->initialize($user, 30);
+        $product = $user->products()->create([
+            'name' => 'کیف چرم دست‌دوز',
+            'category' => 'bags',
+        ]);
+        Sanctum::actingAs($user);
+
+        // Exactly what the browser sends when the user bought the prompt
+        // without touching most of the studio: every undecided field as an
+        // explicit JSON null (Laravel runs enum/in rules on an explicit null
+        // unless the field is nullable, so these used to 422 and break the
+        // purchase; null now means "let autoBest decide").
+        $response = $this->postJson('/api/creative/compile-prompt', [
+            'product_id' => $product->id,
+            'goal' => null,
+            'style' => null,
+            'format' => null,
+            'environment' => null,
+            'category' => null,
+            'fidelity_mode' => null,
+            'video_duration_seconds' => null,
+            'custom_prompt' => null,
+            'surface' => null,
+            'props' => null,
+            'camera_angle' => null,
+            'lighting_setup' => null,
+            'character_consistency' => null,
+            'campaign' => null,
+            'season_theme' => null,
+            'target_ai' => null,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            // No trade was decided, so the prompt-only track charges its
+            // generic price even though the product itself is a real trade.
+            ->assertJsonPath('data.credits_charged', 1)
+            ->assertJsonPath('data.new_balance', 29)
+            ->assertJsonPath('data.target_ai', 'generic');
+
+        $this->assertNotEmpty($response->json('data.prompt'));
+
+        $transaction = CreditTransaction::query()
+            ->where('user_id', $user->id)
+            ->where('type', 'prompt_compilation')
+            ->firstOrFail();
+        $this->assertSame(-1, $transaction->amount);
+        $this->assertNull($transaction->metadata['category'] ?? null);
+    }
 }

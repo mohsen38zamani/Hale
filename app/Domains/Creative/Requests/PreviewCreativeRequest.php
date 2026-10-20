@@ -29,10 +29,15 @@ class PreviewCreativeRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Every "sometimes" rule is also `nullable`: the browser sends
+            // the studio's empty fields as explicit JSON null, and a null
+            // must mean "not decided yet" (autoBest decides), not a
+            // validation error - Laravel runs enum/in rules on explicit
+            // null unless the field is nullable.
             'product_id' => ['required', 'integer', 'exists:products,id'],
-            'goal' => ['sometimes', Rule::enum(CreativeGoal::class)],
-            'style' => ['sometimes', Rule::enum(CreativeStyle::class)],
-            'format' => ['sometimes', Rule::enum(CreativeFormat::class)],
+            'goal' => ['sometimes', 'nullable', Rule::enum(CreativeGoal::class)],
+            'style' => ['sometimes', 'nullable', Rule::enum(CreativeStyle::class)],
+            'format' => ['sometimes', 'nullable', Rule::enum(CreativeFormat::class)],
             'environment' => ['nullable', Rule::in(config('creative.environments'))],
             'category' => ['nullable', 'string', Rule::enum(ProductCategory::class)],
             'fidelity_mode' => ['nullable', 'string', Rule::enum(FidelityMode::class)],
@@ -43,7 +48,7 @@ class PreviewCreativeRequest extends FormRequest
             'camera_angle' => ['nullable', 'string', Rule::in(array_keys(config('creative.camera_angles')))],
             'lighting_setup' => ['nullable', 'string', Rule::in(array_keys(config('creative.lighting_setups')))],
             'character_consistency' => ['nullable', 'string', Rule::in(array_keys(config('creative.character_consistencies')))],
-            'campaign' => ['sometimes', 'boolean'],
+            'campaign' => ['sometimes', 'nullable', 'boolean'],
             'season_theme' => ['nullable', 'string', Rule::in(array_column(config('seasons.themes'), 'key'))],
             'target_ai' => ['nullable', 'string', Rule::in(array_keys(config('creative.target_ais')))],
         ];

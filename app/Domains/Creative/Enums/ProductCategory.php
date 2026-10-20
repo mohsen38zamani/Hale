@@ -59,4 +59,14 @@ enum ProductCategory: string
     {
         return $this === self::General;
     }
+
+    /**
+     * Whether a raw value (a request field, a brief key) names a real
+     * trade: missing, empty and `general` are all "no trade" - and the
+     * prompt-only track prices a real trade higher than the generic one.
+     */
+    public static function namesTrade(?string $value): bool
+    {
+        return $value !== null && $value !== '' && $value !== self::General->value;
+    }
 }

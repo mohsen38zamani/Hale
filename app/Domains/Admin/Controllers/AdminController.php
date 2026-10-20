@@ -4,6 +4,7 @@ namespace App\Domains\Admin\Controllers;
 
 use App\Domains\Admin\Models\SystemSetting;
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Credits\Models\CreditTransaction;
 use App\Domains\Credits\Services\CreditService;
 use App\Domains\Generations\Exceptions\GenerationNotCancellable;
 use App\Domains\Generations\Models\Generation;
@@ -209,18 +210,18 @@ class AdminController extends Controller
         // Track 1: In-App Generation
         $genCompletedCount = Generation::where('status', 'completed')->count();
         $genCreditsSpent = (int) abs(
-            DB::table('credit_transactions')
+            CreditTransaction::query()
                 ->where('delivery_path', 'in_app_generation')
                 ->where('amount', '<', 0)
                 ->sum('amount')
         );
 
         // Track 2: Prompt-Only Track
-        $promptCount = DB::table('credit_transactions')
+        $promptCount = CreditTransaction::query()
             ->where('type', 'prompt_compilation')
             ->count();
         $promptCreditsSpent = (int) abs(
-            DB::table('credit_transactions')
+            CreditTransaction::query()
                 ->where('type', 'prompt_compilation')
                 ->where('amount', '<', 0)
                 ->sum('amount')

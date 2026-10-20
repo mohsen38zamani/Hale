@@ -6,6 +6,7 @@ use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
 use App\Domains\Creative\Enums\FidelityMode;
+use App\Domains\Creative\Enums\ProductCategory;
 use App\Domains\Creative\Requests\CompilePromptRequest;
 use App\Domains\Creative\Requests\PreviewCreativeRequest;
 use App\Domains\Creative\Services\CreativeEngine;
@@ -62,7 +63,10 @@ class CreativeController extends Controller
     {
         $product = Product::query()->findOrFail($request->integer('product_id'));
         abort_unless($product->user_id === $request->user()->id, 404);
-        $goal = CreativeGoal::from($request->input('goal', CreativeGoal::Introduction->value));
+        // An undecided field arrives as an explicit JSON null (the browser
+        // sends its empty inputs as null); ?: - not the input() default -
+        // turns both a missing key and a null into "studio didn't decide".
+        $goal = CreativeGoal::from($request->input('goal') ?: CreativeGoal::Introduction->value);
 
         $settings = $engine->autoBest($product, $goal);
 
@@ -86,7 +90,7 @@ class CreativeController extends Controller
         $brief = $engine->brief($product, $settings, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);
         $creditCost = $estimator->estimate($format->type(), $settings['video_duration_seconds'] ?? null);
-        $hasTrade = ! empty($settings['category']) && $settings['category'] !== 'general';
+        $hasTrade = ProductCategory::namesTrade($settings['category'] ?? null);
         $promptCost = $estimator->estimatePrompt($format->type(), $hasTrade);
 
         return $this->success([
@@ -114,7 +118,9 @@ class CreativeController extends Controller
         $user = $request->user();
         $product = Product::query()->findOrFail($request->integer('product_id'));
         abort_unless($product->user_id === $user->id, 404);
-        $goal = CreativeGoal::from($request->input('goal', CreativeGoal::Introduction->value));
+        // Same null-means-undecided rule as preview(): a null goal here
+        // would otherwise reach CreativeGoal::from() and throw a TypeError.
+        $goal = CreativeGoal::from($request->input('goal') ?: CreativeGoal::Introduction->value);
 
         $settings = $engine->autoBest($product, $goal);
 
@@ -131,7 +137,7 @@ class CreativeController extends Controller
         }
 
         $format = CreativeFormat::from($settings['format']);
-        $hasTrade = ! empty($settings['category']) && $settings['category'] !== 'general';
+        $hasTrade = ProductCategory::namesTrade($settings['category'] ?? null);
         $cost = $estimator->estimatePrompt($format->type(), $hasTrade);
 
         $idempotencyKey = $request->header('Idempotency-Key')
