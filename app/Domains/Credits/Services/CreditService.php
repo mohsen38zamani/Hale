@@ -154,6 +154,23 @@ class CreditService
     }
 
     /**
+     * Atomic spend for professional prompt engineering (Track 2, spec item 13).
+     *
+     * Charges 1, 2, or 5 credits atomically under the user's row lock,
+     * recording the transaction as 'prompt_compilation' with idempotency
+     * to protect against duplicate spending.
+     *
+     * @param  array<string, mixed>  $metadata
+     */
+    public function spendForPrompt(User $user, int $amount, string $key, array $metadata = []): int
+    {
+        return $this->spendForTask($user, null, $amount, $key, [
+            ...$metadata,
+            'delivery_path' => 'prompt_only',
+        ], 'prompt_compilation');
+    }
+
+    /**
      * Return a failed one-shot task charge (image edits, ...). Idempotent
      * through the caller-supplied key, so a retried job cannot refund twice.
      */

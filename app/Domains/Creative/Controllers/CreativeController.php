@@ -6,10 +6,13 @@ use App\Domains\Creative\Enums\CreativeFormat;
 use App\Domains\Creative\Enums\CreativeGoal;
 use App\Domains\Creative\Enums\CreativeStyle;
 use App\Domains\Creative\Enums\FidelityMode;
+use App\Domains\Creative\Requests\CompilePromptRequest;
 use App\Domains\Creative\Requests\PreviewCreativeRequest;
 use App\Domains\Creative\Services\CreativeEngine;
 use App\Domains\Creative\Services\SeasonThemeService;
+use App\Domains\Credits\Exceptions\InsufficientCredits;
 use App\Domains\Credits\Services\CreditEstimator;
+use App\Domains\Credits\Services\CreditService;
 use App\Domains\Products\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
@@ -93,6 +96,76 @@ class CreativeController extends Controller
             'prompt_preview' => $prompt,
             'estimated_credits' => $creditCost,
             'estimated_prompt_credits' => $promptCost,
+        ]);
+    }
+
+    /**
+     * Official commercial endpoint to purchase and compile a self-contained prompt (Track 2, spec item 13).
+     *
+     * Charges 1, 2, or 5 credits atomically, records the prompt_compilation
+     * ledger entry, and returns the compiled prompt tailored to the target model.
+     */
+    public function compilePrompt(
+        CompilePromptRequest $request,
+        CreativeEngine $engine,
+        CreditService $credits,
+        CreditEstimator $estimator
+    ): JsonResponse {
+        $user = $request->user();
+        $product = Product::query()->findOrFail($request->integer('product_id'));
+        abort_unless($product->user_id === $user->id, 404);
+        $goal = CreativeGoal::from($request->input('goal', CreativeGoal::Introduction->value));
+
+        $settings = $engine->autoBest($product, $goal);
+
+        foreach (['style', 'format', 'environment', 'category', 'fidelity_mode', 'video_duration_seconds', 'custom_prompt', 'surface', 'props', 'camera_angle', 'lighting_setup', 'character_consistency', 'target_ai'] as $key) {
+            if ($request->filled($key)) {
+                $settings[$key] = $request->input($key);
+            }
+        }
+        if ($request->boolean('campaign')) {
+            $settings['campaign'] = true;
+        }
+        if ($request->filled('season_theme')) {
+            $settings['season_theme'] = $request->string('season_theme')->toString();
+        }
+
+        $format = CreativeFormat::from($settings['format']);
+        $hasTrade = ! empty($settings['category']) && $settings['category'] !== 'general';
+        $cost = $estimator->estimatePrompt($format->type(), $hasTrade);
+
+        $idempotencyKey = $request->header('Idempotency-Key')
+            ?? $request->string('idempotency_key')->toString()
+            ?: 'compile_prompt:'.$user->id.':'.md5(json_encode([$product->id, $settings]));
+
+        try {
+            $newBalance = $credits->spendForPrompt($user, $cost, $idempotencyKey, [
+                'product_id' => $product->id,
+                'format' => $format->value,
+                'type' => $format->type(),
+                'target_ai' => $settings['target_ai'] ?? 'generic',
+                'category' => $settings['category'] ?? null,
+                'has_trade' => $hasTrade,
+            ]);
+        } catch (InsufficientCredits $exception) {
+            return $this->failure('INSUFFICIENT_CREDITS', $exception->getMessage(), 402);
+        }
+
+        $brief = $engine->brief($product, $settings, $user->brandKit);
+        $prompt = $engine->prompt($brief, $format);
+        $targetAiKey = (string) ($settings['target_ai'] ?? 'generic');
+        /** @var string $targetAiName */
+        $targetAiName = config("creative.target_ais.{$targetAiKey}.name", 'عمومی');
+
+        return $this->success([
+            'prompt' => $prompt,
+            'target_ai' => $targetAiKey,
+            'target_ai_name' => $targetAiName,
+            'credits_charged' => $cost,
+            'new_balance' => $newBalance,
+            'brief' => $brief,
+            'settings' => $settings,
+            'type' => $format->type(),
         ]);
     }
 }

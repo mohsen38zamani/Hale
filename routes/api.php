@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/creative/options', [CreativeController::class, 'options']);
     Route::get('/creative/theme', [CreativeController::class, 'theme']);
     Route::post('/creative/preview', [CreativeController::class, 'preview']);
+    Route::post('/creative/compile-prompt', [CreativeController::class, 'compilePrompt']);
     Route::get('/generations', [GenerationController::class, 'index']);
     Route::post('/generations', [GenerationController::class, 'store'])->middleware(['verified', 'throttle:generation']);
     Route::post('/generations/bulk', [GenerationController::class, 'bulk'])->middleware(['verified', 'throttle:generation']);
