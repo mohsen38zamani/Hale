@@ -11,7 +11,9 @@ return [
             'simple' => (int) env('CREDIT_COST_PROMPT_SIMPLE', 1),
             'image' => (int) env('CREDIT_COST_PROMPT_IMAGE', 2),
             'video' => (int) env('CREDIT_COST_PROMPT_VIDEO', 5),
+            'unit_cost_usd' => (float) env('PROMPT_UNIT_COST_USD', 0.0006),
         ],
+        'prompt_unit_cost_usd' => (float) env('PROMPT_UNIT_COST_USD', 0.0006),
         // Non-image AI tasks (caption writing, ...).
         'text' => (int) env('CREDIT_COST_TEXT', 3),
         // One-shot AI utility tools (charged upfront, refunded on failure).

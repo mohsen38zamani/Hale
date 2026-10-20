@@ -164,9 +164,12 @@ class CreditService
      */
     public function spendForPrompt(User $user, int $amount, string $key, array $metadata = []): int
     {
+        $costUsd = (float) config('credits.costs.prompt_unit_cost_usd', 0.0006);
+
         return $this->spendForTask($user, null, $amount, $key, [
             ...$metadata,
             'delivery_path' => 'prompt_only',
+            'internal_cost_usd' => $costUsd,
         ], 'prompt_compilation');
     }
 
@@ -214,6 +217,19 @@ class CreditService
 
     private function record(CreditAccount $account, ?Generation $generation, string $type, int $amount, string $key, ?array $metadata = null): void
     {
-        $account->transactions()->create(['user_id' => $generation?->user_id ?? $account->user_id, 'generation_id' => $generation?->id, 'type' => $type, 'amount' => $amount, 'balance_after' => $account->balance, 'idempotency_key' => $key, 'metadata' => $metadata]);
+        $deliveryPath = (string) ($metadata['delivery_path'] ?? ($type === 'prompt_compilation' ? 'prompt_only' : 'in_app_generation'));
+        $costUsd = (float) ($metadata['internal_cost_usd'] ?? ($type === 'prompt_compilation' ? (float) config('credits.costs.prompt_unit_cost_usd', 0.0006) : 0.0));
+
+        $account->transactions()->create([
+            'user_id' => $generation?->user_id ?? $account->user_id,
+            'generation_id' => $generation?->id,
+            'type' => $type,
+            'delivery_path' => $deliveryPath,
+            'amount' => $amount,
+            'internal_cost_usd' => $costUsd,
+            'balance_after' => $account->balance,
+            'idempotency_key' => $key,
+            'metadata' => $metadata,
+        ]);
     }
 }

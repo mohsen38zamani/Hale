@@ -202,22 +202,74 @@ class AdminController extends Controller
         $paidUsers = Payment::where('status', 'paid')->distinct('user_id')->count('user_id');
         $freeToPaidRate = $totalUsers > 0 ? round(($paidUsers / $totalUsers) * 100, 2) : 0.0;
 
-        // 4. Financials & Gross Margin (PRD: Gross Margin > 50%)
+        // 4. Financials & Unit Economics Ledger (spec item 13, phase 3)
         $totalRevenueToman = (int) Payment::where('status', 'paid')->sum('amount');
         $totalCostUsd = (float) Generation::where('status', 'completed')->sum('cost_usd');
 
+        // Track 1: In-App Generation
+        $genCompletedCount = Generation::where('status', 'completed')->count();
+        $genCreditsSpent = (int) abs(
+            DB::table('credit_transactions')
+                ->where('delivery_path', 'in_app_generation')
+                ->where('amount', '<', 0)
+                ->sum('amount')
+        );
+
+        // Track 2: Prompt-Only Track
+        $promptCount = DB::table('credit_transactions')
+            ->where('type', 'prompt_compilation')
+            ->count();
+        $promptCreditsSpent = (int) abs(
+            DB::table('credit_transactions')
+                ->where('type', 'prompt_compilation')
+                ->where('amount', '<', 0)
+                ->sum('amount')
+        );
+        $promptUnitCostUsd = (float) SystemSetting::get('prompt_unit_cost_usd', config('credits.costs.prompt_unit_cost_usd', 0.0006));
+        $promptCostUsd = round($promptCount * $promptUnitCostUsd, 4);
+
+        // Split attributed revenue based on relative consumption of credits
+        $totalTrackCredits = $genCreditsSpent + $promptCreditsSpent;
+        if ($totalTrackCredits > 0) {
+            $genRevenueToman = (int) round(($genCreditsSpent / $totalTrackCredits) * $totalRevenueToman);
+            $promptRevenueToman = (int) round(($promptCreditsSpent / $totalTrackCredits) * $totalRevenueToman);
+        } else {
+            $genRevenueToman = $totalRevenueToman;
+            $promptRevenueToman = 0;
+        }
+
         $usdToTomanRate = (int) SystemSetting::get('usd_to_toman_rate', (int) config('payment.usd_to_toman_rate', 100000));
-        $totalCostToman = (int) round($totalCostUsd * $usdToTomanRate);
-        $grossProfitToman = $totalRevenueToman - $totalCostToman;
-        $grossMarginRate = $totalRevenueToman > 0
-            ? round(($grossProfitToman / $totalRevenueToman) * 100, 2)
+
+        // Track 1 Economics (Target margin: 50% - 70%)
+        $genCostToman = (int) round($totalCostUsd * $usdToTomanRate);
+        $genProfitToman = $genRevenueToman - $genCostToman;
+        $genMarginRate = $genRevenueToman > 0
+            ? round(($genProfitToman / $genRevenueToman) * 100, 2)
+            : 0.0;
+
+        // Track 2 Economics (Target margin: 85% - 95%)
+        $promptCostToman = (int) round($promptCostUsd * $usdToTomanRate);
+        $promptProfitToman = $promptRevenueToman - $promptCostToman;
+        $promptMarginRate = $promptRevenueToman > 0
+            ? round(($promptProfitToman / $promptRevenueToman) * 100, 2)
+            : 0.0;
+
+        // Blended Gross Margin across all tracks
+        $blendedCostUsd = round($totalCostUsd + $promptCostUsd, 4);
+        $blendedCostToman = $genCostToman + $promptCostToman;
+        $blendedProfitToman = $totalRevenueToman - $blendedCostToman;
+        $blendedMarginRate = $totalRevenueToman > 0
+            ? round(($blendedProfitToman / $totalRevenueToman) * 100, 2)
             : 0.0;
 
         return $this->success([
             'overview' => [
                 'total_users' => $totalUsers,
                 'total_generations' => Generation::count(),
-                'completed_generations' => Generation::where('status', 'completed')->count(),
+                'completed_generations' => $genCompletedCount,
+                'total_prompts_compiled' => $promptCount,
+                'in_app_credits_spent' => $genCreditsSpent,
+                'prompt_only_credits_spent' => $promptCreditsSpent,
             ],
             'kpis' => [
                 'activation' => [
@@ -249,11 +301,69 @@ class AdminController extends Controller
                 'gross_margin' => [
                     'revenue_toman' => $totalRevenueToman,
                     'cost_usd' => $totalCostUsd,
-                    'cost_toman_estimate' => $totalCostToman,
-                    'profit_toman_estimate' => $grossProfitToman,
-                    'margin_percentage' => $grossMarginRate,
+                    'cost_toman_estimate' => $genCostToman,
+                    'profit_toman_estimate' => $genProfitToman,
+                    'margin_percentage' => $genMarginRate,
                     'target' => '> 50%',
-                    'status' => $grossMarginRate >= 50 ? 'pass' : 'needs_attention',
+                    'status' => $genMarginRate >= 50 ? 'pass' : 'needs_attention',
+                    'tracks' => [
+                        'in_app_generation' => [
+                            'orders_count' => $genCompletedCount,
+                            'credits_spent' => $genCreditsSpent,
+                            'revenue_toman' => $genRevenueToman,
+                            'cost_usd' => $totalCostUsd,
+                            'cost_toman_estimate' => $genCostToman,
+                            'profit_toman_estimate' => $genProfitToman,
+                            'margin_percentage' => $genMarginRate,
+                            'target' => '50% - 70%',
+                            'status' => $genMarginRate >= 50 ? 'pass' : 'needs_attention',
+                        ],
+                        'prompt_only' => [
+                            'prompts_count' => $promptCount,
+                            'credits_spent' => $promptCreditsSpent,
+                            'revenue_toman' => $promptRevenueToman,
+                            'cost_usd' => $promptCostUsd,
+                            'cost_toman_estimate' => $promptCostToman,
+                            'profit_toman_estimate' => $promptProfitToman,
+                            'margin_percentage' => $promptMarginRate,
+                            'target' => '85% - 95%',
+                            'status' => $promptMarginRate >= 85 ? 'pass' : 'needs_attention',
+                        ],
+                    ],
+                ],
+            ],
+            'unit_economics' => [
+                'usd_to_toman_rate' => $usdToTomanRate,
+                'in_app_generation' => [
+                    'orders_count' => $genCompletedCount,
+                    'credits_spent' => $genCreditsSpent,
+                    'revenue_toman' => $genRevenueToman,
+                    'cost_usd' => $totalCostUsd,
+                    'cost_toman' => $genCostToman,
+                    'profit_toman' => $genProfitToman,
+                    'margin_percentage' => $genMarginRate,
+                    'target' => '50% - 70%',
+                    'status' => $genMarginRate >= 50 ? 'pass' : 'needs_attention',
+                ],
+                'prompt_only' => [
+                    'prompts_count' => $promptCount,
+                    'credits_spent' => $promptCreditsSpent,
+                    'revenue_toman' => $promptRevenueToman,
+                    'cost_usd' => $promptCostUsd,
+                    'cost_toman' => $promptCostToman,
+                    'profit_toman' => $promptProfitToman,
+                    'margin_percentage' => $promptMarginRate,
+                    'target' => '85% - 95%',
+                    'status' => $promptMarginRate >= 85 ? 'pass' : 'needs_attention',
+                ],
+                'blended' => [
+                    'revenue_toman' => $totalRevenueToman,
+                    'cost_usd' => $blendedCostUsd,
+                    'cost_toman' => $blendedCostToman,
+                    'profit_toman' => $blendedProfitToman,
+                    'margin_percentage' => $blendedMarginRate,
+                    'target' => '> 50%',
+                    'status' => $blendedMarginRate >= 50 ? 'pass' : 'needs_attention',
                 ],
             ],
         ]);
