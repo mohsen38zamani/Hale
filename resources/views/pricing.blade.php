@@ -516,16 +516,24 @@
 
     // Fetch Plans
     fetch('/api/plans').then(response => response.json()).then(result => {
-        pricingGrid.innerHTML = result.data.filter(plan => plan.key !== 'free').map(plan => `
+        pricingGrid.innerHTML = result.data.filter(plan => plan.key !== 'free').map(plan => {
+            const planGenCount = Math.floor(plan.monthly_credits / (plan.quality === 'premium' ? 25 : 10));
+            const planPromptCount = Math.floor(plan.monthly_credits / 2);
+            return `
             <article class="pricing-card ${plan.key === 'creator' ? 'featured-plan' : ''}">
                 <span class="plan-label">${plan.name}</span>
                 <strong>${plan.monthly_credits}<small> Credit / ماه</small></strong>
                 <p>${plan.video_limit ? `${plan.video_limit} خروجی ویدئویی در ماه` : 'ساخت تصویر نامحدود'}</p>
                 <p>${plan.quality === 'premium' ? 'کیفیت خروجی: پرمیوم ۲K (۲۵ Credit)' : 'کیفیت خروجی: استاندارد ۱K (۱۰ Credit)'}</p>
+                <div class="pack-dual-track">
+                    <div>🎨 معادل تا <strong>${planGenCount}</strong> تصویر با AI حله</div>
+                    <div>✍️ یا تا <strong>${planPromptCount}</strong> پرامپت مهندسی‌شده صنف</div>
+                </div>
                 <div class="plan-price">${money(plan.price_irr)}</div>
                 <button class="primary-button plan-button" data-plan="${plan.key}">انتخاب پلن <span>←</span></button>
             </article>
-        `).join('');
+            `;
+        }).join('');
 
         document.querySelectorAll('[data-plan]').forEach(button => {
             button.addEventListener('click', async () => {
@@ -573,15 +581,23 @@
             packsGrid.innerHTML = '<p class="empty-state">بسته‌ای موجود نیست.</p>';
             return;
         }
-        packsGrid.innerHTML = packs.map(pack => `
+        packsGrid.innerHTML = packs.map(pack => {
+            const genCount = Math.floor(pack.credits / 10);
+            const promptCount = Math.floor(pack.credits / 2);
+            return `
             <article class="pricing-card">
                 <span class="plan-label">بسته اعتبار</span>
                 <strong>${pack.credits}<small> Credit</small></strong>
                 <p>خرید جداگانه؛ بدون نیاز به اشتراک</p>
+                <div class="pack-dual-track">
+                    <div>🎨 معادل تا <strong>${genCount}</strong> تصویر با AI حله</div>
+                    <div>✍️ یا تا <strong>${promptCount}</strong> پرامپت مهندسی‌شده صنف</div>
+                </div>
                 <div class="plan-price">${money(pack.price_irr)}</div>
                 <button class="primary-button plan-button" data-pack="${pack.key}">خرید بسته <span>←</span></button>
             </article>
-        `).join('');
+            `;
+        }).join('');
 
         document.querySelectorAll('[data-pack]').forEach(button => {
             button.addEventListener('click', async () => {

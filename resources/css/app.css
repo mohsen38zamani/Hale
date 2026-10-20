@@ -2737,3 +2737,113 @@ html.has-stage-product .mini-product::before {
   font-weight: 700;
   color: #FFFFFF;
 }
+
+/* ==========================================================================
+   DUAL-TRACK ARCHITECTURE (Studio & Pricing)
+   ========================================================================== */
+.dual-track-selector {
+  margin-bottom: 20px;
+}
+
+.dual-track-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .dual-track-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dual-track-card {
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dual-track-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.dual-track-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+}
+
+.dual-track-card.is-active {
+  background: rgba(139, 92, 246, 0.12) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+}
+
+.dual-track-card[data-track-card="prompt"].is-active {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: #10B981 !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+}
+
+.dual-track-card.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.track-cost-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #C084FC;
+}
+
+.dual-track-card[data-track-card="prompt"] .track-cost-pill {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+}
+
+.dual-track-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pack-dual-track {
+  margin: 10px 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  text-align: right;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+}
+
+.pack-dual-track strong {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.inspector-code.has-fresh-prompt {
+  border-color: #10B981 !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35) !important;
+  animation: pulseFreshPrompt 1s ease 2;
+}
+
+@keyframes pulseFreshPrompt {
+  0%, 100% { border-color: #10B981; }
+  50% { border-color: #34D399; box-shadow: 0 0 24px rgba(52, 211, 153, 0.5); }
+}
+

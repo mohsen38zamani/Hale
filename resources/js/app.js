@@ -1625,6 +1625,14 @@ if (builderForm) {
 	const duration = document.querySelector('[data-duration]');
 	const imageModeField = document.querySelector('[data-image-mode-field]');
 	const estimate = document.querySelector('[data-credit-estimate]');
+	const generateBtn = document.querySelector('[data-generate]');
+	const generateBtnLabel = generateBtn ? generateBtn.textContent.trim() : '';
+	const buyPromptBtn = document.querySelector('[data-buy-prompt]');
+	const btnPromptCost = document.querySelector('[data-btn-prompt-cost]');
+	const trackCards = document.querySelectorAll('[data-track-card]');
+	const trackGenCredits = document.querySelector('[data-track-gen-credits]');
+	const trackPromptCredits = document.querySelector('[data-track-prompt-credits]');
+	let activeTrack = 'generate';
 
 	// Live Studio Preview Canvas elements
 	const canvasStage = document.querySelector('[data-canvas-stage]');
@@ -2125,15 +2133,48 @@ if (builderForm) {
 		if (!format) return;
 		const type = ['instagram_reel', 'tiktok'].includes(format) ? 'video' : 'image';
 		const quality = document.querySelector('[data-quality]')?.value || 'standard';
-		const response = await authFetch('/api/credits/estimate', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ type, video_duration_seconds: type === 'video' ? Number(duration.value) : null, quality }) });
+		const tradeKey = builderForm.querySelector('input[name="category"]:checked')?.value || null;
+		const response = await authFetch('/api/credits/estimate', {
+			method: 'POST',
+			headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				type,
+				video_duration_seconds: type === 'video' ? Number(duration.value) : null,
+				quality,
+				prompt_type: type,
+				has_trade: Boolean(tradeKey)
+			})
+		});
 		const result = await response.json();
 		if (!response.ok) throw new Error(result.error?.message || 'برآورد اعتبار انجام نشد.');
-		if (result.data.sufficient) {
-			estimate.textContent = `هزینه: ${result.data.cost} Credit | موجودی: ${result.data.balance} Credit`;
+
+		const genCost = result.data.cost;
+		const promptCost = result.data.prompt_cost || (type === 'video' ? 5 : (tradeKey ? 2 : 1));
+		const balance = result.data.balance;
+		const genSufficient = Boolean(result.data.sufficient);
+		const promptSufficient = result.data.sufficient_for_prompt !== undefined
+			? Boolean(result.data.sufficient_for_prompt)
+			: (balance >= promptCost);
+
+		if (trackGenCredits) trackGenCredits.textContent = `${genCost} Credit`;
+		if (trackPromptCredits) trackPromptCredits.textContent = `${promptCost} Credit`;
+		if (btnPromptCost) btnPromptCost.textContent = `${promptCost}`;
+
+		if (activeTrack === 'prompt') {
+			if (promptSufficient) {
+				estimate.textContent = `هزینه پرامپت: ${promptCost} Credit | موجودی کیف پول: ${balance} Credit`;
+			} else {
+				estimate.innerHTML = `اعتبار کافی نیست (${balance} از ${promptCost} Credit) | <a href="/pricing" style="color: var(--primary); font-weight: 700;">خرید اعتبار</a>`;
+			}
+			estimate.dataset.insufficient = promptSufficient ? 'false' : 'true';
 		} else {
-			estimate.innerHTML = `اعتبار کافی نیست (${result.data.balance} از ${result.data.cost} Credit) | <a href="/pricing" style="color: var(--primary); font-weight: 700;">خرید اعتبار</a>`;
+			if (genSufficient) {
+				estimate.textContent = `هزینه تولید: ${genCost} Credit | موجودی کیف پول: ${balance} Credit`;
+			} else {
+				estimate.innerHTML = `اعتبار کافی نیست (${balance} از ${genCost} Credit) | <a href="/pricing" style="color: var(--primary); font-weight: 700;">خرید اعتبار</a>`;
+			}
+			estimate.dataset.insufficient = genSufficient ? 'false' : 'true';
 		}
-		estimate.dataset.insufficient = result.data.sufficient ? 'false' : 'true';
 	};
 	// Choices whose key can be drawn on the stage get a before/after pair of
 	// miniatures. Goal and character consistency only rewrite the prompt, so
@@ -2356,6 +2397,7 @@ if (builderForm) {
 		// Leaving a trade must not leave its fidelity promise behind: the
 		// promise only means something next to the trade that made it.
 		if (!tradeKey && fidelitySelect) fidelitySelect.value = '';
+		updateEstimate().catch(() => {});
 	});
 
 	tradePresetRow?.addEventListener('click', (event) => {
@@ -2372,8 +2414,6 @@ if (builderForm) {
 	const targetAiGrid = document.querySelector('[data-target-ai-grid]');
 	const targetAiNote = document.querySelector('[data-target-ai-note]');
 	const targetAiWarning = document.querySelector('[data-target-ai-warning]');
-	const generateBtn = document.querySelector('[data-generate]');
-	const generateBtnLabel = generateBtn ? generateBtn.textContent.trim() : '';
 	let activeTargetCategory = Object.keys(targetCategories)[0] || '';
 	// The only two values `types` ever holds; everything else stays as sent.
 	const formatTypeLabels = { image: 'عکس', video: 'ویدیو' };
@@ -2415,6 +2455,26 @@ if (builderForm) {
 		});
 	};
 
+	const setTrack = (track) => {
+		const entry = targetAis[selectedTargetKey()];
+		if (track === 'generate' && entry && entry.mode !== 'generate') {
+			if (message) {
+				message.className = 'form-message error-message';
+				message.textContent = `مدل «${entry.label}» امکان ساخت در حله ندارد؛ فقط می‌توانید پرامپت مهندسی‌شده دریافت کنید.`;
+			}
+			return;
+		}
+		activeTrack = track;
+		trackCards.forEach((card) => {
+			const isActive = card.dataset.trackCard === track;
+			card.classList.toggle('is-active', isActive);
+			card.setAttribute('aria-pressed', String(isActive));
+		});
+		if (generateBtn) generateBtn.hidden = track !== 'generate';
+		if (buyPromptBtn) buyPromptBtn.hidden = track !== 'prompt';
+		updateEstimate().catch(() => {});
+	};
+
 	const updateTargetAiState = () => {
 		const entry = targetAis[selectedTargetKey()];
 		syncTargetFormatStates();
@@ -2436,7 +2496,10 @@ if (builderForm) {
 		// before the user spends a click instead of after the request fails.
 		const notices = [];
 		if (entry.mode !== 'generate') {
-			notices.push(`«${entry.label}» سرویس داخلی ندارد؛ پرامپت آماده را کپی کن و در همان ابزار بساز.`);
+			notices.push(`«${entry.label}» سرویس ساخت مستقیم در اپلیکیشن ندارد؛ حالت «پرامپت مهندسی‌شده» برای دریافت سریع فعال شد.`);
+			if (activeTrack !== 'prompt') {
+				setTrack('prompt');
+			}
 		}
 		if (!(entry.types || []).includes(selectedFormatType())) {
 			const wanted = typesLabel(entry);
@@ -2454,7 +2517,7 @@ if (builderForm) {
 			generateBtn.disabled = notices.length > 0;
 			generateBtn.textContent = notices.length === 0
 				? generateBtnLabel
-				: (entry.mode === 'generate' ? 'فرمت را عوض کن تا ساخته شود ✦' : 'پرامپت آماده را کپی کن ✋');
+				: (entry.mode === 'generate' ? 'فرمت را عوض کن تا ساخته شود ✦' : 'پرامپت آماده را کپی یا دریافت کن ✋');
 		}
 	};
 
@@ -2774,6 +2837,112 @@ if (builderForm) {
 			updateTargetAiState();
 		}
 	});
+
+	trackCards.forEach((card) => {
+		card.addEventListener('click', () => setTrack(card.dataset.trackCard));
+		card.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				setTrack(card.dataset.trackCard);
+			}
+		});
+	});
+
+	if (buyPromptBtn) {
+		buyPromptBtn.addEventListener('click', async () => {
+			if (!select.value) {
+				message.className = 'form-message error-message';
+				message.textContent = 'ابتدا محصول مورد نظرت را انتخاب کن.';
+				return;
+			}
+			const values = Object.fromEntries(new FormData(builderForm));
+			const targetKey = selectedTargetKey();
+			const isVideo = ['instagram_reel', 'tiktok'].includes(values.format);
+			const rawCustomPrompt = values.custom_prompt ? values.custom_prompt.trim() : null;
+			const payload = {
+				product_id: Number(select.value),
+				target_ai: targetKey,
+				goal: values.goal || null,
+				style: values.style || null,
+				environment: values.environment || null,
+				format: values.format || null,
+				surface: values.surface || null,
+				props: values.props || null,
+				camera_angle: values.camera_angle || null,
+				lighting_setup: values.lighting_setup || null,
+				character_consistency: values.character_consistency || defaultCharacterKey,
+				category: values.category || null,
+				fidelity_mode: values.fidelity_mode || null,
+				custom_prompt: rawCustomPrompt || null,
+				video_duration_seconds: isVideo && values.video_duration_seconds ? Number(values.video_duration_seconds) : null,
+				image_mode: isVideo ? (values.image_mode || 'reference') : null,
+				campaign: Boolean(campaignEnabled && campaignPack),
+				season_theme: seasonThemeKey,
+				quality: document.querySelector('[data-quality]')?.value || 'standard'
+			};
+
+			buyPromptBtn.disabled = true;
+			const originalHtml = buyPromptBtn.innerHTML;
+			buyPromptBtn.textContent = 'در حال کامپایل و صدور پرامپت...';
+			message.className = 'form-message';
+			message.textContent = '';
+
+			try {
+				const response = await authFetch('/api/creative/compile-prompt', {
+					method: 'POST',
+					headers: {
+						Accept: 'application/json',
+						'Content-Type': 'application/json',
+						'Idempotency-Key': crypto.randomUUID()
+					},
+					body: JSON.stringify(payload)
+				});
+				const result = await response.json();
+				if (!response.ok) {
+					if (response.status === 402) {
+						message.innerHTML = `${result.error?.message || 'اعتبار کافی برای خرید پرامپت وجود ندارد.'} <a href="/pricing" style="color: var(--primary); font-weight: 700;">خرید اعتبار</a>`;
+						return;
+					}
+					let errorMsg = result.error?.message || result.message;
+					if (result.errors) {
+						const firstKey = Object.keys(result.errors)[0];
+						if (firstKey && Array.isArray(result.errors[firstKey]) && result.errors[firstKey][0]) {
+							errorMsg = result.errors[firstKey][0];
+						}
+					}
+					throw new Error(errorMsg || 'کامپایل پرامپت انجام نشد.');
+				}
+
+				if (result.data.new_balance !== undefined) {
+					document.querySelectorAll('[data-credit]').forEach((el) => {
+						el.textContent = result.data.new_balance;
+					});
+				}
+
+				if (inspectorCode && result.data.prompt) {
+					inspectorCode.textContent = result.data.prompt;
+					inspectorCode.classList.add('has-fresh-prompt');
+					setTimeout(() => inspectorCode.classList.remove('has-fresh-prompt'), 4000);
+				}
+
+				if (result.data.prompt && navigator.clipboard) {
+					try {
+						await navigator.clipboard.writeText(result.data.prompt);
+					} catch (e) {}
+				}
+
+				message.className = 'form-message success-message';
+				message.textContent = `✓ پرامپت مهندسی‌شده با موفقیت صادر شد (${result.data.credits_deducted} Credit کسر گردید). متن در بازرس پرامپت قرار گرفت و در کلیپ‌بورد کپی شد.`;
+				updateEstimate().catch(() => {});
+			} catch (error) {
+				message.className = 'form-message error-message';
+				message.textContent = error.message;
+			} finally {
+				buyPromptBtn.disabled = false;
+				buyPromptBtn.innerHTML = originalHtml;
+			}
+		});
+	}
 }
 
 const generationPage = document.querySelector('[data-generation-id]');

@@ -296,16 +296,68 @@
                             <p class="form-message" data-template-message role="status" style="margin: 8px 0 0; font-size: 12px;"></p>
                         </div>
 
-                        {{-- Credit Estimate Badge --}}
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 18px; margin-bottom: 20px;">
+                        {{-- Dual-Track Decision & Credit Cards (Track 1 vs Track 2) --}}
+                        <div class="dual-track-selector" data-dual-track-selector>
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
+                                نحوهٔ دریافت محتوا (مدل دو مسیره)
+                            </label>
+                            <div class="dual-track-grid">
+                                {{-- Track 1: In-App Generation --}}
+                                <div class="dual-track-card is-active" data-track-card="generate" role="button" tabindex="0" aria-pressed="true">
+                                    <div>
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <span style="font-size: 16px;">🎨</span>
+                                                <strong style="font-size: 13px; color: #FFFFFF;">تولید با AI حله</strong>
+                                            </div>
+                                            <span class="track-cost-pill" data-track-gen-credits>۱۰ Credit</span>
+                                        </div>
+                                        <p style="margin: 0; font-size: 11px; line-height: 1.5; color: var(--text-secondary);">
+                                            تولید مستقیم عکس/ویدئوی آمادهٔ دانلود با موتور هوش مصنوعی
+                                        </p>
+                                    </div>
+                                    <div style="margin-top: 10px; font-size: 10px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                                        <span>⚡ رندر ~۱۰ ثانیه</span>
+                                    </div>
+                                </div>
+
+                                {{-- Track 2: Professional Prompt Compilation --}}
+                                <div class="dual-track-card" data-track-card="prompt" role="button" tabindex="0" aria-pressed="false">
+                                    <div>
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <span style="font-size: 16px;">✍️</span>
+                                                <strong style="font-size: 13px; color: #FFFFFF;">فقط پرامپت مهندسی‌شده</strong>
+                                            </div>
+                                            <span class="track-cost-pill" data-track-prompt-credits>۲ Credit</span>
+                                        </div>
+                                        <p style="margin: 0; font-size: 11px; line-height: 1.5; color: var(--text-secondary);">
+                                            کامپایل تخصصی صنف و مدل برای Midjourney، Flux و ابزارهای خارجی
+                                        </p>
+                                    </div>
+                                    <div style="margin-top: 10px; font-size: 10px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                                        <span>🚀 تحویل آنی و اقتصادی</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Credit Estimate Badge & Wallet Status --}}
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 12px 16px; margin-bottom: 20px;">
                             <p class="estimate-message" data-credit-estimate aria-live="polite" style="margin: 0; font-size: 13px; color: var(--text-secondary); font-weight: 600;"></p>
                         </div>
 
                         <p class="form-message" data-builder-message role="alert" style="margin-bottom: 16px;"></p>
 
-                        <button class="btn-aurora full-button" type="submit" data-generate style="padding: 14px; font-size: 15px; border-radius: 14px;">
-                            شروع ساخت محتوا ✦
-                        </button>
+                        {{-- Dual-Track Actions --}}
+                        <div class="dual-track-actions" data-dual-track-actions>
+                            <button class="btn-aurora full-button" type="submit" data-generate style="padding: 14px; font-size: 15px; border-radius: 14px;">
+                                شروع ساخت محتوا با هوش مصنوعی ✦
+                            </button>
+                            <button class="btn-aurora full-button" type="button" data-buy-prompt hidden style="padding: 14px; font-size: 15px; border-radius: 14px; background: linear-gradient(135deg, #10B981, #059669); box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);">
+                                خرید و دریافت پرامپت حرفه‌ای ⚡ (<span data-btn-prompt-cost>۲</span> Credit)
+                            </button>
+                        </div>
                     </form>
                 </div>
 
