@@ -26,7 +26,12 @@ class SystemSetting extends Model
             return Cache::get($cacheKey);
         }
 
-        $setting = static::query()->where('key', $key)->first();
+        try {
+            $setting = static::query()->where('key', $key)->first();
+        } catch (\Throwable) {
+            return $default;
+        }
+
         if ($setting === null) {
             return $default;
         }

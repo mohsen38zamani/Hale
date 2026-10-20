@@ -45,24 +45,46 @@ class CreditController extends Controller
     public function estimate(Request $request, CreditEstimator $estimator, CreditService $credits): JsonResponse
     {
         $data = $request->validate([
-            'type' => ['required', 'string', 'in:image,video,text,edit'],
+            'type' => ['required', 'string', 'in:image,video,text,edit,prompt'],
             'video_duration_seconds' => ['nullable', 'integer', 'in:5,8,10'],
             'quality' => ['nullable', 'string', 'in:standard,premium'],
             'operation' => ['nullable', 'string', 'required_if:type,edit', 'in:remove_bg,upscale,expand,shadow'],
             'target' => ['nullable', 'string', 'in:hd,2k,4k'],
+            'prompt_type' => ['nullable', 'string', 'in:simple,image,video'],
+            'has_trade' => ['nullable', 'boolean'],
+            'category' => ['nullable', 'string'],
         ], [
             'type.required' => 'انتخاب نوع خروجی الزامی است.',
-            'type.in' => 'نوع خروجی باید تصویر (image)، ویدیو (video)، متن (text) یا ویرایش (edit) باشد.',
+            'type.in' => 'نوع خروجی باید تصویر (image)، ویدیو (video)، متن (text)، ویرایش (edit) یا پرامپت (prompt) باشد.',
             'video_duration_seconds.in' => 'مدت زمان ویدیو باید یکی از مقادیر ۵، ۸ یا ۱۰ ثانیه باشد.',
             'quality.in' => 'کیفیت خروجی باید استاندارد یا پرمیوم باشد.',
             'operation.in' => 'عملیات ویرایش معتبر نیست.',
             'operation.required_if' => 'برای تخمین ویرایش، عملیات را انتخاب کنید.',
             'target.in' => 'وضوح مقصد باید hd، 2k یا 4k باشد.',
+            'prompt_type.in' => 'نوع پرامپت باید simple، image یا video باشد.',
         ]);
         $quality = $data['quality'] ?? 'standard';
         // Ask the plan first: free users only ever pay standard pricing.
         $maxQuality = (string) config('plans.'.($request->user()->plan_key ?: 'free').'.quality', 'standard');
         $blocked = $quality === 'premium' && $maxQuality !== 'premium';
+
+        // Prompt-only track (spec item 13, phase 1).
+        if ($data['type'] === 'prompt') {
+            $promptType = $data['prompt_type'] ?? 'image';
+            $hasTrade = (bool) ($data['has_trade'] ?? (! empty($data['category']) && $data['category'] !== 'general'));
+            $cost = $estimator->estimatePrompt($promptType, $hasTrade);
+            $balance = $credits->account($request->user())->balance;
+
+            return $this->success([
+                'type' => 'prompt',
+                'prompt_type' => $promptType,
+                'has_trade' => $hasTrade,
+                'cost' => $cost,
+                'balance' => $balance,
+                'sufficient' => $balance >= $cost,
+                'pricing_url' => $balance >= $cost ? null : '/pricing',
+            ]);
+        }
 
         // Utility tools are flat/step priced, independent of the plan gate.
         if ($data['type'] === 'edit') {
@@ -90,6 +112,8 @@ class CreditController extends Controller
         }
 
         $cost = $estimator->estimate($data['type'], $data['video_duration_seconds'] ?? null, $blocked ? 'standard' : $quality);
+        $hasTrade = (bool) ($data['has_trade'] ?? (! empty($data['category']) && $data['category'] !== 'general'));
+        $promptCost = $estimator->estimatePrompt($data['type'], $hasTrade);
         $balance = $credits->account($request->user())->balance;
 
         return $this->success([
@@ -97,6 +121,7 @@ class CreditController extends Controller
             'quality' => $blocked ? 'standard' : $quality,
             'quality_blocked' => $blocked,
             'cost' => $cost,
+            'prompt_cost' => $promptCost,
             'balance' => $balance,
             'sufficient' => $balance >= $cost,
             'pricing_url' => $balance >= $cost ? null : '/pricing',

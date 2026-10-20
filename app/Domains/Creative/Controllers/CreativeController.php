@@ -83,6 +83,8 @@ class CreativeController extends Controller
         $brief = $engine->brief($product, $settings, $request->user()->brandKit);
         $prompt = $engine->prompt($brief, $format);
         $creditCost = $estimator->estimate($format->type(), $settings['video_duration_seconds'] ?? null);
+        $hasTrade = ! empty($settings['category']) && $settings['category'] !== 'general';
+        $promptCost = $estimator->estimatePrompt($format->type(), $hasTrade);
 
         return $this->success([
             ...$settings,
@@ -90,6 +92,7 @@ class CreativeController extends Controller
             'brief' => $brief,
             'prompt_preview' => $prompt,
             'estimated_credits' => $creditCost,
+            'estimated_prompt_credits' => $promptCost,
         ]);
     }
 }

@@ -40,4 +40,14 @@ class CreditEstimatorTest extends TestCase
         // Unknown operations degrade to the cheapest tier instead of 0.
         $this->assertSame(5, $estimator->estimateEdit('unknown_tool'));
     }
+
+    public function test_it_estimates_prompt_track_costs(): void
+    {
+        $estimator = new CreditEstimator;
+
+        $this->assertSame(1, $estimator->estimatePrompt('simple'));
+        $this->assertSame(1, $estimator->estimatePrompt('image', false));
+        $this->assertSame(2, $estimator->estimatePrompt('image', true));
+        $this->assertSame(5, $estimator->estimatePrompt('video'));
+    }
 }

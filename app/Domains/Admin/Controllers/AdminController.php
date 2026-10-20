@@ -288,4 +288,67 @@ class AdminController extends Controller
             'settings' => SystemSetting::query()->get(),
         ]);
     }
+
+    public function creditSettings(): JsonResponse
+    {
+        /** @var array<string, int> $keys */
+        $keys = [
+            'credit_cost_image_standard' => (int) config('credits.costs.image.standard', 10),
+            'credit_cost_image_premium' => (int) config('credits.costs.image.premium', 25),
+            'credit_cost_video_base' => (int) config('credits.costs.video.base', 20),
+            'credit_cost_video_per_second' => (int) config('credits.costs.video.per_second', 5),
+            'credit_cost_prompt_simple' => (int) config('credits.costs.prompt.simple', 1),
+            'credit_cost_prompt_image' => (int) config('credits.costs.prompt.image', 2),
+            'credit_cost_prompt_video' => (int) config('credits.costs.prompt.video', 5),
+        ];
+
+        $current = [];
+        foreach ($keys as $key => $default) {
+            $val = (int) SystemSetting::get($key, $default);
+            $current[$key] = [
+                'key' => $key,
+                'value' => $val,
+                'default' => $default,
+                'is_custom' => SystemSetting::query()->where('key', $key)->exists(),
+            ];
+        }
+
+        return $this->success([
+            'rates' => $current,
+            'tracks' => [
+                'generation' => [
+                    'image_standard' => $current['credit_cost_image_standard']['value'],
+                    'image_premium' => $current['credit_cost_image_premium']['value'],
+                    'video_base' => $current['credit_cost_video_base']['value'],
+                    'video_per_second' => $current['credit_cost_video_per_second']['value'],
+                ],
+                'prompt' => [
+                    'simple' => $current['credit_cost_prompt_simple']['value'],
+                    'image' => $current['credit_cost_prompt_image']['value'],
+                    'video' => $current['credit_cost_prompt_video']['value'],
+                ],
+            ],
+        ]);
+    }
+
+    public function updateCreditSettings(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'credit_cost_image_standard' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:500'],
+            'credit_cost_image_premium' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:500'],
+            'credit_cost_video_base' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:500'],
+            'credit_cost_video_per_second' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:500'],
+            'credit_cost_prompt_simple' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
+            'credit_cost_prompt_image' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
+            'credit_cost_prompt_video' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        foreach ($data as $key => $value) {
+            if ($value !== null) {
+                SystemSetting::set($key, (int) $value, 'integer', 'credits');
+            }
+        }
+
+        return $this->creditSettings();
+    }
 }

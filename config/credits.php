@@ -6,6 +6,12 @@ return [
     'costs' => [
         'image' => ['standard' => 10, 'premium' => 25],
         'video' => ['base' => 20, 'per_second' => 5],
+        // Track 2: Prompt-only engineering (spec item 13, phase 1).
+        'prompt' => [
+            'simple' => (int) env('CREDIT_COST_PROMPT_SIMPLE', 1),
+            'image' => (int) env('CREDIT_COST_PROMPT_IMAGE', 2),
+            'video' => (int) env('CREDIT_COST_PROMPT_VIDEO', 5),
+        ],
         // Non-image AI tasks (caption writing, ...).
         'text' => (int) env('CREDIT_COST_TEXT', 3),
         // One-shot AI utility tools (charged upfront, refunded on failure).

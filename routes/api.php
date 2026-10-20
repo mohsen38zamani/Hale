@@ -137,4 +137,6 @@ Route::prefix('admin')->middleware(['auth:sanctum', AdminMiddleware::class, 'thr
     Route::post('/users/{user}/unban', [AdminController::class, 'unban']);
     Route::get('/settings', [AdminController::class, 'settings']);
     Route::post('/settings', [AdminController::class, 'updateSettings']);
+    Route::get('/settings/credits', [AdminController::class, 'creditSettings']);
+    Route::post('/settings/credits', [AdminController::class, 'updateCreditSettings']);
 });
