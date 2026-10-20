@@ -25,6 +25,20 @@ return [
             'video_per_second' => env('GOOGLE_VEO_PRICING_PER_SECOND_USD') !== null ? (float) env('GOOGLE_VEO_PRICING_PER_SECOND_USD') : null,
         ],
     ],
+    // The edge-protection pass of the foreground-invariant fidelity mode:
+    // after the scene is rendered, the product is landed again by the edit
+    // model with the customer's own photo beside it. A second, optional
+    // model call - switched off it costs nothing, and the pass failing
+    // never costs the generation itself.
+    'edge_protect' => [
+        'enabled' => (bool) env('AI_EDGE_PROTECT_ENABLED', true),
+        // The pass decorates a finished render; it gets a short leash of
+        // its own instead of holding the whole generation hostage.
+        'timeout' => (int) env('AI_EDGE_PROTECT_TIMEOUT', 60),
+        // Logged on the usage ledger for margin reporting; the user's
+        // credits pay for the render, never twice for the pass.
+        'cost_usd' => (float) env('AI_EDGE_PROTECT_COST_USD', 0.04),
+    ],
     'processing_lease_seconds' => (int) env('AI_PROCESSING_LEASE_SECONDS', 600),
     // How many chained edits one conversation may reach. A reply is checked
     // before it is charged: an unbounded thread is an unbounded bill.

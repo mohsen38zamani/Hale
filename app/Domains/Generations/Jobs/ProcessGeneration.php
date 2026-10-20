@@ -7,6 +7,7 @@ use App\Domains\AI\Gateway\AiGateway;
 use App\Domains\AI\Services\CircuitBreaker;
 use App\Domains\Creative\Services\ProductCompositor;
 use App\Domains\Credits\Services\CreditService;
+use App\Domains\Generations\Contracts\EdgeProtectPassInterface;
 use App\Domains\Generations\Models\Generation;
 use App\Domains\Media\Services\ImageOptimizer;
 use App\Domains\Media\Services\WatermarkService;
@@ -53,13 +54,14 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
         return (string) $this->generationId;
     }
 
-    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null, ?SearchIndexer $searchIndexer = null, ?ImageOptimizer $imageOptimizer = null, ?ProductCompositor $compositor = null): void
+    public function handle(AiGateway $gateway, CreditService $credits, ?WatermarkService $watermarks = null, ?CircuitBreaker $circuitBreaker = null, ?SearchIndexer $searchIndexer = null, ?ImageOptimizer $imageOptimizer = null, ?ProductCompositor $compositor = null, ?EdgeProtectPassInterface $edgeProtect = null): void
     {
         $watermarks ??= app(WatermarkService::class);
         $circuitBreaker ??= app(CircuitBreaker::class);
         $searchIndexer ??= app(SearchIndexer::class);
         $imageOptimizer ??= app(ImageOptimizer::class);
         $compositor ??= app(ProductCompositor::class);
+        $edgeProtect ??= app(EdgeProtectPassInterface::class);
 
         $claimed = DB::transaction(function (): ?array {
             $generation = Generation::query()->whereKey($this->generationId)->lockForUpdate()->firstOrFail();
@@ -141,6 +143,26 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
             // Quality tier: resize to the plan tier's dimension before the
             // watermark so the stamp is rendered at the final size.
             $contents = $result->contents;
+            $edgeProtectStatus = null;
+            $edgeProtectUsage = null;
+            if ($generation->type === 'image'
+                && ($project->fidelity_mode?->isInpainting() ?? false)
+                && $asset !== null) {
+                // Foreground-invariant inpainting's second act: the scene
+                // exists, so the customer's product is landed again from
+                // its own photo. The pass only ever adds quality on top of
+                // a finished render - its failure keeps the render that
+                // already exists, never a failed generation.
+                $category = $project->category?->value ?? (is_string($project->brief['category'] ?? null) ? $project->brief['category'] : null);
+                $edgeProtectAttempt = $edgeProtect->apply($result->contents, $result->mime, $asset, $category);
+                if ($edgeProtectAttempt === null) {
+                    $edgeProtectStatus = 'failed';
+                } else {
+                    $contents = $edgeProtectAttempt['contents'];
+                    $edgeProtectStatus = 'applied';
+                    $edgeProtectUsage = $edgeProtectAttempt;
+                }
+            }
             if ($generation->type === 'image') {
                 $quality = (string) ($generation->metadata['quality'] ?? 'standard');
                 $tier = $quality === 'premium' ? 'premium_max_dimension' : 'standard_max_dimension';
@@ -155,13 +177,23 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
             }
             $fileStored = true;
             $elapsed = (int) ((hrtime(true) - $startedAt) / 1_000_000);
-            $completed = DB::transaction(function () use ($generation, $path, $result, $contents, $response, $providerFailures, $elapsed, $credits, $attempt, $circuitBreaker): bool {
+            $completed = DB::transaction(function () use ($generation, $path, $result, $contents, $response, $providerFailures, $edgeProtectStatus, $edgeProtectUsage, $elapsed, $credits, $attempt, $circuitBreaker): bool {
                 $generation = Generation::query()->whereKey($generation->id)->lockForUpdate()->firstOrFail();
                 if ($generation->status !== 'processing' || $generation->processing_lease_expires_at?->isPast()) {
                     return false;
                 }
                 $media = $generation->user->mediaAssets()->firstOrCreate(['path' => $path], ['disk' => config('ai.output_disk'), 'mime' => $result->mime, 'size' => strlen($contents), 'expires_at' => now()->addDays(config('ai.retention_days'))]);
                 $generation->usageLogs()->firstOrCreate([], ['provider' => $response['provider'], 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'output_tokens' => $result->outputTokens, 'cost_usd' => $result->costUsd, 'metadata' => $result->metadata]);
+                // The protect pass is a second, self-paid model call: it
+                // belongs on the same ledger, clearly addressed, so margin
+                // reporting can separate it from the render's own bill
+                // without ever touching the user's credit charge.
+                if ($edgeProtectUsage !== null) {
+                    $generation->usageLogs()->firstOrCreate(
+                        ['metadata->pass' => 'edge_protect'],
+                        ['provider' => 'google_image_edit', 'model' => $edgeProtectUsage['model'], 'input_tokens' => $edgeProtectUsage['inputTokens'], 'output_tokens' => $edgeProtectUsage['outputTokens'], 'cost_usd' => $edgeProtectUsage['costUsd'], 'metadata' => ['pass' => 'edge_protect']]
+                    );
+                }
                 $generation->update([
                     'status' => 'completed',
                     'provider' => $response['provider'],
@@ -172,9 +204,7 @@ class ProcessGeneration implements ShouldBeUnique, ShouldQueueAfterCommit
                     'processing_lease_expires_at' => null,
                     // Which providers failed before this one succeeded, so a
                     // fallback run stays observable on the generation itself.
-                    'metadata' => $providerFailures === []
-                        ? $generation->metadata
-                        : array_merge($generation->metadata ?? [], ['provider_failures' => $providerFailures]),
+                    'metadata' => array_merge($generation->metadata === null ? [] : $generation->metadata, $providerFailures === [] ? [] : ['provider_failures' => $providerFailures], $edgeProtectStatus === null ? [] : ['edge_protect' => $edgeProtectStatus]),
                 ]);
                 $credits->settle($generation);
                 $circuitBreaker?->settle($generation->id, $result->costUsd);

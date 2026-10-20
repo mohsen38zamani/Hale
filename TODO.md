@@ -344,8 +344,7 @@
   - [x] **Caption Generator** — `POST /api/generations/{generation}/caption` (زبان fa/en، لحن صمیمی/رسمی/هیجان‌انگیز، moderation ورودی، throttle:generation): [CaptionService](file:///var/www/html/Hale'/app/Domains/AI/Services/CaptionService.php) با Gemini از همان کلید/base_url گوگل و fallback قطعی قالب‌محور (محصول/هدف/برند) وقتی کلید نیست یا مدل جواب نمی‌دهد؛ هزینهٔ `credits.costs.text=3` با `CreditService::spendForTask` (شاخهٔ text در CreditEstimator، وگرنه فرمول ویدیو آن را ۴۵ حساب می‌کرد)؛ همان language+tone از metadata برای رایگان برمی‌گردد و `refresh=true` دوباره می‌سازد و هزینه می‌برد. دکمه و پنل کپشن در صفحهٔ جزئیات تولید؛ پوشش با `CaptionGeneratorTest` (۹ تست).
   - [x] **Content Calendar و Campaign** — جدول‌های `campaigns`/`scheduled_posts` ([migration](file:///var/www/html/Hale'/database/migrations/2026_10_04_110000_create_campaigns_and_scheduled_posts_tables.php)) و [CalendarController](file:///var/www/html/Hale'/app/Domains/Calendar/Controllers/CalendarController.php): `GET/POST/PATCH/DELETE /api/calendar/posts` (بازهٔ تاریخ، مالکیت 404، `after_or_equal:today`، وضعیت draft|scheduled|published) + `GET/POST /api/campaigns` با ساخت پست‌های پلکانی start + i×interval (حداکثر ۳۰ پست، فاصلهٔ ۱ تا ۳۰ روز) و رد اتمیکی شناسه‌های غیرمالک.
   - پنل «تقویم محتوا» در داشبورد با `Intl.DateTimeFormat('fa-IR', {calendar:'persian'})` بدون پکیج جدید: گرید ماهانه با شمارش پست هر روز، لیست روز با تغییر وضعیت/تاریخ/حذف و فرم ساخت کمپین از خروجی‌های تکمیل‌شده؛ پوشش با `ContentCalendarTest` (۱۰ تست).
-- [ ] استودیوی هوشمند تخصصی تولید محتوای محصول (Product Creative Studio): استودیوهای ۱۰ صنف (طلا، ساعت، کفش...) با معماری دوگانهٔ کپی پرامپت خودکفا برای ۱۲ مدل هوش مصنوعی و ساخت مستقیم داخلی (طبق `docs/Product_Creative_Studio_Specification_FA.md`).
-  - **پیشرفت:** ۶ فاز از ۷ فاز در بخش ۱۲ بسته شد (۷ بچ، کامیت‌های `745929a` تا `e9fb80a`)؛ فقط «فاز ۳ — اتصال لایهٔ Inpainting محافظت لبه‌ای با نانو بنان» باز است و تصمیم/تأیید جدا می‌خواهد.
+- [x] استودیوی هوشمند تخصصی تولید محتوای محصول (Product Creative Studio): استودیوهای ۱۰ صنف (طلا، ساعت، کفش...) با معماری دوگانهٔ کپی پرامپت خودکفا برای ۱۲ مدل هوش مصنوعی و ساخت مستقیم داخلی (طبق `docs/Product_Creative_Studio_Specification_FA.md`) — هر ۷ فاز به‌طور کامل تحویل شد.
 - [ ] Organizations، Workspace، Team/RBAC و Public API.
 - [ ] White Label و Social Auto Publish.
 - [x] Image optimization/compression برای web delivery.
@@ -653,7 +652,7 @@
   - **یادداشتِ staging:** `.env.staging.example` اصلاً بلوکِ Google را نداشت و بدونِ کلیدهای Veo بود؛ حالا بلوکِ کامل (شامل `GOOGLE_VEO_OPERATION_TIMEOUT` و `GOOGLE_VEO_POLL_INTERVAL`) دارد، و بدونِ کلید هم staging روی مکان‌یابِ محلی کار می‌کند و `ai:verify` دلیلش را می‌گوید.
 
 ### ۱۲. استودیوی هوشمند تخصصی تولید محتوای محصول و کامپایلرهای چندمدلی (Product Creative Studio & Multi-Model Compilers)
-- [ ] **پیاده‌سازی معماری دوگانهٔ استودیو (کپی پرامپت خودکفا + ساخت مستقیم داخلی) طبق `docs/Product_Creative_Studio_Specification_FA.md`:**
+- [x] **پیاده‌سازی معماری دوگانهٔ استودیو (کپی پرامپت خودکفا + ساخت مستقیم داخلی) طبق `docs/Product_Creative_Studio_Specification_FA.md`:**
   - **مسئله:** کاربران دو دسته‌اند؛ برخی دکمهٔ ساخت داخل سامانه را می‌زنند و برخی پرامپت مهندسی‌شده را برای استفاده در Midjourney، Flux، ChatGPT یا Stable Diffusion کپی می‌کنند. تمام هوش حفاظت و صحنه‌پردازی اصناف نمی‌تواند صرفاً در کدهای سرور پنهان بماند؛ کامپایلرهای پرامپت باید خودکفا باشند و هم‌زمان پایپ‌لاین تولید مستقیم نیز به درستی کار کند.
   - [x] **فاز ۱: هسته اصناف، انوم‌ها و کاتالوگ قواعد فیزیکی (Domain & Presets Core):**
     - [x] تعریف انوم‌های دامنه: `ProductCategory` (شامل ۱۰ صنف و متدهای کمکی `isMacro()`, `defaultScaleInstruction()`) — **انحراف ۱:** مجموعهٔ نهایی `jewelry, watches, shoes, perfumes, cosmetics, fashion, bags, electronics, home_decor, general` است؛ `eyewear`/`accessories` از فهرست مشخصات جاماندند و `electronics`/`general` جایگزین شدند.
@@ -664,9 +663,9 @@
     - [x] پیاده‌سازی قرارداد `CategoryPromptDecoratorInterface` و ایجاد کلاس `CategoryPromptBuilder`.
     - [x] پیاده‌سازی قفل مقیاس فیزیکی (Physical Scale-Locking) برای طلا/جواهر (میکرو و ماکرو ۱۰۰mm)، ساعت (پروپورشن ۴۲mm)، کفش (ابعاد واقعی انسانی) و عطر (تناسب بطری ۱۰۰ml روی سطح).
     - [x] تزریق دستورات تثبیت ساختار و هندسه کالا (`Keep original product geometry, dials, prongs, and logos unchanged`) در پرامپت کامپایل‌شده برای Midjourney, Flux, SD, ChatGPT, Claude.
-  - [ ] **فاز ۳: پایپ‌لاین تولید و کامپوزیتینگ داخلی (Native Execution & Compositing Engine):**
+  - [x] **فاز ۳: پایپ‌لاین تولید و کامپوزیتینگ داخلی (Native Execution & Compositing Engine):**
     - [x] پیاده‌سازی سرویس `ProductCompositor` بر پایه PHP/GD برای حالت کاتالوگ سفید خالص (`#FFFFFF`) با سایه نرم تماسی (Grounding Shadow) بدون تغییر در پیکسل‌های کالا — متصل به `ProcessGeneration` و فقط وقتی `fidelity_mode=catalog_white_composite` است.
-    - [ ] اتصال به لایه Inpainting محافظت لبه‌ای (Specular Rim / Light Wrap) با نانو بنان برای صحنه‌های لوکس دکوراتیو با حفظ ۱۰۰٪ فرم و جزئیات کالا. **باز است:** مسیر `foreground_invariant_inpainting` امروز فقط در `brief` و قالب‌ها ثبت می‌شود و هیچ پاسِ پس‌پردازشی ندارد؛ موتور ویرایش نانو بنان در دامنهٔ `Editing` وجود دارد ولی به این حالت وصل نیست. چون این پاس یک فراخوانی AI پولی دوم است، اجرایش تصمیم/تأیید جدا می‌خواهد (انحراف ۴).
+    - [x] اتصال به لایه Inpainting محافظت لبه‌ای (Specular Rim / Light Wrap) با نانو بنان برای صحنه‌های لوکس دکوراتیو با حفظ ۱۰۰٪ فرم و جزئیات کالا — سرویس `EdgeProtectPass` متصل به `ProcessGeneration` با قرارداد `EdgeProtectPassInterface`، ثبت هزینه روی usage logs، حفظ خروجی در صورت خطای پاس و تطبیق MIME خروجی.
   - [x] **فاز ۴: تحلیل دورگه تصویر محصول (Hybrid Two-Stage Analyzer):**
     - [x] پیاده‌سازی لایه ۱ تحلیل محلی با PHP/GD (ابعاد، نسبت کادر، تشخیص لایه شفاف آلفا و سلامت هدر فایل در صفر ثانیه بدون هزینه API).
     - [x] پیاده‌سازی لایه ۲ بینایی ماشین سبک با Gemini Flash جهت تشخیص صنف و رنگ در قالب JSON سبک به صورت غیرمسدودکننده (Non-blocking) — **انحراف ۲:** روی `MediaAsset` عکس اصلی محصول سوار شد نه روی `Generation`، چون اندپوینت روی محصول است؛ قرارداد API و هزینه تغییری نکرد.

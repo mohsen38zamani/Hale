@@ -349,6 +349,183 @@ class ProcessGenerationTest extends TestCase
         });
     }
 
+    public function test_the_protect_pass_lands_the_product_in_a_completed_inpainting_generation(): void
+    {
+        Storage::fake('s3');
+        config(['ai.providers.google.api_key' => 'test-key']);
+        $user = User::factory()->create(['plan_key' => 'pro']);
+        $generation = $this->queuedGenerationWithFidelity($user, 'foreground_invariant_inpainting');
+        $answer = $this->passPngBytes();
+
+        Http::fake(['*generativelanguage.googleapis.com*' => Http::response($this->passAnswerPayload($answer), 200)]);
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), app(CreditService::class));
+
+        $generation->refresh();
+        $this->assertSame('completed', $generation->status, (string) $generation->error_message);
+        $this->assertSame('applied', $generation->metadata['edge_protect']);
+
+        // The pass earns its own row on the ledger, clearly addressed, while
+        // the user's charge stays the render's own price.
+        $usageLogs = $generation->usageLogs()->orderBy('id')->get();
+        $this->assertCount(2, $usageLogs);
+        $this->assertSame('google_image_edit', $usageLogs[1]->provider);
+        $this->assertSame('edge_protect', $usageLogs[1]->metadata['pass']);
+        $this->assertSame((float) config('ai.edge_protect.cost_usd'), (float) $usageLogs[1]->cost_usd);
+
+        // On the pro plan the watermark is skipped and the quality tier never
+        // upscales a small frame, so the stored render is exactly the pass.
+        $this->assertSame($answer, (string) Storage::disk('s3')->get($generation->outputMedia->path));
+    }
+
+    public function test_a_failing_protect_pass_still_delivers_the_render(): void
+    {
+        Storage::fake('s3');
+        config(['ai.providers.google.api_key' => 'test-key']);
+        $generation = $this->queuedGenerationWithFidelity(User::factory()->create(), 'foreground_invariant_inpainting');
+
+        Http::fake(['*generativelanguage.googleapis.com*' => Http::response('boom', 500)]);
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), app(CreditService::class));
+
+        $generation->refresh();
+        $this->assertSame('completed', $generation->status, 'The pass only decorates a finished render; its refusal never breaks one.');
+        $this->assertSame('failed', $generation->metadata['edge_protect']);
+        $this->assertCount(1, $generation->usageLogs, 'A refused pass has no cost to record.');
+
+        // The render that left the local fake is what survived the refusal.
+        $stored = (string) Storage::disk('s3')->get($generation->outputMedia->path);
+        $this->assertSame(1, imagesx(imagecreatefromstring($stored)));
+    }
+
+    public function test_a_scene_without_the_inpainting_mode_never_incurs_the_pass(): void
+    {
+        foreach (['catalog_white_composite', null] as $fidelityMode) {
+            Storage::fake('s3');
+            Http::fake(['*generativelanguage.googleapis.com*' => Http::response($this->passAnswerPayload($this->passPngBytes()), 200)]);
+
+            $generation = $this->queuedGenerationWithFidelity(User::factory()->create(), $fidelityMode);
+
+            (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), app(CreditService::class));
+
+            $generation->refresh();
+            $this->assertSame('completed', $generation->status, (string) $generation->error_message);
+            $this->assertArrayNotHasKey('edge_protect', $generation->metadata);
+            $this->assertCount(1, $generation->usageLogs);
+            // Not every outbound call in a pipeline is ours; web push rides
+            // the notification too. What must not happen is a model call.
+            $this->assertTrue(
+                Http::recorded(fn ($request): bool => str_contains($request->url(), 'generativelanguage'))->isEmpty(),
+                'A scene without the inpainting mode must never reach the pass model.'
+            );
+        }
+    }
+
+    public function test_the_protect_pass_uses_brief_category_fallback_when_project_category_is_null(): void
+    {
+        Storage::fake('s3');
+        config(['ai.providers.google.api_key' => 'test-key']);
+        $user = User::factory()->create(['plan_key' => 'pro']);
+        $product = $user->products()->create(['name' => 'انگشتر نقره']);
+        $assetBytes = $this->passPngBytes();
+        $asset = $user->mediaAssets()->create(['path' => 'products/reference.png', 'disk' => 's3', 'mime' => 'image/png', 'size' => strlen($assetBytes)]);
+        Storage::disk('s3')->put('products/reference.png', $assetBytes);
+        $product->assets()->attach($asset->id, ['is_primary' => true]);
+
+        $project = $user->creativeProjects()->create([
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'professional',
+            'format' => 'instagram_post',
+            'category' => null,
+            'fidelity_mode' => 'foreground_invariant_inpainting',
+            'brief' => ['category' => 'jewelry'],
+            'prompt' => 'prompt',
+        ]);
+
+        $generation = $user->generations()->create([
+            'creative_project_id' => $project->id,
+            'type' => 'image',
+            'status' => 'queued',
+            'prompt_hash' => hash('sha256', 'prompt'),
+            'metadata' => ['aspect_ratio' => '1:1'],
+        ]);
+        app(CreditService::class)->reserve($user, $generation, 10);
+
+        Http::fake(['*generativelanguage.googleapis.com*' => Http::response($this->passAnswerPayload($this->passPngBytes()), 200)]);
+
+        (new ProcessGeneration($generation->id))->handle(app(AiGateway::class), app(CreditService::class));
+
+        Http::assertSent(function ($request): bool {
+            if (! str_contains($request->url(), 'generativelanguage')) {
+                return false;
+            }
+
+            $prompt = (string) json_decode($request->body(), true)['contents'][0]['parts'][2]['text'];
+            $this->assertStringContainsString('macro photography, 100mm lens', $prompt, 'The brief category must reach the protect pass prompt.');
+
+            return true;
+        });
+    }
+
+    private function queuedGenerationWithFidelity(User $user, ?string $fidelityMode): Generation
+    {
+        $product = $user->products()->create(['name' => 'انگشتر نقره']);
+        $assetBytes = $this->passPngBytes();
+        $asset = $user->mediaAssets()->create(['path' => 'products/reference.png', 'disk' => 's3', 'mime' => 'image/png', 'size' => strlen($assetBytes)]);
+        Storage::disk('s3')->put('products/reference.png', $assetBytes);
+        $product->assets()->attach($asset->id, ['is_primary' => true]);
+
+        $project = $user->creativeProjects()->create([
+            'product_id' => $product->id,
+            'goal' => 'sales',
+            'style' => 'professional',
+            'format' => 'instagram_post',
+            'category' => 'jewelry',
+            'fidelity_mode' => $fidelityMode,
+            'brief' => [],
+            'prompt' => 'prompt',
+        ]);
+
+        $generation = $user->generations()->create([
+            'creative_project_id' => $project->id,
+            'type' => 'image',
+            'status' => 'queued',
+            'prompt_hash' => hash('sha256', 'prompt'),
+            'metadata' => ['aspect_ratio' => '1:1'],
+        ]);
+        app(CreditService::class)->reserve($user, $generation, 10);
+
+        return $generation;
+    }
+
+    private function passPngBytes(): string
+    {
+        $image = imagecreatetruecolor(16, 16);
+        imagefill($image, 0, 0, imagecolorallocate($image, 200, 30, 30));
+
+        ob_start();
+        imagepng($image);
+        imagedestroy($image);
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function passAnswerPayload(string $contents): array
+    {
+        return [
+            'candidates' => [[
+                'content' => ['parts' => [[
+                    'inlineData' => ['mimeType' => 'image/png', 'data' => base64_encode($contents)],
+                ]]],
+            ]],
+            'usageMetadata' => ['promptTokenCount' => 9, 'candidatesTokenCount' => 4],
+        ];
+    }
+
     private function createGeneration(User $user): Generation
     {
         $product = $user->products()->create(['name' => 'عطر']);

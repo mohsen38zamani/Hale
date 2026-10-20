@@ -28,6 +28,16 @@ return [
         'max_dimension' => 1600,
     ],
 
+    // The edge-protection pass (spec item 12, phase 3.2): the wording the
+    // edit model receives after the scene is rendered. `{scale}` and
+    // `{guardrail}` are filled by the trade catalogue's own sentences, so
+    // the pass can never promise less protection than the compiled prompt
+    // did - and with no trade, both placeholders just vanish.
+    'edge_protect_prompt' => 'Two images come with this prompt. The FIRST image is a finished advertising scene that was just rendered around this product. The SECOND image is the customer\'s own photo of the real product. Work inside the first scene: place the product back exactly as it appears in the second photo - the same shape, the same colours, the same label text, the same logo and typography, the same material and finish, the same size in the frame. The product\'s pixels may not be reinterpreted, restyled or redrawn, only re-lit where the new scene demands it: finish the silhouette with a soft specular rim light, let the scene colour wrap the edges (light wrap), and keep the contact shadow on the floor. Change nothing outside the product\'s silhouette: the frame keeps its composition, its mood and its palette, and the first image stays recognisably the picture that was approved.
+
+{scale}
+{guardrail}',
+
     // How strongly a scene control steers the final image. `short` is the
     // compact chip tag, `hint` is the caption/tooltip explaining the effect.
     'impact_levels' => [

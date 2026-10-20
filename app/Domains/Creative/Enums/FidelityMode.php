@@ -26,6 +26,16 @@ enum FidelityMode: string
     }
 
     /**
+     * Whether the post-render edge-protection pass answers this mode: the
+     * scene is rendered first, then the product is landed again from its
+     * own photo with the edit model.
+     */
+    public function isInpainting(): bool
+    {
+        return $this === self::ForegroundInvariantInpainting;
+    }
+
+    /**
      * The Persian line the studio reads under the picker. The wording lives in
      * config exactly like every other studio catalogue, so the option cards
      * and the summary can never drift from the engine.

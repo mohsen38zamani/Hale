@@ -14,7 +14,9 @@ use App\Domains\Auth\Providers\SmsIrProvider;
 use App\Domains\Billing\Contracts\PaymentGateway;
 use App\Domains\Billing\Providers\FakePaymentGateway;
 use App\Domains\Billing\Providers\ZarinpalPaymentGateway;
+use App\Domains\Generations\Contracts\EdgeProtectPassInterface;
 use App\Domains\Generations\Contracts\ProductImageAnalyzerInterface;
+use App\Domains\Generations\Services\EdgeProtectPass;
 use App\Domains\Generations\Services\ProductImageAnalyzer;
 use App\Domains\Notifications\Listeners\SendWebPushNotification;
 use App\Support\PhoneNormalizer;
@@ -39,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
         // contract so the product controller and queued analyzer depend on
         // the abstraction rather than the concrete service.
         $this->app->bind(ProductImageAnalyzerInterface::class, ProductImageAnalyzer::class);
+
+        // The edge-protection pass of foreground-invariant inpainting (spec
+        // item 12, phase 3.2): bound by contract so its fakes in the test
+        // suite can sit in without class surgery.
+        $this->app->bind(EdgeProtectPassInterface::class, EdgeProtectPass::class);
 
         $this->app->singleton(ModelRouter::class, function ($app): ModelRouter {
             $providers = [];
