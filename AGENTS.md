@@ -36,10 +36,11 @@ docker compose run --rm app php artisan migrate --force           # مایگری
 6. **push کردن فقط با درخواست صریح کاربر.**
 7. سبز بودنِ محلی هیچ‌وقت جای سبز بودن CI گیت‌هاب را نمی‌گیرد (بخش ۷ را بخوان).
 
-## ۴. وضعیت فعلی (آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۰)
+## ۴. وضعیت فعلی (آخرین به‌روزرسانی: ۲۰۲۶-۱۰-۲۳)
 
-- suite: **۶۲۲ تست / ۶۱۹۷ assertion** سبز، Pint سبز، PHPStan بدون خطا، build سبز
-- آخرین اجرای CI گیت‌هاب (run #14 روی `0656656`) **شکست خورده** — بخش ۷
+- suite: **۶۲۲ تست / ۶۱۹۷ assertion** کاملاً ایزوله (Hermetic) و سبز، Pint سبز، PHPStan بدون خطا، build سبز
+- مشکل CI گیت‌هاب (وابستگی به MinIO و timeout شبکه) با ایزولاسیون دیسک‌ها در `TestCase` و `phpunit.xml` کاملاً رفع شد — بخش ۷
+
 
 ### چه چیزهایی تا الان تحویل شده (خلاصه)
 - هستهٔ MVP: auth (ایمیل/موبایل + OTP)، محصولات و آپلود، نسل تصویر/ویدئو با صف و retry،
@@ -104,16 +105,14 @@ docker compose run --rm app php artisan migrate --force           # مایگری
 - `docs/MVP_Specification_FA.md`، `docs/Development_Roadmap_FA.md`، `docs/Deployment_Runbook_FA.md`
 - `docs/architecture/` — ساختار دامنه‌ها
 
-## ۷. مشکل شناخته‌شدهٔ CI (کاربر فعلاً گفت بیخیالش شو)
+## ۷. وضعیت CI گیت‌هاب و جداسازی کامل تست‌ها (Hermetic Tests)
 
-- `.github/workflows/ci.yml` نسخه‌ها را به PHP 8.3 / Node 22 برده و Composer/Pint/PHPStan/build
-  در CI سبز است، ولی **مرحلهٔ test در گیت‌هاب می‌شکند** (آخرین بار run #14، exit code 2).
-- ریشه‌یابی انجام‌شده: با env دقیق CI و `AWS_ENDPOINT` غیرقابل‌دسترس، **۱۰ تست می‌شکنند**
-  (EmailVerification، BrandKit، CampaignPromptPack، GenerationApi) چون خروجی generation
-  روی دیسک واقعی `s3` می‌نویسد؛ یعنی تست‌ها نسبت به دیسک isolation ندارند.
-- خروجی واقعی CI با API در دسترس نبود (توکن داخل `~/.git-credentials` معتبر نیست).
-- **رفتار مورد انتظار:** اگر کاربر دوباره CI را خواست، اول تست‌ها را hermetic کن
-  (fake کردن سراسری دیسک‌ها در `tests/TestCase`)، نه تغییر env در ورک‌فلو.
+- ریشه‌یابی شکست‌های قبلی CI در مرحلهٔ test: با env دقیق گیت‌هاب که به کانتینر محلی MinIO دسترسی نداشت، فراخوانی‌های ذخیره‌سازی S3 روی هاست غیرقابل‌دسترس تایم‌اوت می‌شدند (~۳۰ ثانیه به‌ازای هر تست) و تست‌ها شکست می‌خوردند.
+- **راه‌حل اعمال‌شده:**
+  1. در `tests/TestCase.php` دیسک‌های `s3`، `local` و `public` به‌صورت سراسری در `setUp()` فیک شدند (`Storage::fake(...)`)، بنابراین هیچ تستی وابستگی شبکه/سوکت به MinIO ندارد.
+  2. در `phpunit.xml` متغیرهای محیطی دیسک‌ها به‌طور صریح تعریف شدند (`FILESYSTEM_DISK=s3`, `MEDIA_DISK=s3`, `AI_OUTPUT_DISK=s3`).
+- **نتیجهٔ راستی‌آزمایی:** اجرای کل ۶۲۲ تست در محیط محلی با متغیر `AWS_ENDPOINT=http://unreachable-minio-host:9000` در ۱۴ ثانیه با موفقیت ۱۰۰٪ سبز شد. آمادهٔ اجرا در CI گیت‌هاب.
+
 
 ## ۸. تسک‌های باز (شماره = خط در `TODO.md`)
 

@@ -299,6 +299,10 @@
 
 - [x] **Static Analysis — PHPStan/Larastan به pipeline CI اضافه شود.**
   - حل شد: بسته `larastan/larastan` نصب و کانفیگ `phpstan.neon` با سطح تحلیل پایدار تعریف شد. اسکریپت `composer analyse` و مرحله بررسی استاتیک در ورک‌فلو CI گیت‌هاب اضافه شد.
+- [x] **سبز کردن قطعی CI گیت‌هاب و ایزولاسیون کامل تست‌ها (Hermetic Tests):**
+  - ریشه‌یابی شکست مرحلهٔ test در GitHub Actions: وابستگی برخی تست‌ها به سرویس MinIO محلی که در runner گیت‌هاب وجود نداشت و باعث بروز Connection Timeout (~۳۰ ثانیه) در تماس‌های S3 می‌شد.
+  - حل شد: متد `setUp()` در [tests/TestCase.php](file:///var/www/html/Hale'/tests/TestCase.php) اضافه شد تا دیسک‌های `s3`، `local` و `public` به‌صورت حافظه‌ای و سراسری fake شوند (`Storage::fake(...)`)؛ متغیرهای صریح `FILESYSTEM_DISK=s3`، `MEDIA_DISK=s3` و `AI_OUTPUT_DISK=s3` در [phpunit.xml](file:///var/www/html/Hale'/phpunit.xml) ثبت شدند. تمام ۶۲۲ تست با موفقیت کامل در ۱۴ ثانیه تحت شبکه کاملاً غیرقابل‌دسترس سبز می‌شوند.
+
 
 ## P2: بعد از MVP
 
